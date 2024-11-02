@@ -1,6 +1,6 @@
 {
   "name": "mediasfu-reactnative-expo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/main.js",
   "types": "dist/types/main.d.ts",
   "module": "dist/main.js",
@@ -34,7 +34,8 @@
     "build:copy": "cp -r src/assets dist/assets",
     "buildnpm": "npm run build:clean && npm run build:ts",
     "lint": "eslint src/**/*.ts src/**/*.tsx",
-    "lint:fix": "eslint src/**/*.ts src/**/*.tsx --fix"
+    "lint:fix": "eslint src/**/*.ts src/**/*.tsx --fix",
+    "build-docs": "typedoc"
   },
   "peerDependencies": {
     "@config-plugins/react-native-webrtc": "^9.0.0",
@@ -115,6 +116,9 @@
     "reanimated-color-picker": "^2.4.2",
     "socket.io-client": "^4.7.2",
     "standardized-audio-context": "^25.3.61",
+    "typedoc": "^0.26.11",
+    "typedoc-plugin-extras": "^3.1.0",
+    "typedoc-plugin-markdown": "^4.2.10",
     "typescript": "^5.6.3",
     "webpack": "^5.90.3",
     "webpack-cli": "^5.1.4"

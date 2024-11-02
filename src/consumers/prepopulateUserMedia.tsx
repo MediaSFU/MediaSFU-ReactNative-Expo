@@ -59,51 +59,42 @@ export interface PrepopulateUserMediaOptions {
 export type PrepopulateUserMediaType = (options: PrepopulateUserMediaOptions) => Promise<JSX.Element[] | void>;
 
 /**
- * Prepopulates the user media based on the provided options.
+ * Processes consumer transports by pausing and resuming them based on certain conditions.
  *
- * @param {PrepopulateUserMediaOptions} options - The options for prepopulating user media.
- * @param {string} options.name - The name of the user.
- * @param {Parameters} options.parameters - The parameters for prepopulating user media.
- * @param {Function} options.parameters.getUpdatedAllParams - Function to get updated parameters.
- * @param {Array<Participant>} options.parameters.participants - List of participants.
- * @param {Array<Stream>} options.parameters.allVideoStreams - List of all video streams.
- * @param {string} options.parameters.islevel - The level of the user.
- * @param {string} options.parameters.member - The member name.
- * @param {boolean} options.parameters.shared - Indicates if the screen is shared.
- * @param {boolean} options.parameters.shareScreenStarted - Indicates if screen sharing has started.
- * @param {string} options.parameters.eventType - The type of event.
- * @param {string} options.parameters.screenId - The screen ID.
- * @param {boolean} options.parameters.forceFullDisplay - Indicates if full display is forced.
- * @param {Function} options.parameters.updateMainWindow - Function to update the main window.
- * @param {boolean} options.parameters.mainScreenFilled - Indicates if the main screen is filled.
- * @param {boolean} options.parameters.adminOnMainScreen - Indicates if admin is on the main screen.
- * @param {string} options.parameters.mainScreenPerson - The person on the main screen.
- * @param {boolean} options.parameters.videoAlreadyOn - Indicates if the video is already on.
- * @param {boolean} options.parameters.audioAlreadyOn - Indicates if the audio is already on.
- * @param {Array<Stream>} options.parameters.oldAllStreams - List of old all streams.
- * @param {Function} options.parameters.checkOrientation - Function to check orientation.
- * @param {boolean} options.parameters.screenForceFullDisplay - Indicates if screen force full display is enabled.
- * @param {Stream} options.parameters.localStreamScreen - The local screen stream.
- * @param {Array<Stream>} options.parameters.remoteScreenStream - List of remote screen streams.
- * @param {Stream} options.parameters.localStreamVideo - The local video stream.
- * @param {number} options.parameters.mainHeightWidth - The main height and width.
- * @param {boolean} options.parameters.isWideScreen - Indicates if the screen is wide.
- * @param {boolean} options.parameters.localUIMode - Indicates if local UI mode is enabled.
- * @param {boolean} options.parameters.whiteboardStarted - Indicates if whiteboard has started.
- * @param {boolean} options.parameters.whiteboardEnded - Indicates if whiteboard has ended.
- * @param {Stream} options.parameters.virtualStream - The virtual stream.
- * @param {boolean} options.parameters.keepBackground - Indicates if background should be kept.
- * @param {Stream} options.parameters.annotateScreenStream - The annotate screen stream.
- * @param {Function} options.parameters.updateMainScreenPerson - Function to update the main screen person.
- * @param {Function} options.parameters.updateMainScreenFilled - Function to update if the main screen is filled.
- * @param {Function} options.parameters.updateAdminOnMainScreen - Function to update if admin is on the main screen.
- * @param {Function} options.parameters.updateMainHeightWidth - Function to update the main height and width.
- * @param {Function} options.parameters.updateScreenForceFullDisplay - Function to update screen force full display.
- * @param {Function} options.parameters.updateUpdateMainWindow - Function to update the main window update status.
- * @param {Function} options.parameters.updateMainGridStream - Function to update the main grid stream.
+ * @param {Object} options - The options for processing consumer transports.
+ * @param {Array} options.consumerTransports - The list of consumer transports to process.
+ * @param {Array} options.lStreams_ - The list of local streams.
+ * @param {Object} options.parameters - The parameters object containing various stream arrays and utility functions.
  *
- * @returns {Promise<JSX.Element[] | void>} A promise that resolves to an array of JSX elements or void.
+ * @returns {Promise<void>} - A promise that resolves when the processing is complete.
+ *
+ * @throws {Error} - Throws an error if there is an issue processing consumer transports.
+ *
+ * The function performs the following steps:
+ * 1. Destructures and updates the parameters.
+ * 2. Defines a helper function to check if a producerId is valid in given stream arrays.
+ * 3. Filters consumer transports to resume based on certain conditions.
+ * 4. Filters consumer transports to pause based on certain conditions.
+ * 5. Pauses consumer transports after a short delay.
+ * 6. Emits `consumer-pause` event for each filtered transport (not audio).
+ * 7. Emits `consumer-resume` event for each filtered transport (not audio).
+ *
+ * @example
+ * ```typescript
+ * await processConsumerTransports({
+ *   consumerTransports: [transport1, transport2],
+ *   lStreams_: [stream1, stream2],
+ *   parameters: {
+ *     remoteScreenStream: [],
+ *     oldAllStreams: [],
+ *     newLimitedStreams: [],
+ *     sleep: sleepFunction,
+ *     getUpdatedAllParams: () => parameters,
+ *   },
+ * });
+ * ```
  */
+
 export async function prepopulateUserMedia({
   name,
   parameters,

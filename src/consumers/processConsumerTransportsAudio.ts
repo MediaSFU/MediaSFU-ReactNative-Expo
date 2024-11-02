@@ -21,18 +21,47 @@ export type ProcessConsumerTransportsAudioType = (
 ) => Promise<void>;
 
 /**
- * Processes consumer transports for audio streams by pausing and resuming them based on their current state and the provided streams.
+ * Adjusts the layout parameters based on the provided options.
  *
- * @param {Object} options - The options for processing consumer transports.
- * @param {Array} options.consumerTransports - The list of consumer transports to process.
- * @param {Array} options.lStreams - The list of local streams to check against.
- * @param {Object} options.parameters - Additional parameters for processing.
- * @param {Function} options.parameters.sleep - A function to pause execution for a specified duration.
+ * @param {ReadjustOptions} options - The options for readjusting the layout.
+ * @param {number} options.n - The number of participants or elements.
+ * @param {number} options.state - The current state of the layout.
+ * @param {object} options.parameters - The parameters for the layout adjustment.
+ * @param {function} options.parameters.getUpdatedAllParams - Function to get updated parameters.
+ * @param {string} options.parameters.eventType - The type of event (e.g., "broadcast", "chat", "conference").
+ * @param {boolean} options.parameters.shareScreenStarted - Indicates if screen sharing has started.
+ * @param {boolean} options.parameters.shared - Indicates if content is being shared.
+ * @param {number} options.parameters.mainHeightWidth - The main height and width value.
+ * @param {number} options.parameters.prevMainHeightWidth - The previous main height and width value.
+ * @param {string} options.parameters.hostLabel - The label for the host.
+ * @param {boolean} options.parameters.first_round - Indicates if it is the first round.
+ * @param {boolean} options.parameters.lock_screen - Indicates if the screen is locked.
+ * @param {function} options.parameters.updateMainHeightWidth - Function to update the main height and width.
+ * @param {function} options.parameters.prepopulateUserMedia - Function to prepopulate user media.
+ * @returns {Promise<void>} A promise that resolves when the layout adjustment is complete.
+ * @throws {Error} Throws an error if there is an issue updating the grid sizes.
  *
- * @returns {Promise<void>} A promise that resolves when the processing is complete.
- *
- * @throws Will throw an error if there is an issue processing the consumer transports.
+ * @example
+ * ```typescript
+ * await readjust({
+ *   n: 5,
+ *   state: 1,
+ *   parameters: {
+ *     eventType: 'conference',
+ *     shareScreenStarted: false,
+ *     shared: false,
+ *     mainHeightWidth: 100,
+ *     prevMainHeightWidth: 80,
+ *     hostLabel: 'Host Name',
+ *     first_round: false,
+ *     lock_screen: false,
+ *     updateMainHeightWidth: updateMainHeightWidthFunction,
+ *     getUpdatedAllParams: getUpdatedAllParamsFunction,
+ *   },
+ * });
+ * ```
  */
+
 export const processConsumerTransportsAudio = async ({
   consumerTransports,
   lStreams,
