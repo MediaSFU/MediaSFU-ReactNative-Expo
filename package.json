@@ -1,6 +1,6 @@
 {
   "name": "mediasfu-reactnative-expo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/main.js",
   "types": "dist/types/main.d.ts",
   "module": "dist/main.js",

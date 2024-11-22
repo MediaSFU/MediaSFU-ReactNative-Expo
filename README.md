@@ -22,6 +22,12 @@
 
 MediaSFU offers a cutting-edge streaming experience that empowers users to customize their recordings and engage their audience with high-quality streams. Whether you're a content creator, educator, or business professional, MediaSFU provides the tools you need to elevate your streaming game.
 
+<div style="text-align: center;">
+
+<img src="https://mediasfu.com/images/header_1.jpg" alt="Preview Page" title="Preview Page" style="max-height: 600px;">
+
+</div>
+
 ---
 
 # MediaSFU React Native (Expo) Module Documentation
@@ -2109,11 +2115,9 @@ For more detailed information, refer to the [Expo Documentation](https://docs.ex
 
 These troubleshooting steps should help users address common issues and optimize their experience with MediaSFU. If the issues persist or additional assistance is needed, users can refer to the [documentation](https://mediasfu.com/docs) or reach out to the support team for further assistance.
 
-<div style="text-align: center;">
 
-<https://github.com/MediaSFU/MediaSFU-ReactJS/assets/157974639/a6396722-5b2f-4e93-a5b3-dd53ffd20eb7>
+https://github.com/user-attachments/assets/310cb87c-dade-445d-aee7-dea1889d6dc4
 
-</div>
 
 # Contributing <a name="contributing"></a>
 
@@ -2125,7 +2129,6 @@ We appreciate your interest in contributing to the project!
 
 If you need further assistance or have any questions, feel free to ask!
 
-```
 
 
 
