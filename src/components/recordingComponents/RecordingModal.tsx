@@ -113,7 +113,7 @@ export type RecordingModalType = (options: RecordingModalOptions) => JSX.Element
  * @example
  * ```tsx
  * import React from 'react';
- * import { RecordingModal } from 'mediasfu-reactnative';
+ * import { RecordingModal } from 'mediasfu-reactnative-expo';
  * 
  * const recordingParameters = {
  *   recordPaused: false,

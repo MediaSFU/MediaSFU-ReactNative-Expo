@@ -1,9 +1,9 @@
+import { Socket } from 'socket.io-client';
 import {
   Participant, CoHostResponsibility, OnScreenChangesType, OnScreenChangesParameters, Request, ConnectIpsParameters,
-  ReorderStreamsParameters, ConnectIpsType, SleepType, ReorderStreamsType, Settings, ConsumeSocket,
+  ReorderStreamsParameters, ConnectIpsType, SleepType, ReorderStreamsType, Settings, ConsumeSocket, ConnectLocalIpsType, ConnectLocalIpsParameters,
 } from '../../@types/types';
-
-export interface AllMembersRestParameters extends OnScreenChangesParameters, ConnectIpsParameters, ReorderStreamsParameters {
+export interface AllMembersRestParameters extends OnScreenChangesParameters, ConnectIpsParameters, ReorderStreamsParameters, ConnectLocalIpsParameters {
   participantsAll: Participant[];
   participants: Participant[];
   dispActiveNames: string[];
@@ -22,6 +22,7 @@ export interface AllMembersRestParameters extends OnScreenChangesParameters, Con
   videoSetting: string;
   screenshareSetting: string;
   chatSetting: string;
+  socket: Socket;
 
   updateParticipantsAll: (participantsAll: Participant[]) => void;
   updateParticipants: (participants: Participant[]) => void;
@@ -43,6 +44,7 @@ export interface AllMembersRestParameters extends OnScreenChangesParameters, Con
   // mediasfu functions
   onScreenChanges: OnScreenChangesType;
   connectIps: ConnectIpsType;
+  connectLocalIps?: ConnectLocalIpsType;
   sleep: SleepType;
   reorderStreams: ReorderStreamsType;
 
@@ -127,6 +129,7 @@ export const allMembersRest = async ({
     videoSetting,
     screenshareSetting,
     chatSetting,
+    socket,
 
     updateParticipantsAll,
     updateParticipants,
@@ -147,6 +150,7 @@ export const allMembersRest = async ({
 
     onScreenChanges,
     connectIps,
+    connectLocalIps,
     sleep,
     reorderStreams,
   } = parameters;
@@ -163,94 +167,114 @@ export const allMembersRest = async ({
   updateParticipantsAll(participantsAll);
 
   participants = members.filter(
-    (participant) => !participant.isBanned && !participant.isSuspended,
+    (participant) => !participant.isBanned && !participant.isSuspended
   );
   updateParticipants(participants);
 
   // Update UI if dispActiveNames contains participants not in the participants array
   if (dispActiveNames.length > 0) {
     const dispActiveNames_ = dispActiveNames.filter(
-      (name) => !participants.some((participant) => participant.name === name),
+      (name) => !participants.some((participant) => participant.name === name)
     );
     if (dispActiveNames_.length > 0 && membersReceived) {
       await reorderStreams({ add: false, screenChanged: true, parameters });
     }
   }
 
+  // check to expect no roomRecvIPs for local instance
+  let onLocal = false;
+  if (roomRecvIPs.length === 1 && roomRecvIPs[0] === 'none') {
+    onLocal = true;
+  }
+
   // Check for roomRecvIPs and connect to the server
-  if (!membersReceived) {
-    if (roomRecvIPs.length < 1) {
-      const checkIPs = setInterval(async () => {
-        if (roomRecvIPs.length > 0) {
-          clearInterval(checkIPs);
+  if (!onLocal && !membersReceived) {
+    if (!membersReceived) {
+      if (roomRecvIPs.length < 1) {
+        const checkIPs = setInterval(async () => {
+          if (roomRecvIPs.length > 0) {
+            clearInterval(checkIPs);
 
-          if (deferScreenReceived && screenId) {
-            shareScreenStarted = true;
-            updateShareScreenStarted(shareScreenStarted);
+            if (deferScreenReceived && screenId) {
+              shareScreenStarted = true;
+              updateShareScreenStarted(shareScreenStarted);
+            }
+
+            const [sockets_, ips_] = await connectIps({
+              consume_sockets,
+              remIP: roomRecvIPs,
+              parameters,
+              apiUserName,
+              apiKey,
+              apiToken,
+            });
+
+            if (sockets_ && ips_) {
+              updateConsume_sockets(sockets_);
+              updateRoomRecvIPs(ips_);
+            }
+
+            membersReceived = true;
+            updateMembersReceived(membersReceived);
+
+            await sleep({ ms: 250 });
+            updateIsLoadingModalVisible(false);
+            deferScreenReceived = false;
+            updateDeferScreenReceived(deferScreenReceived);
           }
+        }, 10);
+      } else {
+        const [sockets_, ips_] = await connectIps({
+          consume_sockets,
+          remIP: roomRecvIPs,
+          parameters,
+          apiUserName,
+          apiKey,
+          apiToken,
+        });
 
-          const [sockets_, ips_] = await connectIps({
-            consume_sockets,
-            remIP: roomRecvIPs,
-            parameters,
-            apiUserName,
-            apiKey,
-            apiToken,
-          });
-
-          if (sockets_ && ips_) {
-            updateConsume_sockets(sockets_);
-            updateRoomRecvIPs(ips_);
-          }
-
-          membersReceived = true;
-          updateMembersReceived(membersReceived);
-
-          await sleep({ ms: 250 });
-          updateIsLoadingModalVisible(false);
-          deferScreenReceived = false;
-          updateDeferScreenReceived(deferScreenReceived);
+        if (sockets_ && ips_) {
+          updateConsume_sockets(sockets_);
+          updateRoomRecvIPs(ips_);
         }
-      }, 10);
+        membersReceived = true;
+        updateMembersReceived(membersReceived);
+
+        if (deferScreenReceived && screenId) {
+          shareScreenStarted = true;
+          updateShareScreenStarted(shareScreenStarted);
+        }
+
+        await sleep({ ms: 250 });
+        updateIsLoadingModalVisible(false);
+        deferScreenReceived = false;
+        updateDeferScreenReceived(deferScreenReceived);
+      }
     } else {
-      const [sockets_, ips_] = await connectIps({
-        consume_sockets,
-        remIP: roomRecvIPs,
-        parameters,
-        apiUserName,
-        apiKey,
-        apiToken,
-      });
-
-      if (sockets_ && ips_) {
-        updateConsume_sockets(sockets_);
-        updateRoomRecvIPs(ips_);
+      if (screenId) {
+        const host = participants.find(
+          (participant) => participant.ScreenID === screenId && participant.ScreenOn === true
+        );
+        if (deferScreenReceived && screenId && host) {
+          shareScreenStarted = true;
+          updateShareScreenStarted(shareScreenStarted);
+        }
       }
-      membersReceived = true;
-      updateMembersReceived(membersReceived);
-
-      if (deferScreenReceived && screenId) {
-        shareScreenStarted = true;
-        updateShareScreenStarted(shareScreenStarted);
-      }
-
-      await sleep({ ms: 250 });
-      updateIsLoadingModalVisible(false);
-      deferScreenReceived = false;
-      updateDeferScreenReceived(deferScreenReceived);
-    }
-  } else if (screenId) {
-    const host = participants.find(
-      (participant) => participant.ScreenID === screenId && participant.ScreenOn === true,
-    );
-    if (deferScreenReceived && screenId && host) {
-      shareScreenStarted = true;
-      updateShareScreenStarted(shareScreenStarted);
     }
   }
 
+  if (onLocal) {
+    if (connectLocalIps) {
+      await connectLocalIps({ socket: socket, parameters });
+    }
+    await sleep({ ms: 100 });
+    updateIsLoadingModalVisible(false);
+  }
+
   // Filter requests based on participants
-  requestList = requestList.filter((request) => participants.some((participant) => participant.id === request.id));
+  requestList = requestList.filter((request) =>
+    participants.some((participant) => participant.id === request.id)
+  );
   updateRequestList(requestList);
 
   coHost = coHoste!;

@@ -59,6 +59,11 @@ export interface ShareButtonsComponentOptions {
    * The type of event, which can be "chat", "broadcast", or "meeting". This determines the URL structure for sharing.
    */
   eventType: EventType;
+
+  /**
+   * The link to the Commnity Edition server.
+   */
+  localLink?: string;
 }
 
 export type ShareButtonsComponentType = (
@@ -82,6 +87,7 @@ export type ShareButtonsComponentType = (
  *     <ShareButtonsComponent
  *       meetingID="123456"
  *       eventType="meeting"
+ *       localLink="https://example.com"
  *       shareButtons={[
  *         {
  *           icon: 'copy',
@@ -106,6 +112,7 @@ const ShareButtonsComponent: React.FC<ShareButtonsComponentOptions> = ({
   meetingID,
   shareButtons = [],
   eventType,
+  localLink,
 }) => {
   const shareName = eventType === 'chat'
     ? 'chat'
@@ -113,13 +120,23 @@ const ShareButtonsComponent: React.FC<ShareButtonsComponentOptions> = ({
       ? 'broadcast'
       : 'meeting';
 
+  const getShareUrl = () => {
+    if (localLink && !localLink.includes("mediasfu.com")) {
+      return `${localLink}/meeting/${meetingID}`;
+    }
+    return `https://${shareName}.mediasfu.com/${shareName}/${meetingID}`;
+  };
+
   const defaultShareButtons: ShareButton[] = [
     {
       icon: 'copy',
       action: async () => {
         // Action for the copy button
-        await Clipboard.setStringAsync(`https://${shareName}.mediasfu.com/${shareName}/${meetingID}`);
-        await Clipboard.getStringAsync();
+        try {
+          await Clipboard.setStringAsync(getShareUrl());
+        } catch (error) {
+          console.error("Failed to copy to clipboard", error);
+        }
       },
       show: true,
     },
@@ -127,8 +144,8 @@ const ShareButtonsComponent: React.FC<ShareButtonsComponentOptions> = ({
       icon: 'envelope',
       action: () => {
         // Action for the email button
-        const emailUrl = `mailto:?subject=Join my meeting&body=Here's the link to the meeting: https://${shareName}.mediasfu.com/${shareName}/${meetingID}`;
-              Linking.openURL(emailUrl);
+        const emailUrl = `mailto:?subject=Join my meeting&body=Here's the link to the meeting: ${getShareUrl()}`;
+        Linking.openURL(emailUrl);
       },
       show: true,
     },
@@ -136,8 +153,10 @@ const ShareButtonsComponent: React.FC<ShareButtonsComponentOptions> = ({
       icon: 'facebook',
       action: () => {
         // Action for the Facebook button
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://${shareName}.mediasfu.com/${shareName}/${meetingID}`)}`;
-              Linking.openURL(facebookUrl);
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+          getShareUrl()
+        )}`;
+        Linking.openURL(facebookUrl);
       },
       show: true,
     },
@@ -145,16 +164,16 @@ const ShareButtonsComponent: React.FC<ShareButtonsComponentOptions> = ({
       icon: 'whatsapp',
       action: () => {
         // Action for the WhatsApp button
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`https://${shareName}.mediasfu.com/${shareName}/${meetingID}`)}`;
-              Linking.openURL(whatsappUrl);
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(getShareUrl())}`;
+        Linking.openURL(whatsappUrl);
       },
       show: true,
     },
     {
       icon: 'telegram',
       action: () => {
-        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(`https://${shareName}.mediasfu.com/${shareName}/${meetingID}`)}`;
-              Linking.openURL(telegramUrl);
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(getShareUrl())}`;
+        Linking.openURL(telegramUrl);
       },
       show: true,
     },

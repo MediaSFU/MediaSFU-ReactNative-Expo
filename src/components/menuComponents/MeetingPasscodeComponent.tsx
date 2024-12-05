@@ -29,7 +29,7 @@ export interface MeetingPasscodeComponentOptions {
  * @example
  * ```tsx
  * import React from 'react';
- * import { MeetingPasscodeComponent } from 'mediasfu-reactnative';
+ * import { MeetingPasscodeComponent } from 'mediasfu-reactnative-expo';
  *
  * function App() {
  *   return (

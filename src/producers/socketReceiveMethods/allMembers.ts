@@ -1,8 +1,9 @@
+import { Socket } from 'socket.io-client';
 import {
   Participant, Request, ReorderStreamsType, ReorderStreamsParameters, SleepType, ConnectIpsParameters, OnScreenChangesParameters,
-  OnScreenChangesType, ConnectIpsType, ConsumeSocket,
+  OnScreenChangesType, ConnectIpsType, ConsumeSocket, ConnectLocalIpsType, ConnectLocalIpsParameters,
   CoHostResponsibility,
-  WaitingRoomParticipant,
+  WaitingRoomParticipant
 } from '../../@types/types';
 
 /**
@@ -36,8 +37,7 @@ import {
  * ```
  */
 
-
-export interface AllMembersParameters extends ReorderStreamsParameters, ConnectIpsParameters, OnScreenChangesParameters {
+export interface AllMembersParameters extends ReorderStreamsParameters, ConnectIpsParameters, OnScreenChangesParameters, ConnectLocalIpsParameters {
   participantsAll: Participant[];
   participants: Participant[];
   dispActiveNames: string[];
@@ -55,6 +55,7 @@ export interface AllMembersParameters extends ReorderStreamsParameters, ConnectI
   hostFirstSwitch: boolean;
   waitingRoomList: WaitingRoomParticipant[];
   islevel: string;
+  socket: Socket;
 
   updateParticipantsAll: (participantsAll: Participant[]) => void;
   updateParticipants: (participants: Participant[]) => void;
@@ -74,6 +75,7 @@ export interface AllMembersParameters extends ReorderStreamsParameters, ConnectI
   // mediasfu functions
   onScreenChanges: OnScreenChangesType;
   connectIps: ConnectIpsType;
+  connectLocalIps?: ConnectLocalIpsType;
   sleep: SleepType;
   reorderStreams: ReorderStreamsType;
 
@@ -92,6 +94,7 @@ export interface AllMembersOptions {
   apiKey: string;
   apiToken: string;
 }
+
 
 // Export the type definition for the function
 export type AllMembersType = (options: AllMembersOptions) => Promise<void>;
@@ -128,6 +131,7 @@ export const allMembers = async ({
     hostFirstSwitch,
     waitingRoomList,
     islevel,
+    socket,
 
     updateParticipantsAll,
     updateParticipants,
@@ -146,13 +150,12 @@ export const allMembers = async ({
 
     onScreenChanges,
     connectIps,
+    connectLocalIps,
     sleep,
     reorderStreams,
   } = parameters;
 
-  participantsAll = members.map(({
-    isBanned, isSuspended, name, audioID, videoID,
-  }) => ({
+  participantsAll = members.map(({ isBanned, isSuspended, name, audioID, videoID }) => ({
     isBanned,
     isSuspended,
     name,
@@ -163,14 +166,14 @@ export const allMembers = async ({
   updateParticipantsAll(participantsAll);
 
   participants = members.filter(
-    (participant) => !participant.isBanned && !participant.isSuspended,
+    (participant) => !participant.isBanned && !participant.isSuspended
   );
 
   updateParticipants(participants);
 
   if (dispActiveNames.length > 0) {
     const dispActiveNames_ = dispActiveNames.filter(
-      (name) => !participants.map((participant) => participant.name).includes(name),
+      (name) => !participants.map((participant) => participant.name).includes(name)
     );
 
     if (dispActiveNames_.length > 0) {
@@ -178,9 +181,16 @@ export const allMembers = async ({
     }
   }
 
-  if (!membersReceived) {
+  // check to expect no roomRecvIPs for local instance
+  let onLocal = false;
+  if (roomRecvIPs.length === 1 && roomRecvIPs[0] === 'none') {
+    onLocal = true;
+  }
+
+
+  if (!membersReceived && !onLocal) {
     if (roomRecvIPs.length < 1) {
-      const checkIPs = setInterval(async () => {
+      let checkIPs = setInterval(async () => {
         if (roomRecvIPs.length > 0) {
           clearInterval(checkIPs);
 
@@ -237,7 +247,17 @@ export const allMembers = async ({
     }
   }
 
-  requestList = requestss.filter((request) => participants.some((participant) => participant.id === request.id));
+  if (onLocal && !membersReceived) {
+    if (connectLocalIps) {
+      await connectLocalIps({ socket: socket, parameters });
+    }
+    await sleep({ ms: 100 });
+    updateIsLoadingModalVisible(false);
+  }
+
+  requestList = requestss.filter((request) =>
+    participants.some((participant) => participant.id === request.id)
+  );
   updateRequestList(requestList);
 
   updateTotalReqWait(requestList.length + waitingRoomList.length);

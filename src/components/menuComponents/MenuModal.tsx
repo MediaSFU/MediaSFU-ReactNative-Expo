@@ -73,6 +73,11 @@ export interface MenuModalOptions {
    * The type of event.
    */
   eventType: EventType;
+
+  /**
+   * The link to the Commnity Edition server.
+   */
+  localLink?: string;
 }
 
 export type MenuModalType = (options: MenuModalOptions) => JSX.Element;
@@ -109,6 +114,7 @@ export type MenuModalType = (options: MenuModalOptions) => JSX.Element;
  *       adminPasscode="123456"
  *       islevel="2"
  *       eventType="video"
+ *       localLink="http://localhost:3000"
  *     />
  *   );
  * }
@@ -128,6 +134,7 @@ const MenuModal: React.FC<MenuModalOptions> = ({
   adminPasscode,
   islevel,
   eventType,
+  localLink,
 }) => {
   const [modalWidth, setModalWidth] = useState<number>(
     0.7 * Dimensions.get("window").width
@@ -201,6 +208,7 @@ const MenuModal: React.FC<MenuModalOptions> = ({
                   <ShareButtonsComponent
                     meetingID={roomName}
                     eventType={eventType}
+                    localLink={localLink}
                   />
                 )}
               </View>
