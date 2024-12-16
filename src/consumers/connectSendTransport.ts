@@ -5,7 +5,7 @@ import {
 } from '../@types/types';
 
 export interface ConnectSendTransportParameters extends ConnectSendTransportAudioParameters, ConnectSendTransportVideoParameters, ConnectSendTransportScreenParameters {
-  audioParams: ProducerOptions
+  audioParams: ProducerOptions 
   videoParams: ProducerOptions;
   localStreamScreen: MediaStream | null;
   canvasStream: MediaStream | null;
@@ -18,6 +18,8 @@ export interface ConnectSendTransportParameters extends ConnectSendTransportAudi
   connectSendTransportAudio: ConnectSendTransportAudioType;
   connectSendTransportVideo: ConnectSendTransportVideoType;
   connectSendTransportScreen: ConnectSendTransportScreenType;
+
+  getUpdatedAllParams: () => ConnectSendTransportParameters;
   [key: string]: any;
 }
 

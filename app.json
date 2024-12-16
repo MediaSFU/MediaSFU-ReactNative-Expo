@@ -4,6 +4,11 @@
     "slug": "MediaSFU",
     "version": "1.0.0",
     "icon": "./assets/logo512.png",
+    "splash": {
+      "image": "./assets/logo512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4893AAFF"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
