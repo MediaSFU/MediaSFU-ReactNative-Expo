@@ -197,8 +197,12 @@ export async function stopShareScreen({ parameters }: StopShareScreenOptions): P
       updateOldAllStreams: parameters.updateOldAllStreams,
     });
   }
-
-  localStreamScreen!.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+  
+  try {
+    localStreamScreen!.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+  } catch {
+    // do nothing
+  }  
   updateLocalStreamScreen(null);
   await disconnectSendTransportScreen({ parameters });
 

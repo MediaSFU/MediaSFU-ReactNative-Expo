@@ -1,6 +1,6 @@
 {
   "name": "mediasfu-reactnative-expo",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "main": "dist/main.js",
   "types": "dist/types/main.d.ts",
   "module": "dist/main.js",
@@ -68,8 +68,7 @@
     "react-native-webrtc": "^118.0.0",
     "react-native-webrtc-web-shim": "^1.0.7",
     "reanimated-color-picker": "^2.4.2",
-    "socket.io-client": "^4.7.2",
-    "standardized-audio-context": "^25.3.61"
+    "socket.io-client": "^4.7.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -117,7 +116,6 @@
     "react-native-webrtc-web-shim": "^1.0.7",
     "reanimated-color-picker": "^2.4.2",
     "socket.io-client": "^4.7.2",
-    "standardized-audio-context": "^25.3.61",
     "typedoc": "0.26.11",
     "typedoc-plugin-extras": "3.1.0",
     "typedoc-plugin-markdown": "4.2.0",
