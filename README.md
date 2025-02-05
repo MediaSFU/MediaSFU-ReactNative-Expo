@@ -38,6 +38,10 @@ MediaSFU offers a cutting-edge streaming experience that empowers users to custo
 
 **[Get started now on GitHub!](https://github.com/MediaSFU/MediaSFUOpen)** 
 
+### ✅ React Native SDK Setup Guide  
+[![Watch the React Native SDK Setup Guide](http://i.ytimg.com/vi/uJkI7H26jq4/hqdefault.jpg)](https://www.youtube.com/watch?v=uJkI7H26jq4)  
+🎥 [**Watch the React Native SDK Setup Guide**](https://youtu.be/uJkI7H26jq4)
+
 ---
 
 ## Table of Contents
@@ -87,6 +91,135 @@ To install the `mediasfu-reactnative-expo` package, run:
 ```bash
 npm install mediasfu-reactnative-expo
 ```
+
+### **1.1 Important Installation Notes for React Native**
+
+#### 🚫 **Avoid Using `--force` or `--legacy-peer-deps`**
+
+Using these flags can override important dependency checks, potentially causing **unstable builds** or **unexpected behavior**.
+
+- **Why Avoid Them?**  
+  They bypass compatibility checks, which can introduce **bugs** or **conflicts** within your project.
+
+---
+
+#### ⚙️ **Use Package Overrides (Recommended)**  
+If you encounter **peer dependency conflicts**, use the `overrides` field in your `package.json` instead of forcing installations.
+
+##### ✅ **Example of Safe Overrides:**
+
+```json
+{
+  "overrides": {
+    "some-package": {
+      "dependency-name": "^1.2.3"
+    }
+  }
+}
+```
+
+- **Why This Works:**  
+  Overrides let you resolve conflicts **safely** without compromising the integrity of your project.
+
+---
+
+#### 🚩 **If You Absolutely Need to Use `--force` or `--legacy-peer-deps`**
+
+- Some peer dependencies **might be skipped**.  
+- You’ll need to **manually install** them to avoid runtime errors.
+
+##### 🔑 **Install the Required Peer Dependencies:**
+
+```bash
+npm install \
+"@config-plugins/react-native-webrtc@^9.0.0" \
+"@expo/metro-runtime@^4.0.0" \
+"@expo/vector-icons@^14.0.2" \
+"@react-native-async-storage/async-storage@^1.23.1" \
+"@react-native-community/slider@^4.5.2" \
+"@react-native-picker/picker@^2.7.5" \
+"expo@^52.0.11" \
+"expo-av@~15.0.1" \
+"expo-camera@~16.0.9" \
+"expo-clipboard@~7.0.0" \
+"expo-dev-client@~5.0.5" \
+"expo-router@~4.0.11" \
+"expo-web-browser@~13.0.3" \
+"expo-screen-orientation@~8.0.1" \
+"expo-splash-screen@~0.29.13" \
+"expo-status-bar@~2.0.0" \
+"mediasoup-client@^3.7.0" \
+"react@18.3.1" \
+"react-color@^2.19.3" \
+"react-dom@18.3.1" \
+"react-native@0.76.3" \
+"react-native-gesture-handler@~2.20.2" \
+"react-native-orientation-locker@^1.6.0" \
+"react-native-picker-select@^9.0.0" \
+"react-native-reanimated@~3.16.1" \
+"react-native-safe-area-context@4.12.0" \
+"react-native-web@~0.19.13" \
+"react-native-webrtc@^118.0.0" \
+"react-native-webrtc-web-shim@^1.0.7" \
+"reanimated-color-picker@^2.4.2" \
+"socket.io-client@^4.7.2"
+```
+
+- **Why This Is Important:**  
+  These peer dependencies are critical for `mediasfu-reactjs` to function correctly within React Native.
+
+---
+
+#### 🔍 **How to Check for Peer Dependencies**
+
+1. **Open your `package.json`.**
+2. Look for the `peerDependencies` section:
+   ```json
+   "peerDependencies": {
+     "@config-plugins/react-native-webrtc": "^9.0.0",
+     "@expo/metro-runtime": "^4.0.0",
+     "@expo/vector-icons": "^14.0.2",
+     "@react-native-async-storage/async-storage": "^1.23.1",
+     "@react-native-community/slider": "^4.5.2",
+     "@react-native-picker/picker": "^2.7.5",
+     "expo": "^52.0.11",
+     "expo-av": "~15.0.1",
+     "expo-camera": "~16.0.9",
+     "expo-clipboard": "~7.0.0",
+     "expo-dev-client": "~5.0.5",
+     "expo-router": "~4.0.11",
+     "expo-web-browser": "~13.0.3",
+     "expo-screen-orientation": "~8.0.1",
+     "expo-splash-screen": "~0.29.13",
+     "expo-status-bar": "~2.0.0",
+     "mediasoup-client": "^3.7.0",
+     "react": "18.3.1",
+     "react-color": "^2.19.3",
+     "react-dom": "18.3.1",
+     "react-native": "0.76.3",
+     "react-native-gesture-handler": "~2.20.2",
+     "react-native-orientation-locker": "^1.6.0",
+     "react-native-picker-select": "^9.0.0",
+     "react-native-reanimated": "~3.16.1",
+     "react-native-safe-area-context": "4.12.0",
+     "react-native-web": "~0.19.13",
+     "react-native-webrtc": "^118.0.0",
+     "react-native-webrtc-web-shim": "^1.0.7",
+     "reanimated-color-picker": "^2.4.2",
+     "socket.io-client": "^4.7.2"
+   }
+   ```
+
+3. **Ensure all are installed.** If not, run the install command above.
+
+---
+
+#### ✅ **Final Recommendations**
+
+- Always try to resolve conflicts using **overrides** first.
+- Only use `--force` or `--legacy-peer-deps` as a **last resort**.
+
+---
 
 #### Resolving Dependency Issues
 
