@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Orientation from "react-native-orientation-locker";
 import { Socket } from "socket.io-client";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ConnectSocketType,
   ShowAlert,
@@ -407,39 +408,103 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
         localData.current.apiUserName &&
         localData.current.apiKey
       ) {
+        // Store references to prevent race conditions
+        const apiUserName = localData.current.apiUserName;
+        const apiKey = localData.current.apiKey;
+        
+        // Build a unique identifier for this create request
+        const roomIdentifier = `local_create_${payload.userName}_${payload.duration}_${payload.capacity}`;
+        const pendingKey = `prejoin_pending_${roomIdentifier}`;
+        const PENDING_TIMEOUT = 30 * 1000; // 30 seconds
+
+        // Check pending status to prevent duplicate requests
+        try {
+          const pendingRequest = await AsyncStorage.getItem(pendingKey);
+          if (pendingRequest) {
+            const pendingData = JSON.parse(pendingRequest);
+            const timeSincePending = Date.now() - (pendingData?.timestamp ?? 0);
+            if (timeSincePending < PENDING_TIMEOUT) {
+              pending.current = false;
+              updateIsLoadingModalVisible(false);
+              setError('Room creation already in progress');
+              return;
+            } else {
+              // Stale lock, clear it
+              await AsyncStorage.removeItem(pendingKey).catch(() => {});
+            }
+          }
+        } catch {
+          // Ignore AsyncStorage read/JSON errors
+        }
+
+        // Mark request as pending
+        try {
+          await AsyncStorage.setItem(
+            pendingKey,
+            JSON.stringify({
+              timestamp: Date.now(),
+              payload: {
+                action: 'create',
+                userName: payload.userName,
+                duration: payload.duration,
+                capacity: payload.capacity,
+              },
+            })
+          );
+
+          // Auto-clear the pending flag after timeout to avoid stale locks
+          setTimeout(() => {
+            AsyncStorage.removeItem(pendingKey).catch(() => {});
+          }, PENDING_TIMEOUT);
+        } catch {
+          // Ignore AsyncStorage write errors
+        }
+        
         payload.recordOnly = true; // allow production to mediasfu only; no consumption
-        const response = await roomCreator({
-          payload,
-          apiUserName: localData.current.apiUserName,
-          apiKey: localData.current.apiKey,
-          validate: false,
-        });
-        if (
-          response &&
-          response.success &&
-          response.data &&
-          "roomName" in response.data
-        ) {
-          createData.eventID = response.data.roomName;
-          createData.secureCode = response.data.secureCode || "";
-          createData.mediasfuURL = response.data.publicURL;
-          await createLocalRoom({
-            createData: createData,
-            link: response.data.link,
+        
+        try {
+          const response = await roomCreator({
+            payload,
+            apiUserName: apiUserName,
+            apiKey: apiKey,
+            validate: false,
           });
-        } else {
-          pending.current = false;
-          updateIsLoadingModalVisible(false);
-          setError(`Unable to create room on MediaSFU.`);
-          try {
-            updateSocket(initSocket.current);
-            await createLocalRoom({ createData: createData });
-            pending.current = false;
-          } catch (error) {
+          
+          // Clear pending status on completion
+          try { 
+            await AsyncStorage.removeItem(pendingKey); 
+          } catch { 
+            /* ignore */ 
+          }
+          
+          if (
+            response &&
+            response.success &&
+            response.data &&
+            "roomName" in response.data
+          ) {
+            createData.eventID = response.data.roomName;
+            createData.secureCode = response.data.secureCode || "";
+            createData.mediasfuURL = response.data.publicURL;
+            await createLocalRoom({
+              createData: createData,
+              link: response.data.link,
+            });
+          } else {
             pending.current = false;
             updateIsLoadingModalVisible(false);
-            setError(`Unable to create room. ${error}`);
+            setError(`Unable to create room on MediaSFU.`);
           }
+        } catch (error) {
+          // Clear pending status on error
+          try { 
+            await AsyncStorage.removeItem(pendingKey); 
+          } catch { 
+            /* ignore */ 
+          }
+          pending.current = false;
+          updateIsLoadingModalVisible(false);
+          setError(`Unable to create room on MediaSFU. ${error}`);
         }
       } else {
         try {
@@ -453,13 +518,81 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
         }
       }
     } else {
-      await roomCreator({
-        payload,
-        apiUserName: credentials.apiUserName,
-        apiKey: credentials.apiKey,
-        validate: true,
-      });
-      pending.current = false;
+      // Build a unique identifier for this create request (non-local)
+      const roomIdentifier = `mediasfu_create_${payload.userName}_${payload.duration}_${payload.capacity}`;
+      const pendingKey = `prejoin_pending_${roomIdentifier}`;
+      const PENDING_TIMEOUT = 30 * 1000; // 30 seconds
+
+      // Check pending status to prevent duplicate requests
+      try {
+        const pendingRequest = await AsyncStorage.getItem(pendingKey);
+        if (pendingRequest) {
+          const pendingData = JSON.parse(pendingRequest);
+          const timeSincePending = Date.now() - (pendingData?.timestamp ?? 0);
+          if (timeSincePending < PENDING_TIMEOUT) {
+            pending.current = false;
+            updateIsLoadingModalVisible(false);
+            setError('Room creation already in progress');
+            return;
+          } else {
+            // Stale lock, clear it
+            await AsyncStorage.removeItem(pendingKey).catch(() => {});
+          }
+        }
+      } catch {
+        // Ignore AsyncStorage read/JSON errors
+      }
+
+      // Mark request as pending
+      try {
+        await AsyncStorage.setItem(
+          pendingKey,
+          JSON.stringify({
+            timestamp: Date.now(),
+            payload: {
+              action: 'create',
+              userName: payload.userName,
+              duration: payload.duration,
+              capacity: payload.capacity,
+            },
+          })
+        );
+
+        // Auto-clear the pending flag after timeout to avoid stale locks
+        setTimeout(() => {
+          AsyncStorage.removeItem(pendingKey).catch(() => {});
+        }, PENDING_TIMEOUT);
+      } catch {
+        // Ignore AsyncStorage write errors
+      }
+
+      try {
+        await roomCreator({
+          payload,
+          apiUserName: credentials.apiUserName,
+          apiKey: credentials.apiKey,
+          validate: true,
+        });
+        
+        // Clear pending status on completion
+        try { 
+          await AsyncStorage.removeItem(pendingKey); 
+        } catch { 
+          /* ignore */ 
+        }
+        
+        pending.current = false;
+      } catch (error) {
+        // Clear pending status on error
+        try { 
+          await AsyncStorage.removeItem(pendingKey); 
+        } catch { 
+          /* ignore */ 
+        }
+        pending.current = false;
+        updateIsLoadingModalVisible(false);
+        setError(`Unable to create room. ${error}`);
+      }
     }
   };
 
