@@ -12,6 +12,7 @@
  */
 
 import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 // MediaSFU view components (if you choose to use them)
 import MediasfuGeneric from './src/components/mediasfuComponents/MediasfuGeneric';
 import MediasfuBroadcast from './src/components/mediasfuComponents/MediasfuBroadcast';
@@ -21,6 +22,13 @@ import MediasfuConference from './src/components/mediasfuComponents/MediasfuConf
 
 // Pre-Join Page component (if you choose to use it)
 import PreJoinPage from './src/components/miscComponents/PreJoinPage';
+
+// Custom component types
+import {
+  CustomVideoCardType,
+  CustomAudioCardType,
+  CustomMiniCardType,
+} from './src/@types/types';
 
 // Utilities for seed data (deprecated - do not use in new code)
 import { generateRandomParticipants } from './src/methods/utils/generateRandomParticipants';
@@ -32,6 +40,248 @@ import { generateRandomWaitingRoomList } from './src/methods/utils/generateRando
 import { createRoomOnMediaSFU } from './src/methods/utils/createRoomOnMediaSFU';
 import { joinRoomOnMediaSFU } from './src/methods/utils/joinRoomOnMediaSFU';
 import { CreateMediaSFURoomOptions, JoinMediaSFURoomOptions } from './src/@types/types';
+
+// =========================================================
+//                    CUSTOM COMPONENT EXAMPLES
+// =========================================================
+//
+// These are example custom components that you can use to replace
+// the default VideoCard, AudioCard, and MiniCard components.
+// Feel free to modify these examples or create your own custom components.
+
+// Example Custom VideoCard for React Native
+const CustomVideoCard: CustomVideoCardType = ({
+  participant,
+  stream,
+  width,
+  height,
+  showControls,
+  showInfo,
+  name,
+  backgroundColor,
+  parameters,
+}) => {
+  return (
+    <View
+      style={[
+        {
+          width: width,
+          height: height,
+          backgroundColor: backgroundColor || 'rgba(0, 0, 0, 0.8)',
+          borderRadius: 16,
+          position: 'relative',
+          overflow: 'hidden',
+          borderWidth: 3,
+          borderColor: '#6366f1',
+        },
+      ]}
+    >
+      {/* Custom video display would go here */}
+      {/* Note: Video rendering in React Native requires platform-specific implementation */}
+      
+      {/* Custom participant info overlay */}
+      {showInfo && (
+        <View style={{
+          position: 'absolute',
+          bottom: 8,
+          left: 8,
+          backgroundColor: '#6366f1',
+          paddingHorizontal: 12,
+          paddingVertical: 4,
+          borderRadius: 20,
+        }}>
+          <Text style={{
+            color: 'white',
+            fontSize: 14,
+            fontWeight: 'bold',
+          }}>
+            🎥 {name || participant.name}
+          </Text>
+        </View>
+      )}
+      
+      {/* Custom controls overlay */}
+      {showControls && (
+        <View style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          flexDirection: 'row',
+          gap: 8,
+        }}>
+          <View style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            borderRadius: 16,
+            width: 32,
+            height: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Text style={{ color: 'white', fontSize: 16 }}>🔇</Text>
+          </View>
+          <View style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            borderRadius: 16,
+            width: 32,
+            height: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Text style={{ color: 'white', fontSize: 16 }}>📹</Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// Example Custom AudioCard for React Native
+const CustomAudioCard: CustomAudioCardType = ({
+  name,
+  barColor,
+  textColor,
+  parameters,
+}) => {
+  const isActive = barColor; // barColor indicates if participant is speaking
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        borderRadius: 16,
+        minHeight: 120,
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: isActive ? '#ef4444' : '#6b7280',
+      }}
+    >
+      {/* Audio wave animation background */}
+      {isActive && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          opacity: 0.5,
+        }} />
+      )}
+      
+      {/* Avatar */}
+      <View style={{
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+        zIndex: 1,
+      }}>
+        <Text style={{
+          fontSize: 24,
+          fontWeight: 'bold',
+          color: 'white',
+        }}>
+          {name ? name.charAt(0).toUpperCase() : '?'}
+        </Text>
+      </View>
+      
+      {/* Name */}
+      <Text style={{
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: textColor || 'white',
+        zIndex: 1,
+      }}>
+        {name}
+      </Text>
+      
+      {/* Speaking indicator */}
+      {isActive && (
+        <Text style={{
+          marginTop: 8,
+          fontSize: 12,
+          color: 'rgba(255, 255, 255, 0.8)',
+          zIndex: 1,
+        }}>
+          🎤 Speaking...
+        </Text>
+      )}
+    </View>
+  );
+};
+
+// Example Custom MiniCard for React Native
+const CustomMiniCard: CustomMiniCardType = ({
+  initials,
+  name,
+  showVideoIcon,
+  showAudioIcon,
+  parameters,
+}) => {
+  return (
+    <View style={{
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 12,
+      backgroundColor: '#1f2937',
+      borderRadius: 12,
+      minHeight: 80,
+      minWidth: 80,
+      borderWidth: 2,
+      borderColor: '#6366f1',
+    }}>
+      {/* Avatar/Initials */}
+      <View style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#6366f1',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 6,
+      }}>
+        <Text style={{
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: 'white',
+        }}>
+          {initials || name?.charAt(0)?.toUpperCase() || '?'}
+        </Text>
+      </View>
+      
+      {/* Name */}
+      <Text style={{
+        fontSize: 10,
+        textAlign: 'center',
+        marginBottom: 6,
+        color: 'white',
+        maxWidth: '100%',
+      }} numberOfLines={1} ellipsizeMode="tail">
+        {name}
+      </Text>
+      
+      {/* Media status icons */}
+      <View style={{
+        flexDirection: 'row',
+        gap: 4,
+      }}>
+        {showVideoIcon && (
+          <Text style={{ fontSize: 12, opacity: 0.7 }}>📹</Text>
+        )}
+        {showAudioIcon && (
+          <Text style={{ fontSize: 12, opacity: 0.7 }}>🎤</Text>
+        )}
+      </View>
+    </View>
+  );
+};
 
 /**
  * App Component
@@ -229,6 +479,25 @@ const App = () => {
   //     sourceParameters={sourceParameters}
   //     updateSourceParameters={updateSourceParameters}
   //   />
+
+  // Example with custom components (uncomment to use custom VideoCard, AudioCard, and MiniCard)
+  // return (
+  //   <MediasfuGeneric
+  //     PrejoinPage={PreJoinPage}
+  //     credentials={credentials}
+  //     localLink={localLink}
+  //     connectMediaSFU={connectMediaSFU}
+  //     returnUI={returnUI}
+  //     noUIPreJoinOptions={!returnUI ? noUIPreJoinOptions : undefined}
+  //     sourceParameters={!returnUI ? sourceParameters : undefined}
+  //     updateSourceParameters={!returnUI ? updateSourceParameters : undefined}
+  //     createMediaSFURoom={createRoomOnMediaSFU}
+  //     joinMediaSFURoom={joinRoomOnMediaSFU}
+  //     customVideoCard={CustomVideoCard}
+  //     customAudioCard={CustomAudioCard}
+  //     customMiniCard={CustomMiniCard}
+  //   />
+  // );
 
 
   return (

@@ -1,4 +1,5 @@
 import { Socket } from 'socket.io-client';
+import React from 'react';
 
 import {
   Consumer, DtlsParameters, IceCandidate, IceParameters, RtpCapabilities
@@ -785,5 +786,64 @@ export type CreateWebRTCTransportResponse = {
   iceParameters: IceParameters;
   error?: string;
 };
+
+// Custom Component Builder Types for React Native
+export interface CustomVideoCardOptions {
+  participant: Participant;
+  stream: MediaStream | null;
+  width: number;
+  height: number;
+  imageSize?: number;
+  doMirror?: boolean;
+  showControls?: boolean;
+  showInfo?: boolean;
+  name?: string;
+  backgroundColor?: string;
+  onVideoPress?: () => void;
+  parameters?: any;
+}
+
+export interface CustomAudioCardOptions {
+  name: string;
+  barColor: string;
+  textColor: string;
+  imageSource?: string;
+  roundedImage?: boolean;
+  imageStyle?: any;
+  parameters?: any;
+}
+
+export interface CustomMiniCardOptions {
+  initials: string;
+  fontSize: number;
+  customStyle?: any;
+  name: string;
+  showVideoIcon?: boolean;
+  showAudioIcon?: boolean;
+  imageSource?: string;
+  roundedImage?: boolean;
+  imageStyle?: any;
+  parameters?: any;
+}
+
+export interface CustomPreJoinPageOptions {
+  localLink?: string;
+  connectMediaSFU?: boolean;
+  parameters: any;
+  credentials?: { apiUserName: string; apiKey: string };
+  returnUI?: boolean;
+  noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
+  createMediaSFURoom?: any;
+  joinMediaSFURoom?: any;
+}
+
+// Custom Component Builder Function Types
+export type CustomVideoCardType = (options: CustomVideoCardOptions) => JSX.Element;
+export type CustomAudioCardType = (options: CustomAudioCardOptions) => JSX.Element;
+export type CustomMiniCardType = (options: CustomMiniCardOptions) => JSX.Element;
+export type CustomPreJoinPageType = (options: CustomPreJoinPageOptions) => JSX.Element;
+
+// Custom Full UI Component Type
+export type CustomComponentType = React.FC<{ parameters: any }>;
 
 

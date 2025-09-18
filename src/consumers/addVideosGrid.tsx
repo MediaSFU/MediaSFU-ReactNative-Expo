@@ -5,7 +5,7 @@ import AudioCard from '../components/displayComponents/AudioCard';
 
 import {
   Participant, Stream, UpdateMiniCardsGridType, UpdateMiniCardsGridParameters, AudioCardParameters, EventType,
-  MediaStream as MediaStreamType,
+  MediaStream as MediaStreamType, CustomVideoCardType, CustomMiniCardType,
 } from '../@types/types';
 
 export interface AddVideosGridParameters extends UpdateMiniCardsGridParameters, AudioCardParameters {
@@ -20,6 +20,10 @@ export interface AddVideosGridParameters extends UpdateMiniCardsGridParameters, 
   forceFullDisplay: boolean;
   otherGridStreams: JSX.Element[][];
   updateOtherGridStreams: (otherGridStreams: JSX.Element[][]) => void;
+
+  // custom components
+  customVideoCard?: CustomVideoCardType;
+  customMiniCard?: CustomMiniCardType;
 
   // mediasfu functions
   updateMiniCardsGrid: UpdateMiniCardsGridType;
@@ -138,6 +142,8 @@ export async function addVideosGrid({
     otherGridStreams,
     updateOtherGridStreams,
     updateMiniCardsGrid,
+    customVideoCard,
+    customMiniCard,
   } = parameters;
 
   const newComponents: JSX.Element[][] = [[], []];
@@ -192,6 +198,7 @@ export async function addVideosGrid({
               borderWidth: eventType !== 'broadcast' ? 2 : 0,
               borderColor: 'black',
             }}
+            customMiniCard={customMiniCard}
           />,
         );
       }
@@ -212,6 +219,7 @@ export async function addVideosGrid({
               borderWidth: eventType !== 'broadcast' ? 2 : 0,
               borderColor: 'black',
             }}
+            customMiniCard={customMiniCard}
           />,
         );
       } else {
@@ -244,6 +252,7 @@ export async function addVideosGrid({
             name={participant.name}
             doMirror
             parameters={parameters}
+            customVideoCard={customVideoCard}
           />,
         );
       }
@@ -270,6 +279,7 @@ export async function addVideosGrid({
             name={participant_.name || ''}
             doMirror={false}
             parameters={parameters}
+            customVideoCard={customVideoCard}
           />,
         );
       }
@@ -339,6 +349,7 @@ export async function addVideosGrid({
                 borderWidth: eventType !== 'broadcast' ? 2 : 0,
                 borderColor: 'black',
               }}
+              customMiniCard={customMiniCard}
             />,
           );
         }
@@ -365,6 +376,7 @@ export async function addVideosGrid({
               name={participant.name}
               doMirror={false}
               parameters={parameters}
+              customVideoCard={customVideoCard}
             />,
           );
         }

@@ -10,6 +10,7 @@ import {
   ViewStyle,
   ImageStyle,
 } from 'react-native';
+import { CustomMiniCardType } from '../../@types/types';
 
 /**
  * Interface defining the props for the MiniCard component.
@@ -46,6 +47,31 @@ export interface MiniCardOptions {
    * Custom styles to apply to the image.
    */
   imageStyle?: StyleProp<ImageStyle>;
+
+  /**
+   * Whether to show the video icon.
+   */
+  showVideoIcon?: boolean;
+
+  /**
+   * Whether to show the audio icon.
+   */
+  showAudioIcon?: boolean;
+
+  /**
+   * The name of the participant.
+   */
+  name?: string;
+
+  /**
+   * Custom MiniCard component to replace default rendering.
+   */
+  customMiniCard?: CustomMiniCardType;
+
+  /**
+   * Additional parameters that can be passed to custom components.
+   */
+  parameters?: any;
 }
 
 export type MiniCardType = (options: MiniCardOptions) => JSX.Element;
@@ -96,6 +122,11 @@ const MiniCard: React.FC<MiniCardOptions> = ({
   imageSource,
   roundedImage = true,
   imageStyle,
+  showVideoIcon = false,
+  showAudioIcon = false,
+  name,
+  customMiniCard,
+  parameters,
 }) => {
   // Define the style for the MiniCard
   const cardStyle: StyleProp<ViewStyle> = [
@@ -105,23 +136,40 @@ const MiniCard: React.FC<MiniCardOptions> = ({
 
   // Render the MiniCard with either an image or initials
   return (
-    <View style={cardStyle}>
-      {imageSource ? (
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: imageSource }}
-            style={[
-              styles.backgroundImage,
-              roundedImage && styles.roundedImage,
-              imageStyle,
-            ]}
-            resizeMode="cover"
-          />
-        </View>
+    <>
+      {customMiniCard ? (
+        customMiniCard({
+          initials: initials || '',
+          fontSize: fontSize,
+          customStyle,
+          name: name || initials || '',
+          showVideoIcon,
+          showAudioIcon,
+          imageSource,
+          roundedImage,
+          imageStyle,
+          parameters,
+        })
       ) : (
-        <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
+        <View style={cardStyle}>
+          {imageSource ? (
+            <View style={styles.imageContainer}>
+              <Image
+                source={{ uri: imageSource }}
+                style={[
+                  styles.backgroundImage,
+                  roundedImage && styles.roundedImage,
+                  imageStyle,
+                ]}
+                resizeMode="cover"
+              />
+            </View>
+          ) : (
+            <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
+          )}
+        </View>
       )}
-    </View>
+    </>
   );
 };
 

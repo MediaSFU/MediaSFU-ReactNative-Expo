@@ -193,6 +193,9 @@ import {
   JoinMediaSFURoomOptions,
   JoinRoomOnMediaSFUType,
   CreateRoomOnMediaSFUType,
+  CustomVideoCardType,
+  CustomAudioCardType,
+  CustomMiniCardType,
 } from "../../@types/types";
 import {
   Device,
@@ -220,6 +223,10 @@ export type MediasfuBroadcastOptions = {
   noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
   joinMediaSFURoom?: JoinRoomOnMediaSFUType;
   createMediaSFURoom?: CreateRoomOnMediaSFUType;
+  customVideoCard?: CustomVideoCardType;
+  customAudioCard?: CustomAudioCardType;
+  customMiniCard?: CustomMiniCardType;
+  customComponent?: React.ReactNode;
 };
 
 /**
@@ -244,6 +251,10 @@ export type MediasfuBroadcastOptions = {
  * @property {CreateMediaSFURoomOptions | JoinMediaSFURoomOptions} [noUIPreJoinOptions] - Options for the prejoin page.
  * @property {JoinRoomOnMediaSFUType} [joinMediaSFURoom] - Function to join a room on MediaSFU.
  * @property {CreateRoomOnMediaSFUType} [createMediaSFURoom] - Function to create a room on MediaSFU.
+ * @property {CustomVideoCardType} [customVideoCard] - Custom video card component.
+ * @property {CustomAudioCardType} [customAudioCard] - Custom audio card component.
+ * @property {CustomMiniCardType} [customMiniCard] - Custom mini card component.
+ * @property {React.ReactNode} [customComponent] - Custom main component to replace the entire UI.
  *
  * @typedef {Object} SeedData - Data structure to populate initial state in the MediasfuBroadcast.
  * @property {string} [member] - The member name.
@@ -276,6 +287,10 @@ export type MediasfuBroadcastOptions = {
  *   noUIPreJoinOptions={customPreJoinOptions}
  *   joinMediaSFURoom={joinRoomOnMediaSFU}
  *   createMediaSFURoom={createRoomOnMediaSFU}
+ *   customVideoCard={MyCustomVideoCard}
+ *   customAudioCard={MyCustomAudioCard}
+ *   customMiniCard={MyCustomMiniCard}
+ *   customComponent={<MyCustomComponent />}
  * />
  * ```
  *
@@ -302,6 +317,10 @@ const MediasfuBroadcast: React.FC<MediasfuBroadcastOptions> = ({
   noUIPreJoinOptions,
   joinMediaSFURoom,
   createMediaSFURoom,
+  customVideoCard,
+  customAudioCard,
+  customMiniCard,
+  customComponent,
 }) => {
   const updateStatesToInitialValues = async () => {
     const initialValues = initialValuesState as { [key: string]: any };
@@ -3110,6 +3129,11 @@ const MediasfuBroadcast: React.FC<MediasfuBroadcastOptions> = ({
 
       showAlert,
       getUpdatedAllParams,
+
+      customVideoCard,
+      customAudioCard,
+      customMiniCard,
+      customComponent,
     };
   };
 
@@ -4405,7 +4429,7 @@ const MediasfuBroadcast: React.FC<MediasfuBroadcastOptions> = ({
         <></>
       )}
 
-      {returnUI && (
+      {returnUI && !customComponent && (
         <>
           <ParticipantsModal
             backgroundColor="rgba(217, 227, 234, 0.99)"

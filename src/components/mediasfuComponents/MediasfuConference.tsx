@@ -233,6 +233,9 @@ import {
   JoinMediaSFURoomOptions,
   JoinRoomOnMediaSFUType,
   CreateRoomOnMediaSFUType,
+  CustomVideoCardType,
+  CustomAudioCardType,
+  CustomMiniCardType,
 } from "../../@types/types";
 import {
   Device,
@@ -260,6 +263,10 @@ export type MediasfuConferenceOptions = {
   noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
   joinMediaSFURoom?: JoinRoomOnMediaSFUType;
   createMediaSFURoom?: CreateRoomOnMediaSFUType;
+  customVideoCard?: CustomVideoCardType;
+  customAudioCard?: CustomAudioCardType;
+  customMiniCard?: CustomMiniCardType;
+  customComponent?: React.ReactNode;
 };
 
 /**
@@ -282,6 +289,10 @@ export type MediasfuConferenceOptions = {
  * @property {CreateMediaSFURoomOptions | JoinMediaSFURoomOptions} [noUIPreJoinOptions] - Options for the prejoin page.
  * @property {JoinRoomOnMediaSFUType} [joinMediaSFURoom] - Function to join a room on MediaSFU.
  * @property {CreateRoomOnMediaSFUType} [createMediaSFURoom] - Function to create a room on MediaSFU.
+ * @property {CustomVideoCardType} [customVideoCard] - Custom video card component.
+ * @property {CustomAudioCardType} [customAudioCard] - Custom audio card component.
+ * @property {CustomMiniCardType} [customMiniCard] - Custom mini card component.
+ * @property {React.ReactNode} [customComponent] - Custom main component to replace the entire UI.
  *
  * @typedef {Object} SeedData - Data structure to populate initial state in the MediasfuConference.
  * @property {string} [member] - The member name.
@@ -341,6 +352,10 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
   noUIPreJoinOptions,
   joinMediaSFURoom,
   createMediaSFURoom,
+  customVideoCard,
+  customAudioCard,
+  customMiniCard,
+  customComponent,
 }) => {
   const updateStatesToInitialValues = async () => {
     const initialValues = initialValuesState as { [key: string]: any };
@@ -3201,6 +3216,11 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
 
       showAlert,
       getUpdatedAllParams,
+
+      customVideoCard,
+      customAudioCard,
+      customMiniCard,
+      customComponent,
     };
   };
 
@@ -4845,7 +4865,7 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
         <></>
       )}
 
-      {returnUI && (
+      {returnUI && !customComponent && (
         <>
           <MenuModal
             backgroundColor="rgba(181, 233, 229, 0.97)"

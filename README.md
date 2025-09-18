@@ -70,6 +70,7 @@ MediaSFU offers a cutting-edge streaming experience that empowers users to custo
 - [Features](#features)
 - [Getting Started](#getting-started)
 - [Basic Usage Guide](#basic-usage-guide)
+- [Custom Components Guide](#custom-components-guide)
 - [Intermediate Usage Guide](#intermediate-usage-guide)
 - [Advanced Usage Guide](#advanced-usage-guide)
 - [API Reference](#api-reference)
@@ -169,7 +170,7 @@ npm install \
 "expo-screen-orientation@~8.0.1" \
 "expo-splash-screen@~0.29.13" \
 "expo-status-bar@~2.0.0" \
-"mediasoup-client@^3.7.0" \
+"mediasoup-client@^3.16.0" \
 "react@18.3.1" \
 "react-color@^2.19.3" \
 "react-dom@18.3.1" \
@@ -213,7 +214,7 @@ npm install \
      "expo-screen-orientation": "~8.0.1",
      "expo-splash-screen": "~0.29.13",
      "expo-status-bar": "~2.0.0",
-     "mediasoup-client": "^3.7.0",
+     "mediasoup-client": "^3.16.0",
      "react": "18.3.1",
      "react-color": "^2.19.3",
      "react-dom": "18.3.1",
@@ -393,6 +394,110 @@ const App = () => {
 
 export default App;
 ```
+
+## Custom Usage
+
+MediaSFU offers flexible deployment options to suit various needs. Here are the most common setup patterns:
+
+### 1. MediaSFU Cloud Only (Easiest Setup)
+Perfect for getting started quickly without managing your own servers.
+
+```javascript
+import { MediasfuGeneric, PreJoinPage } from 'mediasfu-reactnative-expo';
+
+const App = () => {
+  const credentials = { 
+    apiUserName: "yourAPIUserName", 
+    apiKey: "yourAPIKey" 
+  };
+
+  return (
+    <MediasfuGeneric 
+      PrejoinPage={PreJoinPage} 
+      credentials={credentials} 
+    />
+  );
+}
+
+export default App;
+```
+
+### 2. Community Edition Only (Self-Hosted)
+Use your own MediaSFU Community Edition server for complete control.
+
+```javascript
+import { MediasfuGeneric, PreJoinPage } from 'mediasfu-reactnative-expo';
+
+const App = () => {
+  return (
+    <MediasfuGeneric 
+      PrejoinPage={PreJoinPage} 
+      localLink="http://localhost:3000" // Your CE server
+      connectMediaSFU={false}
+    />
+  );
+}
+
+export default App;
+```
+
+### 3. Hybrid Setup (CE + Cloud)
+Best of both worlds - use your CE server with MediaSFU Cloud for enhanced features.
+
+```javascript
+import { MediasfuGeneric, PreJoinPage } from 'mediasfu-reactnative-expo';
+
+const App = () => {
+  const credentials = { 
+    apiUserName: "yourAPIUserName", 
+    apiKey: "yourAPIKey" 
+  };
+
+  return (
+    <MediasfuGeneric 
+      PrejoinPage={PreJoinPage} 
+      credentials={credentials}
+      localLink="http://localhost:3000" // Your CE server
+      connectMediaSFU={true}
+    />
+  );
+}
+
+export default App;
+```
+
+### 4. Custom UI Development
+Complete control with custom interface while leveraging MediaSFU's functionality.
+
+```javascript
+import { MediasfuGeneric } from 'mediasfu-reactnative-expo';
+
+const App = () => {
+  const [sourceParameters, setSourceParameters] = useState({});
+  
+  const noUIPreJoinOptions = {
+    action: 'create',
+    capacity: 10,
+    duration: 15,
+    eventType: 'broadcast',
+    userName: 'YourName',
+  };
+
+  return (
+    <MediasfuGeneric 
+      credentials={credentials}
+      returnUI={false} // No default UI
+      noUIPreJoinOptions={noUIPreJoinOptions}
+      sourceParameters={sourceParameters}
+      updateSourceParameters={setSourceParameters}
+    />
+  );
+}
+
+export default App;
+```
+
+> **💡 Quick Start Tip:** Start with option 1 (MediaSFU Cloud Only) for immediate testing, then explore other options as your needs evolve.
 
 ## Programmatically Fetching Tokens
 
@@ -1933,6 +2038,409 @@ In the provided examples, users can set `useLocalUIMode` to `true` during UI dev
 During local UI development, the MediaSFU view is designed to be responsive to changes in screen size and orientation, adapting its layout accordingly. However, since UI changes are typically linked to communication with servers, developing the UI locally might result in less responsiveness due to the lack of real-time data updates. To mitigate this, users can force trigger changes in the UI by rotating the device, resizing the window, or simulating server responses by clicking on buttons within the page.
 
 While developing locally, users may encounter occasional error warnings as the UI attempts to communicate with the server. These warnings can be safely ignored, as they are simply indicative of unsuccessful server requests in the local development environment.
+
+# Custom Components Guide <a name="custom-components-guide"></a>
+
+MediaSFU provides powerful customization capabilities allowing you to replace the default UI components with your own custom React Native components. This gives you complete control over the appearance and behavior of video cards, audio cards, and mini cards.
+
+## Overview
+
+The MediaSFU React Native SDK supports three types of custom components:
+
+1. **CustomVideoCard**: Replace the default video participant cards
+2. **CustomAudioCard**: Replace the default audio-only participant cards  
+3. **CustomMiniCard**: Replace the default mini cards (used in certain layouts)
+
+## Custom Component Types
+
+```typescript
+import { 
+  CustomVideoCardType, 
+  CustomAudioCardType, 
+  CustomMiniCardType 
+} from 'mediasfu-reactnative-expo';
+```
+
+## Implementation Example
+
+Here's how to implement and use custom components in your MediaSFU application:
+
+### 1. Create Custom Components
+
+```typescript
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { CustomVideoCardType, CustomAudioCardType, CustomMiniCardType } from 'mediasfu-reactnative-expo';
+
+// Custom Video Card Component
+const CustomVideoCard: CustomVideoCardType = ({ 
+  children, 
+  participant, 
+  backgroundColor = '#2c2c2e',
+  showControls = true,
+  showInfo = true,
+  videoInfo,
+  style,
+  ...props 
+}) => {
+  return (
+    <View style={[styles.customVideoCard, { backgroundColor }, style]} {...props}>
+      {/* Custom header with participant info */}
+      {showInfo && (
+        <View style={styles.customHeader}>
+          <Text style={styles.participantName}>
+            {participant?.name || 'Unknown'}
+          </Text>
+          {participant?.muted && (
+            <View style={styles.mutedIndicator}>
+              <Text style={styles.mutedText}>🔇</Text>
+            </View>
+          )}
+        </View>
+      )}
+      
+      {/* Video content */}
+      <View style={styles.videoContent}>
+        {children}
+      </View>
+      
+      {/* Custom footer with additional info */}
+      {showControls && (
+        <View style={styles.customFooter}>
+          <Text style={styles.videoInfo}>
+            {videoInfo || `${participant?.id || 'N/A'}`}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// Custom Audio Card Component
+const CustomAudioCard: CustomAudioCardType = ({ 
+  children, 
+  participant,
+  backgroundColor = '#1c1c1e',
+  showWaveform = true,
+  style,
+  ...props 
+}) => {
+  const isSpeaking = participant?.isSpeaking || false;
+  
+  return (
+    <View 
+      style={[
+        styles.customAudioCard, 
+        { backgroundColor }, 
+        isSpeaking && styles.speakingBorder,
+        style
+      ]} 
+      {...props}
+    >
+      {/* Avatar section */}
+      <View style={styles.avatarSection}>
+        <View style={[styles.avatar, isSpeaking && styles.speakingAvatar]}>
+          <Text style={styles.avatarText}>
+            {participant?.name?.charAt(0)?.toUpperCase() || '?'}
+          </Text>
+        </View>
+      </View>
+      
+      {/* Participant info */}
+      <View style={styles.audioInfo}>
+        <Text style={styles.audioParticipantName}>
+          {participant?.name || 'Unknown'}
+        </Text>
+        
+        {/* Speaking indicator */}
+        {showWaveform && (
+          <View style={styles.waveformContainer}>
+            <Text style={styles.speakingStatus}>
+              {isSpeaking ? '🎤 Speaking' : '🔇 Muted'}
+            </Text>
+          </View>
+        )}
+      </View>
+      
+      {/* Audio controls/content */}
+      <View style={styles.audioContent}>
+        {children}
+      </View>
+    </View>
+  );
+};
+
+// Custom Mini Card Component
+const CustomMiniCard: CustomMiniCardType = ({ 
+  children, 
+  participant,
+  backgroundColor = '#3a3a3c',
+  showInfo = true,
+  style,
+  ...props 
+}) => {
+  return (
+    <View style={[styles.customMiniCard, { backgroundColor }, style]} {...props}>
+      {/* Mini avatar */}
+      <View style={styles.miniAvatar}>
+        <Text style={styles.miniAvatarText}>
+          {participant?.name?.charAt(0)?.toUpperCase() || '?'}
+        </Text>
+      </View>
+      
+      {/* Mini content */}
+      <View style={styles.miniContent}>
+        {children}
+      </View>
+      
+      {/* Status indicators */}
+      {showInfo && (
+        <View style={styles.miniStatus}>
+          {participant?.muted && (
+            <Text style={styles.miniStatusIcon}>🔇</Text>
+          )}
+          {participant?.videoOn && (
+            <Text style={styles.miniStatusIcon}>📹</Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+// Styles for custom components
+const styles = StyleSheet.create({
+  // Video Card Styles
+  customVideoCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    margin: 4,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  participantName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mutedIndicator: {
+    backgroundColor: 'rgba(255,0,0,0.8)',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  mutedText: {
+    fontSize: 12,
+  },
+  videoContent: {
+    flex: 1,
+  },
+  customFooter: {
+    padding: 6,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  videoInfo: {
+    color: '#fff',
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  
+  // Audio Card Styles
+  customAudioCard: {
+    borderRadius: 16,
+    padding: 12,
+    margin: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  speakingBorder: {
+    borderColor: '#4CAF50',
+  },
+  avatarSection: {
+    marginRight: 12,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  speakingAvatar: {
+    backgroundColor: '#4CAF50',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  audioInfo: {
+    flex: 1,
+  },
+  audioParticipantName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  waveformContainer: {
+    marginTop: 4,
+  },
+  speakingStatus: {
+    color: '#4CAF50',
+    fontSize: 12,
+  },
+  audioContent: {
+    marginLeft: 8,
+  },
+  
+  // Mini Card Styles
+  customMiniCard: {
+    borderRadius: 8,
+    padding: 6,
+    margin: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 40,
+  },
+  miniAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  miniAvatarText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  miniContent: {
+    flex: 1,
+  },
+  miniStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniStatusIcon: {
+    fontSize: 10,
+    marginLeft: 2,
+  },
+});
+```
+
+### 2. Use Custom Components in MediaSFU
+
+```typescript
+import React from 'react';
+import { MediasfuGeneric } from 'mediasfu-reactnative-expo';
+
+const App = () => {
+  // Your MediaSFU configuration
+  const credentials = { /* your credentials */ };
+  
+  return (
+    <MediasfuGeneric
+      credentials={credentials}
+      // Pass your custom components
+      customVideoCard={CustomVideoCard}
+      customAudioCard={CustomAudioCard}
+      customMiniCard={CustomMiniCard}
+      // Other props...
+    />
+  );
+};
+
+export default App;
+```
+
+### 3. Advanced Customization
+
+You can also conditionally use custom components based on participant data or application state:
+
+```typescript
+// Conditional custom component
+const ConditionalCustomVideoCard: CustomVideoCardType = (props) => {
+  const { participant } = props;
+  
+  // Use different styling for hosts vs participants
+  if (participant?.isHost) {
+    return <HostVideoCard {...props} />;
+  }
+  
+  return <CustomVideoCard {...props} />;
+};
+
+// Usage
+<MediasfuGeneric
+  customVideoCard={ConditionalCustomVideoCard}
+  // ... other props
+/>
+```
+
+## Component Props
+
+### CustomVideoCardType Props
+
+- `children`: React nodes - The video content
+- `participant`: Participant object with participant data
+- `backgroundColor`: Optional background color
+- `showControls`: Boolean to show/hide controls
+- `showInfo`: Boolean to show/hide participant info
+- `videoInfo`: Optional additional video information
+- `style`: Optional custom styles
+- `...props`: Any additional React Native View props
+
+### CustomAudioCardType Props
+
+- `children`: React nodes - The audio content
+- `participant`: Participant object with participant data
+- `backgroundColor`: Optional background color
+- `showWaveform`: Boolean to show/hide waveform indicator
+- `style`: Optional custom styles
+- `...props`: Any additional React Native View props
+
+### CustomMiniCardType Props
+
+- `children`: React nodes - The mini card content
+- `participant`: Participant object with participant data
+- `backgroundColor`: Optional background color
+- `showInfo`: Boolean to show/hide participant info
+- `style`: Optional custom styles
+- `...props`: Any additional React Native View props
+
+## Best Practices
+
+1. **Performance**: Keep custom components lightweight to ensure smooth rendering
+2. **Accessibility**: Include proper accessibility labels and hints
+3. **Responsive Design**: Use flexible layouts that work across different screen sizes
+4. **Consistent Styling**: Maintain consistent design patterns across your custom components
+5. **Error Handling**: Handle cases where participant data might be undefined
+
+## Complete Example
+
+For a complete working example with custom components, check the following files in this repository:
+
+- `example-custom-components.tsx` - Standalone examples of custom component implementations
+- `App.tsx` - Complete app implementation with custom components integration  
+- `AppGeneric.tsx` - Generic app example with custom components
+
+These files demonstrate full implementations of custom video, audio, and mini cards with various styling options and interactive features.
 
 # Intermediate Usage Guide <a name="intermediate-usage-guide"></a>
 
