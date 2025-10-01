@@ -3630,7 +3630,7 @@ const MediasfuBroadcast: React.FC<MediasfuBroadcastOptions> = ({
         }
       } else if (name && name !== "") {
         const participant = participants.current.find(
-          (p) => p.name === name
+          (part: Participant) => part.name === name
         );
         if (participant) {
           const participantId = participant.id;
@@ -3643,7 +3643,7 @@ const MediasfuBroadcast: React.FC<MediasfuBroadcastOptions> = ({
             }
           } else if (kind === "audio") {
             const audioStreamObj = allAudioStreams.current.find(
-              (obj) => obj.producerId === participantId
+              (obj: Participant | Stream) => obj.producerId === participantId
             );
             if (audioStreamObj) {
               stream = audioStreamObj.stream;
