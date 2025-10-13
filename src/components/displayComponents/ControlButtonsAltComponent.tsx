@@ -37,6 +37,27 @@ export interface ControlButtonsAltComponentOptions {
   alternateIconComponent?: JSX.Element;
   iconComponent?: JSX.Element;
   showAspect?: boolean;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type ControlButtonsAltComponentType = (
@@ -93,6 +114,9 @@ const ControlButtonsAltComponent: React.FC<ControlButtonsAltComponentOptions> = 
   direction = 'horizontal',
   buttonsContainerStyle,
   showAspect = false,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   /**
    * getAlignmentStyle - Computes alignment styles based on position, location, and direction.
@@ -121,61 +145,74 @@ const ControlButtonsAltComponent: React.FC<ControlButtonsAltComponentOptions> = 
     return alignmentStyle;
   };
 
-  return (
+  const dimensions = { width: 0, height: 0 };
+
+  const defaultContent = buttons.map((button, index) => (
+    <Pressable
+      key={index}
+      style={({ pressed }) => [
+        styles.buttonContainer,
+        {
+          backgroundColor: pressed
+            ? button.backgroundColor?.pressed || '#444'
+            : button.backgroundColor?.default || 'transparent',
+        },
+        direction === 'vertical' && styles.verticalButton,
+      ]}
+      onPress={button.onPress}
+    >
+      {button.icon ? (
+        button.active ? (
+          button.alternateIconComponent ? (
+            button.alternateIconComponent
+          ) : button.alternateIcon ? (
+            <FontAwesome5
+              name={button.alternateIcon}
+              size={14}
+              color={button.inActiveColor || '#ffffff'}
+            />
+          ) : null
+        ) : button.iconComponent ? (
+          button.iconComponent
+        ) : button.icon ? (
+          <FontAwesome5
+            name={button.icon}
+            size={14}
+            color={button.inActiveColor || '#ffffff'}
+          />
+        ) : null
+      ) : (
+        button.customComponent
+      )}
+      {button.name && (
+        <Text style={[styles.buttonText, { color: button.color || '#ffffff' }]}>
+          {button.name}
+        </Text>
+      )}
+    </Pressable>
+  ));
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
     <View
       style={[
         styles.container,
         getAlignmentStyle(),
         buttonsContainerStyle,
         { display: showAspect ? 'flex' : 'none' },
+        style,
       ]}
     >
-      {buttons.map((button, index) => (
-        <Pressable
-          key={index}
-          style={({ pressed }) => [
-            styles.buttonContainer,
-            {
-              backgroundColor: pressed
-                ? button.backgroundColor?.pressed || '#444'
-                : button.backgroundColor?.default || 'transparent',
-            },
-            direction === 'vertical' && styles.verticalButton,
-          ]}
-          onPress={button.onPress}
-        >
-          {button.icon ? (
-            button.active ? (
-              button.alternateIconComponent ? (
-                button.alternateIconComponent
-              ) : button.alternateIcon ? (
-                <FontAwesome5
-                  name={button.alternateIcon}
-                  size={14}
-                  color={button.inActiveColor || '#ffffff'}
-                />
-              ) : null
-            ) : button.iconComponent ? (
-              button.iconComponent
-            ) : button.icon ? (
-              <FontAwesome5
-                name={button.icon}
-                size={14}
-                color={button.inActiveColor || '#ffffff'}
-              />
-            ) : null
-          ) : (
-            button.customComponent
-          )}
-          {button.name && (
-            <Text style={[styles.buttonText, { color: button.color || '#ffffff' }]}>
-              {button.name}
-            </Text>
-          )}
-        </Pressable>
-      ))}
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 const styles = StyleSheet.create({

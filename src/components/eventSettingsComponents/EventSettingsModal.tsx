@@ -122,6 +122,17 @@ export interface EventSettingsModalOptions {
    * Callback function to show alerts.
    */
   showAlert?: ShowAlert;
+
+  // Render props for enhanced customization
+  style?: object;
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type EventSettingsModalType = (options: EventSettingsModalOptions) => JSX.Element;
@@ -184,6 +195,9 @@ const EventSettingsModal: React.FC<EventSettingsModalOptions> = ({
   roomName,
   socket,
   showAlert,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [audioState, setAudioState] = useState<string>(audioSetting);
   const [videoState, setVideoState] = useState<string>(videoSetting);
@@ -230,8 +244,136 @@ const EventSettingsModal: React.FC<EventSettingsModalOptions> = ({
     }
   };
 
+  const dimensions = { width: modalWidth, height: 0 };
 
-  return (
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Event Settings</Text>
+        <Pressable
+          onPress={onEventSettingsClose}
+          style={styles.btnCloseSettings}
+          accessibilityRole="button"
+          accessibilityLabel="Close Event Settings Modal"
+        >
+          <FontAwesome name="times" style={styles.icon} />
+        </Pressable>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.hr} />
+
+      {/* Body */}
+      <View style={styles.modalBody}>
+        {/* User Audio Setting */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>User Audio:</Text>
+          <RNPickerSelect
+            onValueChange={(value: string) => {
+              setAudioState(value);
+              updateAudioSetting(value);
+            }}
+            items={[
+              { label: 'Disallow', value: 'disallow' },
+              { label: 'Allow', value: 'allow' },
+              { label: 'Upon approval', value: 'approval' },
+            ]}
+            value={audioState}
+            style={pickerSelectStyles}
+            placeholder={{}}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* User Video Setting */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>User Video:</Text>
+          <RNPickerSelect
+            onValueChange={(value: string) => {
+              setVideoState(value);
+              updateVideoSetting(value);
+            }}
+            items={[
+              { label: 'Disallow', value: 'disallow' },
+              { label: 'Allow', value: 'allow' },
+              { label: 'Upon approval', value: 'approval' },
+            ]}
+            value={videoState}
+            style={pickerSelectStyles}
+            placeholder={{}}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* User Screenshare Setting */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>User Screenshare:</Text>
+          <RNPickerSelect
+            onValueChange={(value: string) => {
+              setScreenshareState(value);
+              updateScreenshareSetting(value);
+            }}
+            items={[
+              { label: 'Disallow', value: 'disallow' },
+              { label: 'Allow', value: 'allow' },
+              { label: 'Upon approval', value: 'approval' },
+            ]}
+            value={screenshareState}
+            style={pickerSelectStyles}
+            placeholder={{}}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* User Chat Setting */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>User Chat:</Text>
+          <RNPickerSelect
+            onValueChange={(value: string) => {
+              setChatState(value);
+              updateChatSetting(value);
+            }}
+            items={[
+              { label: 'Disallow', value: 'disallow' },
+              { label: 'Allow', value: 'allow' },
+            ]}
+            value={chatState}
+            style={pickerSelectStyles}
+            placeholder={{}}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.modalFooter}>
+        <Pressable
+          onPress={handleSaveSettings}
+          style={styles.btnApplySettings}
+          accessibilityRole="button"
+          accessibilityLabel="Save Event Settings"
+        >
+          <Text style={styles.btnText}>Save</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -239,129 +381,16 @@ const EventSettingsModal: React.FC<EventSettingsModalOptions> = ({
       onRequestClose={onEventSettingsClose}
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }]}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Event Settings</Text>
-            <Pressable
-              onPress={onEventSettingsClose}
-              style={styles.btnCloseSettings}
-              accessibilityRole="button"
-              accessibilityLabel="Close Event Settings Modal"
-            >
-              <FontAwesome name="times" style={styles.icon} />
-            </Pressable>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.hr} />
-
-          {/* Body */}
-          <View style={styles.modalBody}>
-            {/* User Audio Setting */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>User Audio:</Text>
-              <RNPickerSelect
-                onValueChange={(value: string) => {
-                  setAudioState(value);
-                  updateAudioSetting(value);
-                }}
-                items={[
-                  { label: 'Disallow', value: 'disallow' },
-                  { label: 'Allow', value: 'allow' },
-                  { label: 'Upon approval', value: 'approval' },
-                ]}
-                value={audioState}
-                style={pickerSelectStyles}
-                placeholder={{}}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* User Video Setting */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>User Video:</Text>
-              <RNPickerSelect
-                onValueChange={(value: string) => {
-                  setVideoState(value);
-                  updateVideoSetting(value);
-                }}
-                items={[
-                  { label: 'Disallow', value: 'disallow' },
-                  { label: 'Allow', value: 'allow' },
-                  { label: 'Upon approval', value: 'approval' },
-                ]}
-                value={videoState}
-                style={pickerSelectStyles}
-                placeholder={{}}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* User Screenshare Setting */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>User Screenshare:</Text>
-              <RNPickerSelect
-                onValueChange={(value: string) => {
-                  setScreenshareState(value);
-                  updateScreenshareSetting(value);
-                }}
-                items={[
-                  { label: 'Disallow', value: 'disallow' },
-                  { label: 'Allow', value: 'allow' },
-                  { label: 'Upon approval', value: 'approval' },
-                ]}
-                value={screenshareState}
-                style={pickerSelectStyles}
-                placeholder={{}}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* User Chat Setting */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>User Chat:</Text>
-              <RNPickerSelect
-                onValueChange={(value: string) => {
-                  setChatState(value);
-                  updateChatSetting(value);
-                }}
-                items={[
-                  { label: 'Disallow', value: 'disallow' },
-                  { label: 'Allow', value: 'allow' },
-                ]}
-                value={chatState}
-                style={pickerSelectStyles}
-                placeholder={{}}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-          </View>
-
-          {/* Footer */}
-          <View style={styles.modalFooter}>
-            <Pressable
-              onPress={handleSaveSettings}
-              style={styles.btnApplySettings}
-              accessibilityRole="button"
-              accessibilityLabel="Save Event Settings"
-            >
-              <Text style={styles.btnText}>Save</Text>
-            </Pressable>
-          </View>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default EventSettingsModal;

@@ -72,6 +72,27 @@ export interface ShareEventModalOptions {
    * The link to the local server.
    */
   localLink?: string;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type ShareEventModalType = (options: ShareEventModalOptions) => JSX.Element;
@@ -124,6 +145,9 @@ const ShareEventModal: React.FC<ShareEventModalOptions> = ({
   islevel,
   eventType,
   localLink,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const screenWidth = Dimensions.get('window').width;
   let modalWidth = 0.8 * screenWidth;
@@ -131,7 +155,53 @@ const ShareEventModal: React.FC<ShareEventModalOptions> = ({
     modalWidth = 350;
   }
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      <View style={styles.modalHeader}>
+        <Pressable onPress={onShareEventClose} style={styles.closeButton}>
+          <FontAwesome name="times" style={styles.icon} />
+        </Pressable>
+      </View>
+
+      <View style={styles.separator} />
+
+      {/* Modal Body */}
+      <View style={styles.modalBody}>
+        <ScrollView contentContainerStyle={styles.bodyContainer}>
+          {/* Conditionally render MeetingPasscodeComponent based on islevel */}
+          {islevel === '2' && adminPasscode && (
+            <View style={styles.componentContainer}>
+              <MeetingPasscodeComponent meetingPasscode={adminPasscode} />
+            </View>
+          )}
+
+          {/* Meeting ID */}
+          <View style={styles.componentContainer}>
+            <MeetingIdComponent meetingID={roomName} />
+          </View>
+
+          {/* Share Buttons */}
+          {shareButtons && (
+            <View style={styles.componentContainer}>
+              <ShareButtonsComponent
+                meetingID={roomName}
+                eventType={eventType}
+                localLink={localLink}
+              />
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -140,47 +210,17 @@ const ShareEventModal: React.FC<ShareEventModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          <View style={styles.modalHeader}>
-            <Pressable onPress={onShareEventClose} style={styles.closeButton}>
-              <FontAwesome name="times" style={styles.icon} />
-            </Pressable>
-          </View>
-
-          <View style={styles.separator} />
-
-          {/* Modal Body */}
-          <View style={styles.modalBody}>
-            <ScrollView contentContainerStyle={styles.bodyContainer}>
-              {/* Conditionally render MeetingPasscodeComponent based on islevel */}
-              {islevel === '2' && adminPasscode && (
-                <View style={styles.componentContainer}>
-                  <MeetingPasscodeComponent meetingPasscode={adminPasscode} />
-                </View>
-              )}
-
-              {/* Meeting ID */}
-              <View style={styles.componentContainer}>
-                <MeetingIdComponent meetingID={roomName} />
-              </View>
-
-              {/* Share Buttons */}
-              {shareButtons && (
-                <View style={styles.componentContainer}>
-                  <ShareButtonsComponent
-                    meetingID={roomName}
-                    eventType={eventType}
-                    localLink={localLink}
-                  />
-                </View>
-              )}
-            </ScrollView>
-          </View>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default ShareEventModal;

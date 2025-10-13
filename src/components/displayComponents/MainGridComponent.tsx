@@ -52,6 +52,27 @@ export interface MainGridComponentOptions {
    * The time to display on the meeting progress timer.
    */
   meetingProgressTime: string;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MainGridComponentType = (options: MainGridComponentOptions) => JSX.Element;
@@ -107,28 +128,50 @@ const MainGridComponent: React.FC<MainGridComponentOptions> = ({
   timeBackgroundColor = 'transparent',
   showTimer = true,
   meetingProgressTime,
-}) => (
-  <View
-    style={[
-      styles.maingridContainer,
-      {
-        backgroundColor,
-        height,
-        width,
-        display: showAspect ? 'flex' : 'none',
-      },
-    ]}
-  >
-    {showTimer && (
-    <MeetingProgressTimer
-      meetingProgressTime={meetingProgressTime}
-      initialBackgroundColor={timeBackgroundColor}
-      showTimer={showTimer}
-    />
-    )}
-    {children}
-  </View>
-);
+  style,
+  renderContent,
+  renderContainer,
+}) => {
+  const dimensions = { width, height };
+
+  const defaultContent = (
+    <>
+      {showTimer && (
+        <MeetingProgressTimer
+          meetingProgressTime={meetingProgressTime}
+          initialBackgroundColor={timeBackgroundColor}
+          showTimer={showTimer}
+        />
+      )}
+      {children}
+    </>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View
+      style={[
+        styles.maingridContainer,
+        {
+          backgroundColor,
+          height,
+          width,
+          display: showAspect ? 'flex' : 'none',
+        },
+        style,
+      ]}
+    >
+      {content}
+    </View>
+  );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
+};
 
 export default MainGridComponent;
 

@@ -80,6 +80,27 @@ export interface MediaSettingsModalOptions {
    * @default "#83c0e9"
    */
   backgroundColor?: string;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MediaSettingsModalType = (options: MediaSettingsModalOptions) => JSX.Element;
@@ -144,6 +165,9 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
   parameters,
   position = 'topRight',
   backgroundColor = '#83c0e9',
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const {
     userDefaultVideoInputDevice,
@@ -229,7 +253,114 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
   //   updateIsBackgroundModalVisible(!isBackgroundModalVisible);
   // };
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Media Settings</Text>
+        <Pressable
+          onPress={onMediaSettingsClose}
+          style={styles.btnCloseMediaSettings}
+          accessibilityRole="button"
+          accessibilityLabel="Close Media Settings Modal"
+        >
+          <FontAwesome5 name="times" style={styles.icon} />
+        </Pressable>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.hr} />
+
+      {/* Body */}
+      <View style={styles.modalBody}>
+        {/* Select Camera */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>
+            <FontAwesome5 name="camera" size={16} color="black" />
+            Select Camera:
+          </Text>
+          <RNPickerSelect
+            onValueChange={(value: string) => handleVideoSwitch(value)}
+            items={videoInputs.map((input) => ({
+              label: input.label || `Camera ${input.deviceId}`,
+              value: input.deviceId,
+            }))}
+            value={selectedVideoInput || ''}
+            style={pickerSelectStyles}
+            placeholder={{ label: 'Select a camera...', value: '' }}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* Select Microphone */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>
+            <FontAwesome5 name="microphone" size={16} color="black" />
+            Select Microphone:
+          </Text>
+          <RNPickerSelect
+            onValueChange={(value: string) => handleAudioSwitch(value)}
+            items={audioInputs.map((input) => ({
+              label: input.label || `Microphone ${input.deviceId}`,
+              value: input.deviceId,
+            }))}
+            value={selectedAudioInput || ''}
+            style={pickerSelectStyles}
+            placeholder={{ label: 'Select a microphone...', value: '' }}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* Switch Camera Button */}
+        <View style={styles.formGroup}>
+          <Pressable
+            onPress={handleSwitchCamera}
+            style={styles.switchCameraButton}
+            accessibilityRole="button"
+            accessibilityLabel="Switch Camera"
+          >
+            <Text style={styles.switchCameraButtonText}>
+              <FontAwesome5 name="sync-alt" size={16} color="black" />
+              Switch Camera
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Separator */}
+        {/* <View style={styles.sep} /> */}
+
+        {/* Virtual Background Button  - Not implemented */}
+        {/* <View style={styles.formGroup}>
+          <Pressable
+            onPress={toggleVirtualBackground}
+            style={styles.virtualBackgroundButton}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle Virtual Background"
+          >
+            <Text style={styles.virtualBackgroundButtonText}>
+              <FontAwesome5 name="photo-video" size={16} color="black" />
+              {' '}
+              Virtual Background
+            </Text>
+          </Pressable>
+        </View> */}
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -237,107 +368,16 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
       onRequestClose={onMediaSettingsClose}
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }]}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Media Settings</Text>
-            <Pressable
-              onPress={onMediaSettingsClose}
-              style={styles.btnCloseMediaSettings}
-              accessibilityRole="button"
-              accessibilityLabel="Close Media Settings Modal"
-            >
-              <FontAwesome5 name="times" style={styles.icon} />
-            </Pressable>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.hr} />
-
-          {/* Body */}
-          <View style={styles.modalBody}>
-            {/* Select Camera */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>
-                <FontAwesome5 name="camera" size={16} color="black" />
-                Select Camera:
-              </Text>
-              <RNPickerSelect
-                onValueChange={(value: string) => handleVideoSwitch(value)}
-                items={videoInputs.map((input) => ({
-                  label: input.label || `Camera ${input.deviceId}`,
-                  value: input.deviceId,
-                }))}
-                value={selectedVideoInput || ''}
-                style={pickerSelectStyles}
-                placeholder={{ label: 'Select a camera...', value: '' }}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* Select Microphone */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>
-                <FontAwesome5 name="microphone" size={16} color="black" />
-                Select Microphone:
-              </Text>
-              <RNPickerSelect
-                onValueChange={(value: string) => handleAudioSwitch(value)}
-                items={audioInputs.map((input) => ({
-                  label: input.label || `Microphone ${input.deviceId}`,
-                  value: input.deviceId,
-                }))}
-                value={selectedAudioInput || ''}
-                style={pickerSelectStyles}
-                placeholder={{ label: 'Select a microphone...', value: '' }}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* Switch Camera Button */}
-            <View style={styles.formGroup}>
-              <Pressable
-                onPress={handleSwitchCamera}
-                style={styles.switchCameraButton}
-                accessibilityRole="button"
-                accessibilityLabel="Switch Camera"
-              >
-                <Text style={styles.switchCameraButtonText}>
-                  <FontAwesome5 name="sync-alt" size={16} color="black" />
-                  Switch Camera
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Separator */}
-            {/* <View style={styles.sep} /> */}
-
-            {/* Virtual Background Button  - Not implemented */}
-            {/* <View style={styles.formGroup}>
-              <Pressable
-                onPress={toggleVirtualBackground}
-                style={styles.virtualBackgroundButton}
-                accessibilityRole="button"
-                accessibilityLabel="Toggle Virtual Background"
-              >
-                <Text style={styles.virtualBackgroundButtonText}>
-                  <FontAwesome5 name="photo-video" size={16} color="black" />
-                  {' '}
-                  Virtual Background
-                </Text>
-              </Pressable>
-            </View> */}
-          </View>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MediaSettingsModal;

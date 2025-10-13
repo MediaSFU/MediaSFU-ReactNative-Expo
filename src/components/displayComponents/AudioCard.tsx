@@ -65,6 +65,27 @@ export interface AudioCardOptions {
   audioDecibels?: AudioDecibels;
   parameters: AudioCardParameters;
   customAudioCard?: CustomAudioCardType;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type AudioCardType = (options: AudioCardOptions) => JSX.Element;
@@ -157,6 +178,9 @@ const AudioCard: React.FC<AudioCardOptions> = ({
   audioDecibels,
   parameters,
   customAudioCard,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // State for animated waveform bars
   const [waveformAnimations] = useState<Animated.Value[]>(
@@ -320,7 +344,9 @@ const AudioCard: React.FC<AudioCardOptions> = ({
     );
   };
 
-  return (
+  const dimensions = { width: 0, height: 0 };
+
+  const defaultContent = (
     <>
       {customAudioCard ? (
         customAudioCard({
@@ -333,13 +359,7 @@ const AudioCard: React.FC<AudioCardOptions> = ({
           parameters,
         })
       ) : (
-        <View
-          style={[
-            styles.card,
-            customStyle,
-            { backgroundColor: backgroundColor || '#2c678f' },
-          ]}
-        >
+        <>
           {imageSource ? (
             <Image
               source={{ uri: imageSource }}
@@ -420,10 +440,31 @@ const AudioCard: React.FC<AudioCardOptions> = ({
                 {renderControls()}
               </View>
             ))}
-        </View>
+        </>
       )}
     </>
   );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View
+      style={[
+        styles.card,
+        customStyle,
+        { backgroundColor: backgroundColor || '#2c678f' },
+        style,
+      ]}
+    >
+      {content}
+    </View>
+  );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default AudioCard;

@@ -113,6 +113,11 @@ const MiniAudioPlayer: React.FC<MiniAudioPlayerOptions> = ({
     limitedBreakRoom,
   } = parameters;
 
+  const parameterMiniAudioComponent = parameters
+    .miniAudioComponent as React.ComponentType<any> | undefined;
+  const resolvedMiniAudioComponent =
+    MiniAudioComponent ?? parameterMiniAudioComponent;
+
   const [showWaveModal, setShowWaveModal] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const autoWaveCheck = useRef<boolean>(false);
@@ -329,9 +334,10 @@ const MiniAudioPlayer: React.FC<MiniAudioPlayerOptions> = ({
   }, [stream]);
 
   const renderMiniAudioComponent = (): JSX.Element | null => {
-    if (MiniAudioComponent) {
+    if (resolvedMiniAudioComponent) {
+      const MiniAudioComponentToRender = resolvedMiniAudioComponent;
       return (
-        <MiniAudioComponent
+        <MiniAudioComponentToRender
           showWaveform={showWaveModal}
           visible={showWaveModal && !isMuted}
           {...miniAudioProps}

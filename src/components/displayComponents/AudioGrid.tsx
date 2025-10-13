@@ -7,6 +7,27 @@ import {
 
 export interface AudioGridOptions {
   componentsToRender: React.ReactNode[]; // Array of React components or elements
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type AudioGridType = (options: AudioGridOptions) => React.ReactNode;
@@ -43,7 +64,12 @@ export type AudioGridType = (options: AudioGridOptions) => React.ReactNode;
  * ```
  */
 
-const AudioGrid: React.FC<AudioGridOptions> = ({ componentsToRender }) => {
+const AudioGrid: React.FC<AudioGridOptions> = ({ 
+  componentsToRender,
+  style,
+  renderContent,
+  renderContainer,
+}) => {
   /**
    * renderGrid - Renders componentsToRender array into a grid.
    * @returns {React.ReactNode[]} - An array of React components rendered in the grid.
@@ -59,9 +85,20 @@ const AudioGrid: React.FC<AudioGridOptions> = ({ componentsToRender }) => {
     return renderedComponents;
   };
 
-  return (
-    <View style={{ zIndex: 9 }}>{renderGrid()}</View>
+  const dimensions = { width: 0, height: 0 }; // AudioGrid doesn't have fixed dimensions
+
+  const defaultContent = renderGrid();
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View style={[{ zIndex: 9 }, style]}>{content}</View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default AudioGrid;

@@ -23,6 +23,8 @@ import MainGridComponent from "../../components/displayComponents/MainGridCompon
 import SubAspectComponent from "../../components/displayComponents/SubAspectComponent";
 import MainContainerComponent from "../../components/displayComponents/MainContainerComponent";
 import AlertComponent from "../../components/displayComponents/AlertComponent";
+import MiniAudio from "../../components/displayComponents/MiniAudio";
+import MiniAudioPlayer from "../../methods/utils/MiniAudioPlayer/MiniAudioPlayer";
 import MenuModal from "../../components/menuComponents/MenuModal";
 import RecordingModal from "../../components/recordingComponents/RecordingModal";
 import RequestsModal from "../../components/requestsComponents/RequestsModal";
@@ -42,6 +44,9 @@ import WelcomePage, {
 
 import PollModal from "../../components/pollsComponents/PollModal";
 import BreakoutRoomsModal from "../../components/breakoutComponents/BreakoutRoomsModal";
+
+// Override helpers for UI customization
+import { withOverride, withFunctionOverride } from "./overrideHelpers";
 
 // pagination and display of media (samples)
 import Pagination from "../../components/displayComponents/Pagination";
@@ -270,6 +275,8 @@ export type MediasfuGenericOptions = {
   customAudioCard?: CustomAudioCardType;
   customMiniCard?: CustomMiniCardType;
   customComponent?: React.FC<{ parameters: any }>;
+  containerStyle?: object; // React Native ViewStyle
+  uiOverrides?: import("../../@types/types").MediasfuUICustomOverrides;
 };
 
 /**
@@ -354,7 +361,151 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   customAudioCard,
   customMiniCard,
   customComponent,
+  containerStyle,
+  uiOverrides,
 }) => {
+  // Apply UI overrides using useMemo for performance
+  const MainContainer = React.useMemo(
+    () => withOverride(uiOverrides?.mainContainer, MainContainerComponent),
+    [uiOverrides?.mainContainer]
+  );
+  const MainAspect = React.useMemo(
+    () => withOverride(uiOverrides?.mainAspect, MainAspectComponent),
+    [uiOverrides?.mainAspect]
+  );
+  const MainScreen = React.useMemo(
+    () => withOverride(uiOverrides?.mainScreen, MainScreenComponent),
+    [uiOverrides?.mainScreen]
+  );
+  const MainGrid = React.useMemo(
+    () => withOverride(uiOverrides?.mainGrid, MainGridComponent),
+    [uiOverrides?.mainGrid]
+  );
+  const SubAspect = React.useMemo(
+    () => withOverride(uiOverrides?.subAspect, SubAspectComponent),
+    [uiOverrides?.subAspect]
+  );
+  const OtherGrid = React.useMemo(
+    () => withOverride(uiOverrides?.otherGrid, OthergridComponent),
+    [uiOverrides?.otherGrid]
+  );
+  const FlexibleGridPrimary = React.useMemo(
+    () => withOverride(uiOverrides?.flexibleGrid, FlexibleGrid),
+    [uiOverrides?.flexibleGrid]
+  );
+  const FlexibleVideoComponent = React.useMemo(
+    () => withOverride(uiOverrides?.flexibleVideo, FlexibleVideo),
+    [uiOverrides?.flexibleVideo]
+  );
+  const AudioGridComponent = React.useMemo(
+    () => withOverride(uiOverrides?.audioGrid, AudioGrid),
+    [uiOverrides?.audioGrid]
+  );
+  const PaginationComponent = React.useMemo(
+    () => withOverride(uiOverrides?.pagination, Pagination),
+    [uiOverrides?.pagination]
+  );
+  const ControlButtons = React.useMemo(
+    () => withOverride(uiOverrides?.controlButtons, ControlButtonsComponent),
+    [uiOverrides?.controlButtons]
+  );
+  const ControlButtonsAlt = React.useMemo(
+    () => withOverride(uiOverrides?.controlButtonsAlt, ControlButtonsAltComponent),
+    [uiOverrides?.controlButtonsAlt]
+  );
+  const ControlButtonsTouch = React.useMemo(
+    () => withOverride(uiOverrides?.controlButtonsTouch, ControlButtonsComponentTouch),
+    [uiOverrides?.controlButtonsTouch]
+  );
+  const LoadingModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.loadingModal, LoadingModal),
+    [uiOverrides?.loadingModal]
+  );
+  const AlertComponentOverride = React.useMemo(
+    () => withOverride(uiOverrides?.alert, AlertComponent),
+    [uiOverrides?.alert]
+  );
+  const MenuModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.menuModal, MenuModal),
+    [uiOverrides?.menuModal]
+  );
+  const RecordingModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.recordingModal, RecordingModal),
+    [uiOverrides?.recordingModal]
+  );
+  const RequestsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.requestsModal, RequestsModal),
+    [uiOverrides?.requestsModal]
+  );
+  const WaitingRoomModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.waitingRoomModal, WaitingRoomModal),
+    [uiOverrides?.waitingRoomModal]
+  );
+  const DisplaySettingsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.displaySettingsModal, DisplaySettingsModal),
+    [uiOverrides?.displaySettingsModal]
+  );
+  const EventSettingsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.eventSettingsModal, EventSettingsModal),
+    [uiOverrides?.eventSettingsModal]
+  );
+  const CoHostModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.coHostModal, CoHostModal),
+    [uiOverrides?.coHostModal]
+  );
+  const ParticipantsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.participantsModal, ParticipantsModal),
+    [uiOverrides?.participantsModal]
+  );
+  const MessagesModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.messagesModal, MessagesModal),
+    [uiOverrides?.messagesModal]
+  );
+  const MediaSettingsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.mediaSettingsModal, MediaSettingsModal),
+    [uiOverrides?.mediaSettingsModal]
+  );
+  const ConfirmExitModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.confirmExitModal, ConfirmExitModal),
+    [uiOverrides?.confirmExitModal]
+  );
+  const ConfirmHereModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.confirmHereModal, ConfirmHereModal),
+    [uiOverrides?.confirmHereModal]
+  );
+  const ShareEventModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.shareEventModal, ShareEventModal),
+    [uiOverrides?.shareEventModal]
+  );
+  const PollModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.pollModal, PollModal),
+    [uiOverrides?.pollModal]
+  );
+  const BreakoutRoomsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.breakoutRoomsModal, BreakoutRoomsModal),
+    [uiOverrides?.breakoutRoomsModal]
+  );
+
+  // Function overrides
+  const consumerResumeFn = React.useMemo(
+    () => withFunctionOverride(uiOverrides?.consumerResume, consumerResume),
+    [uiOverrides?.consumerResume]
+  );
+  const addVideosGridFn = React.useMemo(
+    () => withFunctionOverride(uiOverrides?.addVideosGrid, addVideosGrid),
+    [uiOverrides?.addVideosGrid]
+  );
+
+  // Additional component overrides for MiniAudio and MiniAudioPlayer
+  const MiniAudioComponentOverride = React.useMemo(
+    () => withOverride(uiOverrides?.miniAudio, MiniAudio),
+    [uiOverrides?.miniAudio]
+  );
+  const MiniAudioPlayerComponent = React.useMemo(
+    () => withOverride(uiOverrides?.miniAudioPlayer, MiniAudioPlayer),
+    [uiOverrides?.miniAudioPlayer]
+  );
+
   const updateStatesToInitialValues = async () => {
     const initialValues = initialValuesState as { [key: string]: any };
     const updateFunctions = getAllParams() as unknown as {
@@ -2398,7 +2549,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       getVideos,
       rePort,
       trigger,
-      consumerResume,
+      consumerResume: consumerResumeFn,
       connectSendTransport,
       connectSendTransportAudio,
       connectSendTransportVideo,
@@ -2409,7 +2560,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       checkGrid,
       getEstimate,
       calculateRowsAndColumns,
-      addVideosGrid,
+      addVideosGrid: addVideosGridFn,
       onScreenChanges,
       sleep,
       changeVids,
@@ -3225,6 +3376,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       customAudioCard,
       customMiniCard,
       customComponent,
+      miniAudioComponent: MiniAudioComponentOverride,
+      miniAudioPlayerComponent: MiniAudioPlayerComponent,
     };
   };
 
@@ -3407,7 +3560,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     },
     {
       customComponent: (
-        <ControlButtonsAltComponent
+        <ControlButtonsAlt
           buttons={recordButtons}
           direction="horizontal"
           showAspect
@@ -5104,9 +5257,9 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       ) : customComponent ? (
         React.createElement(customComponent, { parameters: { ...getAllParams(), ...mediaSFUFunctions() } })
       ) : returnUI ? (
-        <MainContainerComponent>
+        <MainContainer style={containerStyle}>
           {/* Main aspect component containsa ll but the control buttons (as used for webinar and conference) */}
-          <MainAspectComponent
+          <MainAspect
             backgroundColor="rgba(217, 227, 234, 0.99)"
             defaultFraction={1 - controlHeight}
             updateIsWideScreen={updateIsWideScreen}
@@ -5118,7 +5271,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }
           >
             {/* MainScreenComponent contains the main grid view and the minor grid view */}
-            <MainScreenComponent
+            <MainScreen
               doStack={true}
               mainSize={mainHeightWidth}
               updateComponentSizes={updateComponentSizes}
@@ -5133,7 +5286,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
               {/* MainGridComponent becomes the dominant grid view in broadcast and webinar event types */}
               {/* MainGridComponent becomes the dominant grid view in conference event type when screenshare is active */}
 
-              <MainGridComponent
+              <MainGrid
                 height={componentSizes.current.mainHeight}
                 width={componentSizes.current.mainWidth}
                 backgroundColor="rgba(217, 227, 234, 0.99)"
@@ -5141,7 +5294,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 timeBackgroundColor={recordState}
                 meetingProgressTime={meetingProgressTime}
               >
-                <FlexibleVideo
+                <FlexibleVideoComponent
                   customWidth={componentSizes.current.mainWidth}
                   customHeight={componentSizes.current.mainHeight}
                   rows={1}
@@ -5155,7 +5308,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   }
                 />
 
-                <ControlButtonsComponentTouch
+                <ControlButtonsTouch
                   buttons={controlBroadcastButtons}
                   position={"right"}
                   location={"bottom"}
@@ -5164,7 +5317,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 />
 
                 {/* Button to launch recording modal */}
-                <ControlButtonsComponentTouch
+                <ControlButtonsTouch
                   buttons={recordButton}
                   direction={"horizontal"}
                   showAspect={
@@ -5177,7 +5330,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 />
 
                 {/* Buttons to control recording */}
-                <ControlButtonsComponentTouch
+                <ControlButtonsTouch
                   buttons={recordButtons}
                   direction={"horizontal"}
                   showAspect={
@@ -5188,11 +5341,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   location="bottom"
                   position="middle"
                 />
-              </MainGridComponent>
+              </MainGrid>
 
               {/* OthergridComponent shows the minor grid view - not used at all in broadcast event type */}
               {/* OthergridComponent becomes the dominant grid view in conference (the main grid only gets re-introduced during screenshare) and chat event types */}
-              <OthergridComponent
+              <OtherGrid
                 height={componentSizes.current.otherHeight}
                 width={componentSizes.current.otherWidth}
                 backgroundColor={"rgba(217, 227, 234, 0.99)"}
@@ -5224,7 +5377,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   }}
                 >
                   {/* Render Pagination component */}
-                  <Pagination
+                  <PaginationComponent
                     totalPages={numberPages}
                     currentUserPage={currentUserPage.current}
                     showAspect={doPaginate.current}
@@ -5237,13 +5390,13 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 {/* AudioGrid contains all the audio only streams */}
                 {/* If broadcasting and there are audio only streams (just one), the audio only streams are displayed in the main grid view */}
                 {/* If webinar and you are the host, the audio only streams (just one), are displayed in the main grid view */}
-                <AudioGrid
+                <AudioGridComponent
                   componentsToRender={
                     audioOnlyStreams.current ? audioOnlyStreams.current : []
                   }
                 />
 
-                <ControlButtonsComponentTouch
+                <ControlButtonsTouch
                   buttons={controlChatButtons}
                   position={"right"}
                   location={"bottom"}
@@ -5251,7 +5404,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   showAspect={eventType.current === "chat"}
                 />
 
-                <FlexibleGrid
+                <FlexibleGridPrimary
                   customWidth={gridSizes.current.gridWidth!}
                   customHeight={gridSizes.current.gridHeight!}
                   rows={gridRows}
@@ -5260,7 +5413,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   backgroundColor={"rgba(217, 227, 234, 0.99)"}
                 />
 
-                <FlexibleGrid
+                <FlexibleGridPrimary
                   customWidth={gridSizes.current.altGridWidth!}
                   customHeight={gridSizes.current.altGridHeight!}
                   rows={altGridRows}
@@ -5268,12 +5421,12 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   componentsToRender={otherGridStreams[1]}
                   backgroundColor={"rgba(217, 227, 234, 0.99)"}
                 />
-              </OthergridComponent>
-            </MainScreenComponent>
-          </MainAspectComponent>
+              </OtherGrid>
+            </MainScreen>
+          </MainAspect>
 
           {/* SubAspectComponent is used for webinar and conference events only to display fixed control buttons */}
-          <SubAspectComponent
+          <SubAspect
             backgroundColor="rgba(217, 227, 234, 0.99)"
             showControls={
               eventType.current === "webinar" ||
@@ -5281,7 +5434,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }
             defaultFractionSub={controlHeight}
           >
-            <ControlButtonsComponent
+            <ControlButtons
               buttons={controlButtons}
               buttonColor="black" // Set the background color for buttons
               buttonBackgroundColor={{
@@ -5296,15 +5449,15 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 backgroundColor: "transparent",
               }} // Set styles for the buttons container
             />
-          </SubAspectComponent>
-        </MainContainerComponent>
+          </SubAspect>
+        </MainContainer>
       ) : (
         <></>
       )}
 
       {returnUI && !customComponent && (
         <>
-          <MenuModal
+          <MenuModalComponent
             backgroundColor="rgba(181, 233, 229, 0.97)"
             isVisible={isMenuModalVisible}
             onClose={() => updateIsMenuModalVisible(false)}
@@ -5316,7 +5469,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             localLink={localLink}
           />
 
-          <EventSettingsModal
+          <EventSettingsModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isEventSettingsModalVisible={isSettingsModalVisible}
             updateIsSettingsModalVisible={updateIsSettingsModalVisible}
@@ -5333,7 +5486,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             socket={socket.current}
           />
 
-          <RequestsModal
+          <RequestsModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isRequestsModalVisible={isRequestsModalVisible}
             onRequestClose={() => updateIsRequestsModalVisible(false)}
@@ -5351,7 +5504,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          <WaitingRoomModal
+          <WaitingRoomModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isWaitingModalVisible={isWaitingModalVisible}
             onWaitingRoomClose={() => updateIsWaitingModalVisible(false)}
@@ -5367,7 +5520,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          <CoHostModal
+          <CoHostModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isCoHostModalVisible={isCoHostModalVisible}
             updateIsCoHostModalVisible={updateIsCoHostModalVisible}
@@ -5382,7 +5535,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             socket={socket.current}
           />
 
-          <MediaSettingsModal
+          <MediaSettingsModalComponent
             backgroundColor="rgba(181, 233, 229, 0.97)"
             isMediaSettingsModalVisible={isMediaSettingsModalVisible}
             onMediaSettingsClose={() =>
@@ -5394,7 +5547,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          <ParticipantsModal
+          <ParticipantsModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isParticipantsModalVisible={isParticipantsModalVisible}
             onParticipantsClose={() => updateIsParticipantsModalVisible(false)}
@@ -5428,7 +5581,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          <DisplaySettingsModal
+          <DisplaySettingsModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isDisplaySettingsModalVisible={isDisplaySettingsModalVisible}
             onDisplaySettingsClose={() =>
@@ -5440,7 +5593,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          <RecordingModal
+          <RecordingModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isRecordingModalVisible={isRecordingModalVisible}
             onClose={() => updateIsRecordingModalVisible(false)}
@@ -5452,7 +5605,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          <MessagesModal
+          <MessagesModalComponent
             backgroundColor={
               eventType.current === "webinar" ||
               eventType.current === "conference"
@@ -5477,7 +5630,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             chatSetting={chatSetting.current}
           />
 
-          <ConfirmExitModal
+          <ConfirmExitModalComponent
             backgroundColor="rgba(181, 233, 229, 0.97)"
             isConfirmExitModalVisible={isConfirmExitModalVisible}
             onConfirmExitClose={() => updateIsConfirmExitModalVisible(false)}
@@ -5487,7 +5640,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             islevel={islevel.current}
           />
 
-          <ConfirmHereModal
+          <ConfirmHereModalComponent
             backgroundColor="rgba(181, 233, 229, 0.97)"
             isConfirmHereModalVisible={isConfirmHereModalVisible}
             onConfirmHereClose={() => updateIsConfirmHereModalVisible(false)}
@@ -5496,7 +5649,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             socket={socket.current}
           />
 
-          <ShareEventModal
+          <ShareEventModalComponent
             isShareEventModalVisible={isShareEventModalVisible}
             onShareEventClose={() => updateIsShareEventModalVisible(false)}
             roomName={roomName.current}
@@ -5506,7 +5659,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             localLink={localLink}
           />
 
-          <PollModal
+          <PollModalComponent
             isPollModalVisible={isPollModalVisible}
             onClose={() => setIsPollModalVisible(false)}
             member={member.current}
@@ -5526,7 +5679,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           {/* <BackgroundModal
       /> */}
 
-          <BreakoutRoomsModal
+          <BreakoutRoomsModalComponent
             backgroundColor="rgba(217, 227, 234, 0.99)"
             isVisible={isBreakoutRoomsModalVisible}
             onBreakoutRoomsClose={() =>
@@ -5545,7 +5698,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       <ScreenboardModal
       /> */}
 
-          <AlertComponent
+          <AlertComponentOverride
             visible={alertVisible}
             message={alertMessage}
             type={alertType}
@@ -5554,7 +5707,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             textColor={"#ffffff"}
           />
 
-          <LoadingModal
+          <LoadingModalComponent
             isVisible={isLoadingModalVisible}
             backgroundColor="rgba(217, 227, 234, 0.99)"
             displayColor="black"

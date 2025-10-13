@@ -71,6 +71,27 @@ export interface VideoCardOptions {
   doMirror?: boolean;
   parameters: VideoCardParameters;
   customVideoCard?: CustomVideoCardType;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type VideoCardType = (options: VideoCardOptions) => JSX.Element;
@@ -153,6 +174,9 @@ const VideoCard: React.FC<VideoCardOptions> = ({
   doMirror = false,
   parameters,
   customVideoCard,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // Initialize waveform animation values
   const [waveformAnimations] = useState<Animated.Value[]>(
@@ -384,7 +408,9 @@ const VideoCard: React.FC<VideoCardOptions> = ({
     );
   };
 
-  return (
+  const dimensions = { width: 100, height: 100 };
+
+  const defaultContent = (
     <>
       {customVideoCard ? (
         customVideoCard({
@@ -400,7 +426,7 @@ const VideoCard: React.FC<VideoCardOptions> = ({
           parameters,
         })
       ) : (
-        <View style={[styles.card, customStyle, { backgroundColor }]}>
+        <>
           {/* Video Display */}
           <CardVideoDisplay
             remoteProducerId={remoteProducerId}
@@ -416,10 +442,24 @@ const VideoCard: React.FC<VideoCardOptions> = ({
 
           {/* Video Controls */}
           {renderControls()}
-        </View>
+        </>
       )}
     </>
   );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View style={[styles.card, customStyle, { backgroundColor }, style]}>
+      {content}
+    </View>
+  );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default VideoCard;

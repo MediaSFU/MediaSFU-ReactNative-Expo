@@ -71,6 +71,27 @@ export interface MainScreenComponentOptions {
    * An object containing the current sizes of the components.
    */
   componentSizes: ComponentSizes;
+
+  /**
+   * Additional style object to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function to wrap the default content.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Custom render function to wrap the entire container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 /**
@@ -175,6 +196,9 @@ const MainScreenComponent: React.FC<MainScreenComponentOptions> = ({
   defaultFraction = 0.94,
   showControls,
   componentSizes,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const { width: windowWidth, height: windowHeight }: ScaledSize = Dimensions.get('window');
 
@@ -230,17 +254,13 @@ const MainScreenComponent: React.FC<MainScreenComponentOptions> = ({
 
   }, [parentWidth, parentHeight, mainSize, doStack, isWideScreen]);
 
-  return (
-    <View
-      style={[
-        styles.screenContainer,
-        {
-          flexDirection: isWideScreen ? 'row' : 'column',
-          width: parentWidth,
-          height: parentHeight,
-        },
-      ]}
-    >
+  const dimensions = {
+    width: parentWidth,
+    height: parentHeight,
+  };
+
+  const defaultContent = (
+    <>
       {/* Render child components with updated dimensions */}
       {React.Children.map(children, (child, index) => {
         if (isResizableChild(child)) {
@@ -263,8 +283,32 @@ const MainScreenComponent: React.FC<MainScreenComponentOptions> = ({
         }
         return null;
       })}
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
+    <View
+      style={[
+        styles.screenContainer,
+        {
+          flexDirection: isWideScreen ? 'row' : 'column',
+          width: parentWidth,
+          height: parentHeight,
+        },
+        style,
+      ]}
+    >
+      {content}
     </View>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MainScreenComponent;

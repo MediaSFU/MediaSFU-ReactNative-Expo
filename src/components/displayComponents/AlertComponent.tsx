@@ -14,6 +14,27 @@ export interface AlertComponentOptions {
   duration?: number; // Optional with default value
   onHide?: () => void; // Optional callback function
   textColor?: string; // Optional text color
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type AlertComponentType = (options: AlertComponentOptions) => JSX.Element;
@@ -65,6 +86,9 @@ const AlertComponent: React.FC<AlertComponentOptions> = ({
   duration = 4000,
   onHide,
   textColor = 'black',
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [alertType, setAlertType] = useState<'success' | 'danger'>(type);
 
@@ -92,27 +116,41 @@ const AlertComponent: React.FC<AlertComponentOptions> = ({
     if (onHide) {onHide();}
   };
 
-  return (
+  const dimensions = { width: 250, height: 0 };
+
+  const defaultContent = (
+    <Text style={[styles.modalText, { color: textColor }]}>
+      {message}
+    </Text>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
       visible={visible}
       onRequestClose={handlePress}
     >
-      <Pressable style={styles.centeredView} onPress={handlePress}>
+      <Pressable style={[styles.centeredView, style]} onPress={handlePress}>
         <View
           style={[
             styles.modalView,
             { backgroundColor: alertType === 'success' ? 'green' : 'red' },
           ]}
         >
-          <Text style={[styles.modalText, { color: textColor }]}>
-            {message}
-          </Text>
+          {content}
         </View>
       </Pressable>
     </Modal>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 const styles = StyleSheet.create({

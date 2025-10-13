@@ -68,6 +68,27 @@ export interface ConfirmExitModalOptions {
    * Level of the user (e.g., "1", "2").
    */
   islevel: string;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type ConfirmExitModalType = (options: ConfirmExitModalOptions) => JSX.Element;
@@ -120,6 +141,9 @@ const ConfirmExitModal: React.FC<ConfirmExitModalOptions> = ({
   roomName,
   socket,
   islevel,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [modalWidth, setModalWidth] = useState<number>(0.7 * Dimensions.get('window').width);
 
@@ -154,8 +178,73 @@ const ConfirmExitModal: React.FC<ConfirmExitModalOptions> = ({
     onConfirmExitClose();
   };
 
+  const dimensions = { width: modalWidth, height: 0 };
 
-  return (
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Confirm Exit</Text>
+        <Pressable
+          onPress={onConfirmExitClose}
+          style={styles.btnCloseConfirmExit}
+          accessibilityRole="button"
+          accessibilityLabel="Close Confirm Exit Modal"
+        >
+          <FontAwesome5 name="times" style={styles.icon} />
+        </Pressable>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.hr} />
+
+      {/* Body */}
+      <View style={styles.modalBody}>
+        <Text style={styles.confirmExitText}>
+          {islevel === '2'
+            ? 'This will end the event for all. Confirm exit.'
+            : 'Are you sure you want to exit?'}
+        </Text>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.hr} />
+
+      {/* Footer */}
+      <View style={styles.modalFooter}>
+        {/* Cancel Button */}
+        <Pressable
+          onPress={onConfirmExitClose}
+          style={[styles.confirmButton, styles.btnCancel]}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel Exit"
+        >
+          <Text style={[styles.confirmButtonText, styles.btnCancelText]}>Cancel</Text>
+        </Pressable>
+
+        {/* Separator */}
+        <View style={styles.doubleBorder} />
+
+        {/* Exit/End Event Button */}
+        <Pressable
+          onPress={handleConfirmExit}
+          style={[styles.confirmButton, styles.btnExit]}
+          accessibilityRole="button"
+          accessibilityLabel={islevel === '2' ? 'End Event' : 'Exit'}
+        >
+          <Text style={[styles.confirmButtonText, styles.btnExitText]}>
+            {islevel === '2' ? 'End Event' : 'Exit'}
+          </Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -164,66 +253,16 @@ const ConfirmExitModal: React.FC<ConfirmExitModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         {/* Modal Content */}
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }]}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Confirm Exit</Text>
-            <Pressable
-              onPress={onConfirmExitClose}
-              style={styles.btnCloseConfirmExit}
-              accessibilityRole="button"
-              accessibilityLabel="Close Confirm Exit Modal"
-            >
-              <FontAwesome5 name="times" style={styles.icon} />
-            </Pressable>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.hr} />
-
-          {/* Body */}
-          <View style={styles.modalBody}>
-            <Text style={styles.confirmExitText}>
-              {islevel === '2'
-                ? 'This will end the event for all. Confirm exit.'
-                : 'Are you sure you want to exit?'}
-            </Text>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.hr} />
-
-          {/* Footer */}
-          <View style={styles.modalFooter}>
-            {/* Cancel Button */}
-            <Pressable
-              onPress={onConfirmExitClose}
-              style={[styles.confirmButton, styles.btnCancel]}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel Exit"
-            >
-              <Text style={[styles.confirmButtonText, styles.btnCancelText]}>Cancel</Text>
-            </Pressable>
-
-            {/* Separator */}
-            <View style={styles.doubleBorder} />
-
-            {/* Exit/End Event Button */}
-            <Pressable
-              onPress={handleConfirmExit}
-              style={[styles.confirmButton, styles.btnExit]}
-              accessibilityRole="button"
-              accessibilityLabel={islevel === '2' ? 'End Event' : 'Exit'}
-            >
-              <Text style={[styles.confirmButtonText, styles.btnExitText]}>
-                {islevel === '2' ? 'End Event' : 'Exit'}
-              </Text>
-            </Pressable>
-          </View>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default ConfirmExitModal;

@@ -128,6 +128,27 @@ export interface MessagesModalOptions {
    * Settings for the chat.
    */
   chatSetting: string;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MessagesModalType = (options: MessagesModalOptions) => JSX.Element;
@@ -207,6 +228,9 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
   roomName,
   socket,
   chatSetting,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const screenWidth = Dimensions.get('window').width;
   let modalWidth = 0.8 * screenWidth;
@@ -284,7 +308,118 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
     // Force re-render when reRender state changes
   }, [reRender]);
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      <View style={styles.header}>
+        {eventType === 'webinar' || eventType === 'conference' ? (
+          <View style={styles.tabsContainer}>
+            <Pressable
+              onPress={switchToDirectTab}
+              style={[
+                styles.tab,
+                activeTab.current === 'direct' && styles.activeTab,
+                activeTab.current === 'direct' && { backgroundColor: activeTabBackgroundColor },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab.current === 'direct' && styles.activeTabText,
+                ]}
+              >
+                Direct
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={switchToGroupTab}
+              style={[
+                styles.tab,
+                activeTab.current === 'group' && styles.activeTab,
+                activeTab.current === 'group' && { backgroundColor: activeTabBackgroundColor },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab.current === 'group' && styles.activeTabText,
+                ]}
+              >
+                Group
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Close Button */}
+        <Pressable onPress={onMessagesClose} style={styles.closeButton}>
+          <FontAwesome5 name="times" size={24} color="black" />
+        </Pressable>
+      </View>
+
+      <View style={styles.separator} />
+
+      <View style={styles.modalBody}>
+        {activeTab.current === 'direct'
+          && (eventType === 'webinar' || eventType === 'conference') && (
+            <MessagePanel
+              messages={directMessages}
+              messagesLength={messages.length}
+              type="direct"
+              onSendMessagePress={onSendMessagePress}
+              username={member}
+              backgroundColor={backgroundColor}
+              focusedInput={focusedInput}
+              showAlert={showAlert}
+              eventType={eventType}
+              member={member}
+              islevel={islevel}
+              coHostResponsibility={coHostResponsibility}
+              coHost={coHost}
+              directMessageDetails={directMessageDetails}
+              updateStartDirectMessage={updateStartDirectMessage}
+              updateDirectMessageDetails={updateDirectMessageDetails}
+              roomName={roomName}
+              socket={socket}
+              chatSetting={chatSetting}
+              startDirectMessage={startDirectMessage}
+            />
+        )}
+
+        {activeTab.current === 'group' && (
+          <MessagePanel
+            messages={groupMessages}
+            messagesLength={messages.length}
+            type="group"
+            onSendMessagePress={onSendMessagePress}
+            username={member}
+            backgroundColor={backgroundColor}
+            focusedInput={false}
+            showAlert={showAlert}
+            eventType={eventType}
+            member={member}
+            islevel={islevel}
+            coHostResponsibility={coHostResponsibility}
+            coHost={coHost}
+            directMessageDetails={directMessageDetails}
+            updateStartDirectMessage={updateStartDirectMessage}
+            updateDirectMessageDetails={updateDirectMessageDetails}
+            roomName={roomName}
+            socket={socket}
+            chatSetting={chatSetting}
+            startDirectMessage={startDirectMessage}
+          />
+        )}
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       animationType="fade"
       transparent
@@ -292,111 +427,16 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
       onRequestClose={onMessagesClose}
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }]}>
-          <View style={styles.header}>
-            {eventType === 'webinar' || eventType === 'conference' ? (
-              <View style={styles.tabsContainer}>
-                <Pressable
-                  onPress={switchToDirectTab}
-                  style={[
-                    styles.tab,
-                    activeTab.current === 'direct' && styles.activeTab,
-                    activeTab.current === 'direct' && { backgroundColor: activeTabBackgroundColor },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab.current === 'direct' && styles.activeTabText,
-                    ]}
-                  >
-                    Direct
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={switchToGroupTab}
-                  style={[
-                    styles.tab,
-                    activeTab.current === 'group' && styles.activeTab,
-                    activeTab.current === 'group' && { backgroundColor: activeTabBackgroundColor },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab.current === 'group' && styles.activeTabText,
-                    ]}
-                  >
-                    Group
-                  </Text>
-                </Pressable>
-              </View>
-            ) : null}
-
-            {/* Close Button */}
-            <Pressable onPress={onMessagesClose} style={styles.closeButton}>
-              <FontAwesome5 name="times" size={24} color="black" />
-            </Pressable>
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={styles.modalBody}>
-            {activeTab.current === 'direct'
-              && (eventType === 'webinar' || eventType === 'conference') && (
-                <MessagePanel
-                  messages={directMessages}
-                  messagesLength={messages.length}
-                  type="direct"
-                  onSendMessagePress={onSendMessagePress}
-                  username={member}
-                  backgroundColor={backgroundColor}
-                  focusedInput={focusedInput}
-                  showAlert={showAlert}
-                  eventType={eventType}
-                  member={member}
-                  islevel={islevel}
-                  coHostResponsibility={coHostResponsibility}
-                  coHost={coHost}
-                  directMessageDetails={directMessageDetails}
-                  updateStartDirectMessage={updateStartDirectMessage}
-                  updateDirectMessageDetails={updateDirectMessageDetails}
-                  roomName={roomName}
-                  socket={socket}
-                  chatSetting={chatSetting}
-                  startDirectMessage={startDirectMessage}
-                />
-            )}
-
-            {activeTab.current === 'group' && (
-              <MessagePanel
-                messages={groupMessages}
-                messagesLength={messages.length}
-                type="group"
-                onSendMessagePress={onSendMessagePress}
-                username={member}
-                backgroundColor={backgroundColor}
-                focusedInput={false}
-                showAlert={showAlert}
-                eventType={eventType}
-                member={member}
-                islevel={islevel}
-                coHostResponsibility={coHostResponsibility}
-                coHost={coHost}
-                directMessageDetails={directMessageDetails}
-                updateStartDirectMessage={updateStartDirectMessage}
-                updateDirectMessageDetails={updateDirectMessageDetails}
-                roomName={roomName}
-                socket={socket}
-                chatSetting={chatSetting}
-                startDirectMessage={startDirectMessage}
-              />
-            )}
-          </View>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MessagesModal;

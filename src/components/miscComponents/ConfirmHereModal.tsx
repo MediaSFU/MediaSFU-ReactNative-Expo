@@ -21,6 +21,27 @@ export interface ConfirmHereModalOptions {
   localSocket?: Socket;
   roomName: string;
   member: string;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type ConfirmHereModalType = (
@@ -119,6 +140,9 @@ const ConfirmHereModal: React.FC<ConfirmHereModalOptions> = ({
   socket,
   roomName,
   member,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [counter, setCounter] = useState<number>(countdownDuration);
 
@@ -154,7 +178,39 @@ const ConfirmHereModal: React.FC<ConfirmHereModalOptions> = ({
     // Additional logic if needed
   };
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <View style={styles.modalBody}>
+      {/* Spinner */}
+      <ActivityIndicator
+        size="large"
+        color={'#000000'}
+        style={styles.spinnerContainer}
+      />
+
+      {/* Modal Content */}
+      <Text style={styles.modalTitle}>Are you still there?</Text>
+      <Text style={styles.modalMessage}>
+        Please confirm if you are still present.
+      </Text>
+      <Text style={styles.modalCounter}>
+        Time remaining: <Text style={styles.counterText}>{counter}</Text>{' '}
+        seconds
+      </Text>
+
+      {/* Confirm Button */}
+      <Pressable onPress={handleConfirmHere} style={styles.confirmButton}>
+        <Text style={styles.confirmButtonText}>Yes</Text>
+      </Pressable>
+    </View>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="slide"
@@ -163,35 +219,17 @@ const ConfirmHereModal: React.FC<ConfirmHereModalOptions> = ({
     >
       <View style={styles.modalContainer}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          <View style={styles.modalBody}>
-            {/* Spinner */}
-            <ActivityIndicator
-              size="large"
-              color={'#000000'}
-              style={styles.spinnerContainer}
-            />
-
-            {/* Modal Content */}
-            <Text style={styles.modalTitle}>Are you still there?</Text>
-            <Text style={styles.modalMessage}>
-              Please confirm if you are still present.
-            </Text>
-            <Text style={styles.modalCounter}>
-              Time remaining: <Text style={styles.counterText}>{counter}</Text>{' '}
-              seconds
-            </Text>
-
-            {/* Confirm Button */}
-            <Pressable onPress={handleConfirmHere} style={styles.confirmButton}>
-              <Text style={styles.confirmButtonText}>Yes</Text>
-            </Pressable>
-          </View>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default ConfirmHereModal;

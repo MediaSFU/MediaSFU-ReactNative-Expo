@@ -38,6 +38,27 @@ export interface ControlButtonsComponentTouchOptions {
   alternateIconComponent?: JSX.Element;
   iconComponent?: JSX.Element;
   showAspect?: boolean;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type ControlButtonsComponentTouchType = (
@@ -96,6 +117,9 @@ const ControlButtonsComponentTouch: React.FC<
   direction = "horizontal",
   buttonsContainerStyle,
   showAspect = false,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   /**
    * getAlignmentStyle - Computes alignment styles based on position, location, and direction.
@@ -134,72 +158,85 @@ const ControlButtonsComponentTouch: React.FC<
     return alignmentStyle;
   };
 
-  return (
+  const dimensions = { width: 0, height: 0 };
+
+  const defaultContent = buttons.map((button, index) => (
+    <Pressable
+      key={index}
+      style={({ pressed }) => [
+        styles.buttonContainer,
+        {
+          backgroundColor: pressed
+            ? button.backgroundColor?.pressed ||
+              button.backgroundColor?.default ||
+              "rgba(255, 255, 255, 0.25)"
+            : button.backgroundColor?.default ||
+              button.backgroundColor?.pressed ||
+              "rgba(255, 255, 255, 0.25)",
+          display: button.show ? "flex" : "none",
+        },
+        direction === "vertical" && styles.verticalButton,
+      ]}
+      onPress={button.onPress}
+      disabled={button.disabled}
+    >
+      {button.icon ? (
+        button.active ? (
+          button.alternateIconComponent ? (
+            button.alternateIconComponent
+          ) : button.alternateIcon ? (
+            <FontAwesome5
+              name={button.alternateIcon}
+              size={20}
+              color={button.activeColor || "transparent"}
+            />
+          ) : null
+        ) : button.iconComponent ? (
+          button.iconComponent
+        ) : button.icon ? (
+          <FontAwesome5
+            name={button.icon}
+            size={20}
+            color={button.inActiveColor || "transparent"}
+          />
+        ) : null
+      ) : (
+        button.customComponent
+      )}
+      {button.name && (
+        <Text
+          style={[
+            styles.buttonText,
+            { color: button.color || "transparent" },
+          ]}
+        >
+          {button.name}
+        </Text>
+      )}
+    </Pressable>
+  ));
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
     <View
       style={[
         styles.container,
         getAlignmentStyle(),
         buttonsContainerStyle,
         { display: showAspect ? "flex" : "none" },
+        style,
       ]}
     >
-      {buttons.map((button, index) => (
-        <Pressable
-          key={index}
-          style={({ pressed }) => [
-            styles.buttonContainer,
-            {
-              backgroundColor: pressed
-                ? button.backgroundColor?.pressed ||
-                  button.backgroundColor?.default ||
-                  "rgba(255, 255, 255, 0.25)"
-                : button.backgroundColor?.default ||
-                  button.backgroundColor?.pressed ||
-                  "rgba(255, 255, 255, 0.25)",
-              display: button.show ? "flex" : "none",
-            },
-            direction === "vertical" && styles.verticalButton,
-          ]}
-          onPress={button.onPress}
-          disabled={button.disabled}
-        >
-          {button.icon ? (
-            button.active ? (
-              button.alternateIconComponent ? (
-                button.alternateIconComponent
-              ) : button.alternateIcon ? (
-                <FontAwesome5
-                  name={button.alternateIcon}
-                  size={20}
-                  color={button.activeColor || "transparent"}
-                />
-              ) : null
-            ) : button.iconComponent ? (
-              button.iconComponent
-            ) : button.icon ? (
-              <FontAwesome5
-                name={button.icon}
-                size={20}
-                color={button.inActiveColor || "transparent"}
-              />
-            ) : null
-          ) : (
-            button.customComponent
-          )}
-          {button.name && (
-            <Text
-              style={[
-                styles.buttonText,
-                { color: button.color || "transparent" },
-              ]}
-            >
-              {button.name}
-            </Text>
-          )}
-        </Pressable>
-      ))}
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 const styles = StyleSheet.create({

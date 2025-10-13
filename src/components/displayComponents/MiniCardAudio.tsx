@@ -68,6 +68,27 @@ export interface MiniCardAudioOptions {
    * Custom styles to apply to the image.
    */
   imageStyle?: StyleProp<ImageStyle>;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MiniCardAudioType = (options: MiniCardAudioOptions) => JSX.Element;
@@ -126,6 +147,9 @@ const MiniCardAudio: React.FC<MiniCardAudioOptions> = ({
   imageSource,
   roundedImage = false,
   imageStyle,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // Initialize waveform animation values
   const [waveformAnimations] = useState<Animated.Value[]>(
@@ -191,8 +215,10 @@ const MiniCardAudio: React.FC<MiniCardAudioOptions> = ({
 
   }, [showWaveform]);
 
-  return (
-    <View style={[styles.card, customStyle]}>
+  const dimensions = { width: 0, height: 0 }; // Percentage-based sizing
+
+  const defaultContent = (
+    <>
       {imageSource && (
         <Image
           source={{ uri: imageSource }}
@@ -228,8 +254,22 @@ const MiniCardAudio: React.FC<MiniCardAudioOptions> = ({
           </View>
         )}
       </View>
+    </>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View style={[styles.card, customStyle, style]}>
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MiniCardAudio;

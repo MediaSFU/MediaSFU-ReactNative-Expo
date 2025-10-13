@@ -64,6 +64,29 @@ export interface MainContainerComponentOptions {
    * @default 0
    */
   padding?: number;
+
+  /**
+   * Additional style object to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function to wrap the default content.
+   * Receives the default content and current dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Custom render function to wrap the entire container.
+   * Receives the default container and current dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MainContainerComponentType = (
@@ -127,6 +150,9 @@ const MainContainerComponent: React.FC<MainContainerComponentOptions> = ({
   marginTop = 0,
   marginBottom = 0,
   padding = 0,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // State to store calculated aspect styles
   const [aspectStyles, setAspectStyles] = useState<{
@@ -182,7 +208,17 @@ const MainContainerComponent: React.FC<MainContainerComponentOptions> = ({
     containerWidthFraction,
   ]);
 
-  return (
+  const dimensions = {
+    width: aspectStyles.width,
+    height: aspectStyles.height,
+  };
+
+  const defaultContent = children;
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <View
       style={[
         styles.container,
@@ -198,11 +234,16 @@ const MainContainerComponent: React.FC<MainContainerComponentOptions> = ({
           maxHeight: aspectStyles.maxHeight,
           maxWidth: aspectStyles.maxWidth,
         },
+        style,
       ]}
     >
-      {children}
+      {content}
     </View>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MainContainerComponent;

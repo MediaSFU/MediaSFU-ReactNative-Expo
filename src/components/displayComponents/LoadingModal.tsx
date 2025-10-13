@@ -31,6 +31,27 @@ export interface LoadingModalOptions {
    * @default 'black'
    */
   displayColor?: string;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type LoadingModalType = (options: LoadingModalOptions) => JSX.Element;
@@ -71,6 +92,9 @@ const LoadingModal: React.FC<LoadingModalOptions> = ({
   isVisible,
   backgroundColor = 'rgba(0, 0, 0, 0.5)',
   displayColor = 'black',
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   /**
    * Styles for the modal overlay container.
@@ -104,21 +128,37 @@ const LoadingModal: React.FC<LoadingModalOptions> = ({
     textAlign: 'center',
   };
 
-  return (
+  const dimensions = { width: 200, height: 0 };
+
+  const defaultContent = (
+    <>
+      <ActivityIndicator size="large" color={displayColor} />
+      <Text style={loadingTextStyle}>Loading...</Text>
+    </>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
       visible={isVisible}
       onRequestClose={() => { /* Optionally handle modal close */ }}
     >
-      <View style={modalContainerStyle}>
+      <View style={[modalContainerStyle, style]}>
         <View style={modalContentStyle}>
-          <ActivityIndicator size="large" color={displayColor} />
-          <Text style={loadingTextStyle}>Loading...</Text>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default LoadingModal;

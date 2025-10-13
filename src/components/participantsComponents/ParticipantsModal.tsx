@@ -62,6 +62,27 @@ export interface ParticipantsModalOptions {
   parameters: ParticipantsModalParameters;
   backgroundColor?: string;
   position?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center';
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type ParticipantsModalType = (
@@ -133,6 +154,9 @@ const ParticipantsModal: React.FC<ParticipantsModalOptions> = ({
   position = 'topRight',
   backgroundColor = '#83c0e9',
   parameters,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const {
     coHostResponsibility,
@@ -175,7 +199,79 @@ const ParticipantsModal: React.FC<ParticipantsModalOptions> = ({
     setParticipantsCounter_s(updatedParams.filteredParticipants.length);
   }, [participants, parameters]);
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <ScrollView style={styles.scrollView}>
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          Participants
+          {' '}
+          <Text style={styles.badge}>{participantsCounter_s}</Text>
+        </Text>
+        <Pressable
+          onPress={onParticipantsClose}
+          style={styles.closeButton}
+        >
+          <FontAwesome name="times" size={24} color="black" />
+        </Pressable>
+      </View>
+
+      <View style={styles.separator} />
+      <View style={styles.modalBody}>
+        {/* Search Input */}
+        <View style={styles.formGroup}>
+          <TextInput
+            style={styles.input}
+            placeholder="Search ..."
+            value={filterText}
+            onChangeText={(text) => {
+              setFilterText(text);
+              onParticipantsFilterChange(text);
+            }}
+          />
+        </View>
+
+        {/* Participant List */}
+
+        {(participantList && islevel === '2')
+        || (coHost === member && participantsValue === true) ? (
+          <RenderParticipantList
+            participants={participantList}
+            isBroadcast={eventType === 'broadcast'}
+            onMuteParticipants={onMuteParticipants}
+            onMessageParticipants={onMessageParticipants}
+            onRemoveParticipants={onRemoveParticipants}
+            socket={socket}
+            coHostResponsibility={coHostResponsibility}
+            member={member}
+            islevel={islevel}
+            showAlert={showAlert}
+            coHost={coHost}
+            roomName={roomName}
+            updateIsMessagesModalVisible={updateIsMessagesModalVisible}
+            updateDirectMessageDetails={updateDirectMessageDetails}
+            updateStartDirectMessage={updateStartDirectMessage}
+            updateParticipants={updateParticipants}
+          />
+          ) : participantList ? (
+            <RenderParticipantListOthers
+              participants={participantList}
+              coHost={coHost}
+              member={member}
+            />
+          ) : (
+            <Text style={styles.noParticipantsText}>No participants</Text>
+          )}
+      </View>
+    </ScrollView>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="slide"
@@ -184,75 +280,17 @@ const ParticipantsModal: React.FC<ParticipantsModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          <ScrollView style={styles.scrollView}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Participants
-                {' '}
-                <Text style={styles.badge}>{participantsCounter_s}</Text>
-              </Text>
-              <Pressable
-                onPress={onParticipantsClose}
-                style={styles.closeButton}
-              >
-                <FontAwesome name="times" size={24} color="black" />
-              </Pressable>
-            </View>
-
-            <View style={styles.separator} />
-            <View style={styles.modalBody}>
-              {/* Search Input */}
-              <View style={styles.formGroup}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Search ..."
-                  value={filterText}
-                  onChangeText={(text) => {
-                    setFilterText(text);
-                    onParticipantsFilterChange(text);
-                  }}
-                />
-              </View>
-
-              {/* Participant List */}
-
-              {(participantList && islevel === '2')
-              || (coHost === member && participantsValue === true) ? (
-                <RenderParticipantList
-                  participants={participantList}
-                  isBroadcast={eventType === 'broadcast'}
-                  onMuteParticipants={onMuteParticipants}
-                  onMessageParticipants={onMessageParticipants}
-                  onRemoveParticipants={onRemoveParticipants}
-                  socket={socket}
-                  coHostResponsibility={coHostResponsibility}
-                  member={member}
-                  islevel={islevel}
-                  showAlert={showAlert}
-                  coHost={coHost}
-                  roomName={roomName}
-                  updateIsMessagesModalVisible={updateIsMessagesModalVisible}
-                  updateDirectMessageDetails={updateDirectMessageDetails}
-                  updateStartDirectMessage={updateStartDirectMessage}
-                  updateParticipants={updateParticipants}
-                />
-                ) : participantList ? (
-                  <RenderParticipantListOthers
-                    participants={participantList}
-                    coHost={coHost}
-                    member={member}
-                  />
-                ) : (
-                  <Text style={styles.noParticipantsText}>No participants</Text>
-                )}
-            </View>
-          </ScrollView>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default ParticipantsModal;

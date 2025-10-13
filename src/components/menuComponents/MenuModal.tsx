@@ -78,6 +78,27 @@ export interface MenuModalOptions {
    * The link to the Commnity Edition server.
    */
   localLink?: string;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MenuModalType = (options: MenuModalOptions) => JSX.Element;
@@ -135,6 +156,9 @@ const MenuModal: React.FC<MenuModalOptions> = ({
   islevel,
   eventType,
   localLink,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [modalWidth, setModalWidth] = useState<number>(
     0.7 * Dimensions.get("window").width
@@ -158,7 +182,63 @@ const MenuModal: React.FC<MenuModalOptions> = ({
     };
   }, []);
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          <FontAwesome5 name="bars" style={styles.icon} /> Menu
+        </Text>
+        <Pressable
+          onPress={onClose}
+          style={styles.closeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close Menu Modal"
+        >
+          <FontAwesome5 name="times" style={styles.icon} />
+        </Pressable>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.hr} />
+
+      <View style={styles.modalBody}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.listGroup}>
+            <CustomButtons buttons={customButtons} />
+
+            {/* Separator */}
+            <View style={styles.separator} />
+
+            {/* Meeting Passcode - Visible only for level 2 users */}
+            {islevel === "2" && (
+              <MeetingPasscodeComponent meetingPasscode={adminPasscode} />
+            )}
+
+            {/* Meeting ID */}
+            <MeetingIdComponent meetingID={roomName} />
+
+            {/* Share Buttons */}
+            {shareButtons && (
+              <ShareButtonsComponent
+                meetingID={roomName}
+                eventType={eventType}
+                localLink={localLink}
+              />
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -167,57 +247,17 @@ const MenuModal: React.FC<MenuModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              <FontAwesome5 name="bars" style={styles.icon} /> Menu
-            </Text>
-            <Pressable
-              onPress={onClose}
-              style={styles.closeButton}
-              accessibilityRole="button"
-              accessibilityLabel="Close Menu Modal"
-            >
-              <FontAwesome5 name="times" style={styles.icon} />
-            </Pressable>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.hr} />
-
-          <View style={styles.modalBody}>
-            <ScrollView style={styles.scrollView}>
-              <View style={styles.listGroup}>
-                <CustomButtons buttons={customButtons} />
-
-                {/* Separator */}
-                <View style={styles.separator} />
-
-                {/* Meeting Passcode - Visible only for level 2 users */}
-                {islevel === "2" && (
-                  <MeetingPasscodeComponent meetingPasscode={adminPasscode} />
-                )}
-
-                {/* Meeting ID */}
-                <MeetingIdComponent meetingID={roomName} />
-
-                {/* Share Buttons */}
-                {shareButtons && (
-                  <ShareButtonsComponent
-                    meetingID={roomName}
-                    eventType={eventType}
-                    localLink={localLink}
-                  />
-                )}
-              </View>
-            </ScrollView>
-          </View>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MenuModal;

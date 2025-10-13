@@ -71,6 +71,17 @@ export interface BreakoutRoomsModalOptions {
   parameters: BreakoutRoomsModalParameters;
   position?: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
   backgroundColor?: string;
+
+  // Render props for enhanced customization
+  style?: object;
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 // Export the type definition for the function
@@ -221,6 +232,9 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
   parameters,
   position = 'topRight',
   backgroundColor = '#83c0e9',
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const {
     participants,
@@ -548,7 +562,177 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
     }
   };
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          Breakout Rooms <FontAwesome5 name="door-open" />
+        </Text>
+        <Pressable onPress={onBreakoutRoomsClose}>
+          <FontAwesome5 name="times" size={20} color="#000" />
+        </Pressable>
+      </View>
+      <FlatList
+        ListHeaderComponent={
+          <View>
+            <View style={styles.formGroup}>
+              <Text>
+                Number of Rooms <FontAwesome5 name="users" />
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={numRooms}
+                onChangeText={setNumRooms}
+                inputMode="numeric"
+              />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.buttonGroup}>
+                <Pressable
+                  style={styles.button}
+                  onPress={handleRandomAssign}
+                >
+                  <FontAwesome5 name="random" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>Random</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.button}
+                  onPress={handleManualAssign}
+                >
+                  <FontAwesome5
+                    name="hand-pointer"
+                    size={20}
+                    color="#fff"
+                  />
+                  <Text style={styles.buttonText}>Manual</Text>
+                </Pressable>
+                <Pressable style={styles.button} onPress={handleAddRoom}>
+                  <FontAwesome5 name="plus" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>Add Room</Text>
+                </Pressable>
+                <Pressable style={styles.button} onPress={handleSaveRooms}>
+                  <FontAwesome5 name="save" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>Save Rooms</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+            <View style={styles.formGroup}>
+              <Text>
+                New Participant Action <FontAwesome5 name="users" />
+              </Text>
+              <RNPickerSelect
+                style={pickerSelectStyles}
+                value={newParticipantAction}
+                onValueChange={(value) => setNewParticipantAction(value)}
+                items={[
+                  { label: 'Add to new room', value: 'autoAssignNewRoom' },
+                  {
+                    label: 'Add to open room',
+                    value: 'autoAssignAvailableRoom',
+                  },
+                  { label: 'No action', value: 'manualAssign' },
+                ]}
+                placeholder={{}}
+                useNativeAndroidPickerStyle={false}
+              />
+            </View>
+          </View>
+        }
+        data={breakoutRoomsRef.current}
+        keyExtractor={(item, index) => `room-${index}`}
+        renderItem={({ item, index: roomIndex }) => (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text>
+                Room {roomIndex + 1} <FontAwesome5 name="users" />
+              </Text>
+              <View style={styles.cardHeaderButtons}>
+                <Pressable
+                  onPress={() => handleEditRoom(roomIndex)}
+                  style={styles.iconButton}
+                >
+                  <FontAwesome5 name="pen" size={20} color="#000" />
+                </Pressable>
+                <Pressable
+                  onPress={() => handleDeleteRoom(roomIndex)}
+                  style={styles.iconButton}
+                >
+                  <FontAwesome5 name="times" size={20} color="#000" />
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.cardBody}>
+              {item.map((participant, index) => (
+                <View key={index} style={styles.listItem}>
+                  <Text>{participant.name}</Text>
+                  <Pressable
+                    onPress={() =>
+                      handleRemoveParticipant(roomIndex, participant)
+                    }
+                    style={styles.iconButton}
+                  >
+                    <FontAwesome5 name="times" size={20} color="#000" />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        ListFooterComponent={
+          <View style={styles.buttonGroup}>
+            {startBreakoutButtonVisible && (
+              <Pressable
+                style={styles.button}
+                onPress={handleStartBreakout}
+              >
+                <Text style={styles.buttonText}>
+                  {breakOutRoomStarted && !breakOutRoomEnded
+                    ? 'Update Breakout'
+                    : 'Start Breakout'}
+                </Text>
+                <FontAwesome5
+                  name={
+                    breakOutRoomStarted && !breakOutRoomEnded
+                      ? 'sync'
+                      : 'play'
+                  }
+                  size={16}
+                  color={
+                    breakOutRoomStarted && !breakOutRoomEnded
+                      ? 'yellow'
+                      : 'green'
+                  }
+                />
+              </Pressable>
+            )}
+            {stopBreakoutButtonVisible && (
+              <Pressable style={styles.button} onPress={handleStopBreakout}>
+                <Text style={styles.buttonText}>Stop Breakout</Text>
+                <FontAwesome5 name="stop" size={16} color="red" />
+              </Pressable>
+            )}
+          </View>
+        }
+      />
+      <EditRoomModal
+        editRoomModalVisible={editRoomModalVisible}
+        setEditRoomModalVisible={setEditRoomModalVisible}
+        currentRoom={currentRoom}
+        participantsRef={participantsRef}
+        handleAddParticipant={handleAddParticipant}
+        handleRemoveParticipant={handleRemoveParticipant}
+        currentRoomIndex={currentRoomIndex}
+      />
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent={true}
       animationType="slide"
@@ -560,171 +744,18 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
           style={[
             styles.modalContent,
             { backgroundColor: backgroundColor, width: modalWidth },
+            style,
           ]}
         >
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              Breakout Rooms <FontAwesome5 name="door-open" />
-            </Text>
-            <Pressable onPress={onBreakoutRoomsClose}>
-              <FontAwesome5 name="times" size={20} color="#000" />
-            </Pressable>
-          </View>
-          <FlatList
-            ListHeaderComponent={
-              <View>
-                <View style={styles.formGroup}>
-                  <Text>
-                    Number of Rooms <FontAwesome5 name="users" />
-                  </Text>
-                  <TextInput
-                    style={styles.input}
-                    value={numRooms}
-                    onChangeText={setNumRooms}
-                    inputMode="numeric"
-                  />
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.buttonGroup}>
-                    <Pressable
-                      style={styles.button}
-                      onPress={handleRandomAssign}
-                    >
-                      <FontAwesome5 name="random" size={20} color="#fff" />
-                      <Text style={styles.buttonText}>Random</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.button}
-                      onPress={handleManualAssign}
-                    >
-                      <FontAwesome5
-                        name="hand-pointer"
-                        size={20}
-                        color="#fff"
-                      />
-                      <Text style={styles.buttonText}>Manual</Text>
-                    </Pressable>
-                    <Pressable style={styles.button} onPress={handleAddRoom}>
-                      <FontAwesome5 name="plus" size={20} color="#fff" />
-                      <Text style={styles.buttonText}>Add Room</Text>
-                    </Pressable>
-                    <Pressable style={styles.button} onPress={handleSaveRooms}>
-                      <FontAwesome5 name="save" size={20} color="#fff" />
-                      <Text style={styles.buttonText}>Save Rooms</Text>
-                    </Pressable>
-                  </View>
-                </ScrollView>
-                <View style={styles.formGroup}>
-                  <Text>
-                    New Participant Action <FontAwesome5 name="users" />
-                  </Text>
-                  <RNPickerSelect
-                    style={pickerSelectStyles}
-                    value={newParticipantAction}
-                    onValueChange={(value) => setNewParticipantAction(value)}
-                    items={[
-                      { label: 'Add to new room', value: 'autoAssignNewRoom' },
-                      {
-                        label: 'Add to open room',
-                        value: 'autoAssignAvailableRoom',
-                      },
-                      { label: 'No action', value: 'manualAssign' },
-                    ]}
-                    placeholder={{}}
-                    useNativeAndroidPickerStyle={false}
-                  />
-                </View>
-              </View>
-            }
-            data={breakoutRoomsRef.current}
-            keyExtractor={(item, index) => `room-${index}`}
-            renderItem={({ item, index: roomIndex }) => (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text>
-                    Room {roomIndex + 1} <FontAwesome5 name="users" />
-                  </Text>
-                  <View style={styles.cardHeaderButtons}>
-                    <Pressable
-                      onPress={() => handleEditRoom(roomIndex)}
-                      style={styles.iconButton}
-                    >
-                      <FontAwesome5 name="pen" size={20} color="#000" />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleDeleteRoom(roomIndex)}
-                      style={styles.iconButton}
-                    >
-                      <FontAwesome5 name="times" size={20} color="#000" />
-                    </Pressable>
-                  </View>
-                </View>
-                <View style={styles.cardBody}>
-                  {item.map((participant, index) => (
-                    <View key={index} style={styles.listItem}>
-                      <Text>{participant.name}</Text>
-                      <Pressable
-                        onPress={() =>
-                          handleRemoveParticipant(roomIndex, participant)
-                        }
-                        style={styles.iconButton}
-                      >
-                        <FontAwesome5 name="times" size={20} color="#000" />
-                      </Pressable>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-            ListFooterComponent={
-              <View style={styles.buttonGroup}>
-                {startBreakoutButtonVisible && (
-                  <Pressable
-                    style={styles.button}
-                    onPress={handleStartBreakout}
-                  >
-                    <Text style={styles.buttonText}>
-                      {breakOutRoomStarted && !breakOutRoomEnded
-                        ? 'Update Breakout'
-                        : 'Start Breakout'}
-                    </Text>
-                    <FontAwesome5
-                      name={
-                        breakOutRoomStarted && !breakOutRoomEnded
-                          ? 'sync'
-                          : 'play'
-                      }
-                      size={16}
-                      color={
-                        breakOutRoomStarted && !breakOutRoomEnded
-                          ? 'yellow'
-                          : 'green'
-                      }
-                    />
-                  </Pressable>
-                )}
-                {stopBreakoutButtonVisible && (
-                  <Pressable style={styles.button} onPress={handleStopBreakout}>
-                    <Text style={styles.buttonText}>Stop Breakout</Text>
-                    <FontAwesome5 name="stop" size={16} color="red" />
-                  </Pressable>
-                )}
-              </View>
-            }
-          />
+          {content}
         </View>
       </View>
-      <EditRoomModal
-        editRoomModalVisible={editRoomModalVisible}
-        setEditRoomModalVisible={setEditRoomModalVisible}
-        currentRoom={currentRoom}
-        participantsRef={participantsRef}
-        handleAddParticipant={handleAddParticipant}
-        handleRemoveParticipant={handleRemoveParticipant}
-        currentRoomIndex={currentRoomIndex}
-      />
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 const pickerSelectStyles = StyleSheet.create({

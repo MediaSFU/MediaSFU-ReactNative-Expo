@@ -61,6 +61,29 @@ export interface MainAspectComponentOptions {
    * Callback function to update the small screen state.
    */
   updateIsSmallScreen: (isSmall: boolean) => void;
+
+  /**
+   * Additional style object to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function to wrap the default content.
+   * Receives the default content and current dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Custom render function to wrap the entire container.
+   * Receives the default container and current dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MainAspectComponentType = (
@@ -123,6 +146,9 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
   updateIsWideScreen,
   updateIsMediumScreen,
   updateIsSmallScreen,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [aspectStyles, setAspectStyles] = useState<{
     height: number;
@@ -197,7 +223,17 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
     updateIsSmallScreen,
   ]);
 
-  return (
+  const dimensions = {
+    width: aspectStyles.width,
+    height: aspectStyles.height,
+  };
+
+  const defaultContent = children;
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <View
       style={[
         styles.aspectContainer,
@@ -206,11 +242,16 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
           height: aspectStyles.height,
           width: aspectStyles.width,
         },
+        style,
       ]}
     >
-      {children}
+      {content}
     </View>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MainAspectComponent;

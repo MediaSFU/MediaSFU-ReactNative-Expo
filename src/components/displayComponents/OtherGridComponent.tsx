@@ -51,6 +51,27 @@ export interface OtherGridComponentOptions {
    * The time to display on the meeting progress timer.
    */
   meetingProgressTime: string;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type OtherGridComponentType = React.FC<OtherGridComponentOptions>;
@@ -108,24 +129,46 @@ const OtherGridComponent: React.FC<OtherGridComponentOptions> = ({
   timeBackgroundColor = 'rgba(0,0,0,0.5)', // Default value if not provided
   showTimer,
   meetingProgressTime,
-}) => (
-  <View style={[styles.otherGridContainer, {
-    backgroundColor, width: width as number, height: height as number, display: showAspect ? 'flex' : 'none',
-  }]}
-  >
-    {/* Render the meeting progress timer */}
-    <MeetingProgressTimer
-      meetingProgressTime={meetingProgressTime}
-      initialBackgroundColor={timeBackgroundColor}
-      showTimer={showTimer}
-      position="topRight"
-    />
-    {/* Render the children */}
-    <View style={styles.childrenContainer}>
-      {children}
+  style,
+  renderContent,
+  renderContainer,
+}) => {
+  const dimensions = {
+    width: typeof width === 'number' ? width : 0,
+    height: typeof height === 'number' ? height : 0,
+  };
+
+  const defaultContent = (
+    <>
+      <MeetingProgressTimer
+        meetingProgressTime={meetingProgressTime}
+        initialBackgroundColor={timeBackgroundColor}
+        showTimer={showTimer}
+        position="topRight"
+      />
+      <View style={styles.childrenContainer}>
+        {children}
+      </View>
+    </>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View style={[styles.otherGridContainer, {
+      backgroundColor, width: width as number, height: height as number, display: showAspect ? 'flex' : 'none',
+    }, style]}
+    >
+      {content}
     </View>
-  </View>
-);
+  );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
+};
 
 export default OtherGridComponent;
 

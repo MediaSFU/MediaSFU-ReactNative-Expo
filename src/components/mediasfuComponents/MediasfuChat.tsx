@@ -173,7 +173,9 @@ import {
   CustomVideoCardType,
   CustomAudioCardType,
   CustomMiniCardType,
+  MediasfuUICustomOverrides,
 } from "../../@types/types";
+import { withOverride, withFunctionOverride } from "./overrideHelpers";
 import {
   Device,
   Producer,
@@ -204,6 +206,8 @@ export type MediasfuChatOptions = {
   customAudioCard?: CustomAudioCardType;
   customMiniCard?: CustomMiniCardType;
   customComponent?: React.ReactNode;
+  containerStyle?: object;
+  uiOverrides?: MediasfuUICustomOverrides;
 };
 
 /**
@@ -294,7 +298,27 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
   customAudioCard,
   customMiniCard,
   customComponent,
+  containerStyle,
+  uiOverrides,
 }) => {
+  // UI Override Components (Chat uses fewer components than others)
+  const MainContainer = React.useMemo(() => withOverride(uiOverrides?.mainContainer, MainContainerComponent), [uiOverrides?.mainContainer]);
+  const MainAspect = React.useMemo(() => withOverride(uiOverrides?.mainAspect, MainAspectComponent), [uiOverrides?.mainAspect]);
+  const MainScreen = React.useMemo(() => withOverride(uiOverrides?.mainScreen, MainScreenComponent), [uiOverrides?.mainScreen]);
+  const OtherGrid = React.useMemo(() => withOverride(uiOverrides?.otherGrid, OthergridComponent), [uiOverrides?.otherGrid]);
+  const FlexibleGridPrimary = React.useMemo(() => withOverride(uiOverrides?.flexibleGrid, FlexibleGrid), [uiOverrides?.flexibleGrid]);
+  const AudioGridComponent = React.useMemo(() => withOverride(uiOverrides?.audioGrid, AudioGrid), [uiOverrides?.audioGrid]);
+  const ControlButtonsTouch = React.useMemo(() => withOverride(uiOverrides?.controlButtonsTouch, ControlButtonsComponentTouch), [uiOverrides?.controlButtonsTouch]);
+  const LoadingModalComponent = React.useMemo(() => withOverride(uiOverrides?.loadingModal, LoadingModal), [uiOverrides?.loadingModal]);
+  const AlertComponentOverride = React.useMemo(() => withOverride(uiOverrides?.alert, AlertComponent), [uiOverrides?.alert]);
+  const MessagesModalComponent = React.useMemo(() => withOverride(uiOverrides?.messagesModal, MessagesModal), [uiOverrides?.messagesModal]);
+  const ConfirmExitModalComponent = React.useMemo(() => withOverride(uiOverrides?.confirmExitModal, ConfirmExitModal), [uiOverrides?.confirmExitModal]);
+  const ConfirmHereModalComponent = React.useMemo(() => withOverride(uiOverrides?.confirmHereModal, ConfirmHereModal), [uiOverrides?.confirmHereModal]);
+  const ShareEventModalComponent = React.useMemo(() => withOverride(uiOverrides?.shareEventModal, ShareEventModal), [uiOverrides?.shareEventModal]);
+
+  const consumerResumeFn = React.useMemo(() => withFunctionOverride(uiOverrides?.consumerResume, consumerResume), [uiOverrides?.consumerResume]);
+  const addVideosGridFn = React.useMemo(() => withFunctionOverride(uiOverrides?.addVideosGrid, addVideosGrid), [uiOverrides?.addVideosGrid]);
+
   const updateStatesToInitialValues = async () => {
     const initialValues = initialValuesState as { [key: string]: any };
     const updateFunctions = getAllParams() as unknown as {
@@ -2280,7 +2304,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
       getVideos,
       rePort,
       trigger,
-      consumerResume,
+      consumerResume: consumerResumeFn,
       connectSendTransport,
       connectSendTransportAudio,
       connectSendTransportVideo,
@@ -2291,7 +2315,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
       checkGrid,
       getEstimate,
       calculateRowsAndColumns,
-      addVideosGrid,
+      addVideosGrid: addVideosGridFn,
       onScreenChanges,
       sleep,
       changeVids,
@@ -4095,9 +4119,9 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
           createMediaSFURoom={createMediaSFURoom}
         />
       ) : returnUI ? (
-        <MainContainerComponent>
+        <MainContainer style={containerStyle}>
           {/* Main aspect component containsa ll but the control buttons (as used for webinar and conference) */}
-          <MainAspectComponent
+          <MainAspect
             backgroundColor="rgba(217, 227, 234, 0.99)"
             defaultFraction={1 - controlHeight}
             updateIsWideScreen={updateIsWideScreen}
@@ -4109,7 +4133,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             }
           >
             {/* MainScreenComponent contains the main grid view and the minor grid view */}
-            <MainScreenComponent
+            <MainScreen
               doStack={true}
               mainSize={mainHeightWidth}
               updateComponentSizes={updateComponentSizes}
@@ -4122,7 +4146,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             >
               {/* OthergridComponent shows the minor grid view - not used at all in broadcast event type */}
               {/* OthergridComponent becomes the dominant grid view in conference (the main grid only gets re-introduced during screenshare) and chat event types */}
-              <OthergridComponent
+              <OtherGrid
                 height={componentSizes.current.otherHeight}
                 width={componentSizes.current.otherWidth}
                 backgroundColor={"rgba(217, 227, 234, 0.99)"}
@@ -4134,13 +4158,13 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
                 {/* AudioGrid contains all the audio only streams */}
                 {/* If broadcasting and there are audio only streams (just one), the audio only streams are displayed in the main grid view */}
                 {/* If webinar and you are the host, the audio only streams (just one), are displayed in the main grid view */}
-                <AudioGrid
+                <AudioGridComponent
                   componentsToRender={
                     audioOnlyStreams.current ? audioOnlyStreams.current : []
                   }
                 />
 
-                <ControlButtonsComponentTouch
+                <ControlButtonsTouch
                   buttons={controlChatButtons}
                   position={"right"}
                   location={"bottom"}
@@ -4148,7 +4172,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
                   showAspect={eventType.current === "chat"}
                 />
 
-                <FlexibleGrid
+                <FlexibleGridPrimary
                   customWidth={gridSizes.current.gridWidth!}
                   customHeight={gridSizes.current.gridHeight!}
                   rows={gridRows}
@@ -4156,17 +4180,17 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
                   componentsToRender={otherGridStreams[0]}
                   backgroundColor={"rgba(217, 227, 234, 0.99)"}
                 />
-              </OthergridComponent>
-            </MainScreenComponent>
-          </MainAspectComponent>
-        </MainContainerComponent>
+              </OtherGrid>
+            </MainScreen>
+          </MainAspect>
+        </MainContainer>
       ) : (
         <></>
       )}
 
       {returnUI && !customComponent && (
         <>
-          <MessagesModal
+          <MessagesModalComponent
             backgroundColor={
               eventType.current === "webinar" ||
               eventType.current === "conference"
@@ -4191,7 +4215,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             chatSetting={chatSetting.current}
           />
 
-          <ConfirmExitModal
+          <ConfirmExitModalComponent
             backgroundColor="rgba(181, 233, 229, 0.97)"
             isConfirmExitModalVisible={isConfirmExitModalVisible}
             onConfirmExitClose={() => updateIsConfirmExitModalVisible(false)}
@@ -4201,7 +4225,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             islevel={islevel.current}
           />
 
-          <ConfirmHereModal
+          <ConfirmHereModalComponent
             backgroundColor="rgba(181, 233, 229, 0.97)"
             isConfirmHereModalVisible={isConfirmHereModalVisible}
             onConfirmHereClose={() => updateIsConfirmHereModalVisible(false)}
@@ -4210,7 +4234,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             socket={socket.current}
           />
 
-          <ShareEventModal
+          <ShareEventModalComponent
             isShareEventModalVisible={isShareEventModalVisible}
             onShareEventClose={() => updateIsShareEventModalVisible(false)}
             roomName={roomName.current}
@@ -4220,7 +4244,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             localLink={localLink}
           />
 
-          <AlertComponent
+          <AlertComponentOverride
             visible={alertVisible}
             message={alertMessage}
             type={alertType}
@@ -4229,7 +4253,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
             textColor={"#ffffff"}
           />
 
-          <LoadingModal
+          <LoadingModalComponent
             isVisible={isLoadingModalVisible}
             backgroundColor="rgba(217, 227, 234, 0.99)"
             displayColor="black"

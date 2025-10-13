@@ -51,6 +51,27 @@ export interface PaginationOptions {
   paginationHeight?: number;
   showAspect?: boolean;
   parameters: PaginationParameters;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 /**
@@ -136,6 +157,9 @@ const Pagination: React.FC<PaginationOptions> = ({
   paginationHeight = 40,
   showAspect = true,
   parameters,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // Update parameters using the provided function
   const { getUpdatedAllParams } = parameters;
@@ -338,33 +362,46 @@ const Pagination: React.FC<PaginationOptions> = ({
     return alignmentStyle;
   };
 
-  return (
+  const dimensions = {
+    width: direction === 'horizontal' ? 0 : paginationHeight,
+    height: direction === 'horizontal' ? paginationHeight : 0,
+  };
 
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        horizontal={direction === 'horizontal'}
-        renderItem={renderItem}
-        contentContainerStyle={[
-          styles.paginationContainer,
-          { backgroundColor },
-            getAlignmentStyle(),
-          { flexDirection: direction === 'vertical' ? 'column' : 'row' },
-          { justifyContent: 'space-evenly' },
-        ]}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-        style={{ 
-          display: showAspect ? 'flex' : 'none',
-          padding: 0,
-          margin: 0,
-          width: direction === "horizontal" ? "100%" : paginationHeight,
-          height: direction === "horizontal" ? paginationHeight : "100%",
-          maxHeight: direction === "horizontal" ? paginationHeight : "100%",
-          maxWidth: direction === "horizontal" ? "100%" : paginationHeight,
-         }}
-      />
+  const defaultContent = (
+    <FlatList
+      data={data}
+      keyExtractor={(item) => item.id}
+      horizontal={direction === 'horizontal'}
+      renderItem={renderItem}
+      contentContainerStyle={[
+        styles.paginationContainer,
+        { backgroundColor },
+          getAlignmentStyle(),
+        { flexDirection: direction === 'vertical' ? 'column' : 'row' },
+        { justifyContent: 'space-evenly' },
+      ]}
+      showsHorizontalScrollIndicator={false}
+      showsVerticalScrollIndicator={false}
+      style={{ 
+        display: showAspect ? 'flex' : 'none',
+        padding: 0,
+        margin: 0,
+        width: direction === "horizontal" ? "100%" : paginationHeight,
+        height: direction === "horizontal" ? paginationHeight : "100%",
+        maxHeight: direction === "horizontal" ? paginationHeight : "100%",
+        maxWidth: direction === "horizontal" ? "100%" : paginationHeight,
+        ...style as any,
+       }}
+    />
   );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer: content, dimensions }) as JSX.Element)
+    : content as JSX.Element;
 
 };
 

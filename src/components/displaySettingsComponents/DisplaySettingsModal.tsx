@@ -36,6 +36,17 @@ export interface DisplaySettingsModalOptions {
   parameters: DisplaySettingsModalParameters;
   position?: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
   backgroundColor?: string;
+
+  // Render props for enhanced customization
+  style?: StyleProp<ViewStyle>;
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type DisplaySettingsModalType = (
@@ -86,6 +97,9 @@ const DisplaySettingsModal: React.FC<DisplaySettingsModalOptions> = ({
   parameters,
   position = 'topRight',
   backgroundColor = '#83c0e9',
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const {
     meetingDisplayType,
@@ -150,7 +164,108 @@ const DisplaySettingsModal: React.FC<DisplaySettingsModalOptions> = ({
     return styles[pos] || styles.topRight;
   };
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Display Settings</Text>
+        <Pressable onPress={onDisplaySettingsClose} style={styles.btnCloseSettings} accessibilityRole="button" accessibilityLabel="Close Display Settings">
+          <FontAwesome name="times" style={styles.icon} />
+        </Pressable>
+      </View>
+
+      {/* Divider */}
+      <View style={styles.hr} />
+
+      {/* Body */}
+      <View style={styles.modalBody}>
+        {/* Display Option Picker */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Display Option:</Text>
+          <RNPickerSelect
+            onValueChange={(value) => setMeetingDisplayTypeState(value)}
+            items={[
+              { label: 'Video Participants Only', value: 'video' },
+              { label: 'Media Participants Only', value: 'media' },
+              { label: 'Show All Participants', value: 'all' },
+            ]}
+            value={meetingDisplayTypeState}
+            style={pickerSelectStyles}
+            placeholder={{}}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* Display Audiographs Toggle */}
+        <View style={styles.formCheck}>
+          <Text style={styles.label}>Display Audiographs</Text>
+          <Pressable onPress={() => setAutoWaveState(!autoWaveState)} accessibilityRole="switch" accessibilityLabel="Toggle Display Audiographs">
+            <FontAwesome
+              name="check"
+              size={24}
+              color={autoWaveState ? 'green' : 'black'}
+            />
+          </Pressable>
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* Force Full Display Toggle */}
+        <View style={styles.formCheck}>
+          <Text style={styles.label}>Force Full Display</Text>
+          <Pressable onPress={() => setForceFullDisplayState(!forceFullDisplayState)} accessibilityRole="switch" accessibilityLabel="Toggle Force Full Display">
+            <FontAwesome
+              name="check"
+              size={24}
+              color={forceFullDisplayState ? 'green' : 'black'}
+            />
+          </Pressable>
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+
+        {/* Force Video Participants Toggle */}
+        <View style={styles.formCheck}>
+          <Text style={styles.label}>Force Video Participants</Text>
+          <Pressable onPress={() => setMeetingVideoOptimizedState(!meetingVideoOptimizedState)} accessibilityRole="switch" accessibilityLabel="Toggle Force Video Participants">
+            <FontAwesome
+              name="check"
+              size={24}
+              color={meetingVideoOptimizedState ? 'green' : 'black'}
+            />
+          </Pressable>
+        </View>
+
+        {/* Separator */}
+        <View style={styles.sep} />
+      </View>
+
+      {/* Footer */}
+      <View style={styles.modalFooter}>
+        <Pressable
+          onPress={handleSaveSettings}
+          style={styles.btnApplySettings}
+          accessibilityRole="button"
+          accessibilityLabel="Save Display Settings"
+        >
+          <Text style={styles.btnText}>Save</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -158,101 +273,16 @@ const DisplaySettingsModal: React.FC<DisplaySettingsModalOptions> = ({
       onRequestClose={onDisplaySettingsClose}
     >
       <View style={[styles.modalContainer, getModalPosition(position)]}>
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }]}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Display Settings</Text>
-            <Pressable onPress={onDisplaySettingsClose} style={styles.btnCloseSettings} accessibilityRole="button" accessibilityLabel="Close Display Settings">
-              <FontAwesome name="times" style={styles.icon} />
-            </Pressable>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.hr} />
-
-          {/* Body */}
-          <View style={styles.modalBody}>
-            {/* Display Option Picker */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Display Option:</Text>
-              <RNPickerSelect
-                onValueChange={(value) => setMeetingDisplayTypeState(value)}
-                items={[
-                  { label: 'Video Participants Only', value: 'video' },
-                  { label: 'Media Participants Only', value: 'media' },
-                  { label: 'Show All Participants', value: 'all' },
-                ]}
-                value={meetingDisplayTypeState}
-                style={pickerSelectStyles}
-                placeholder={{}}
-                useNativeAndroidPickerStyle={false}
-              />
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* Display Audiographs Toggle */}
-            <View style={styles.formCheck}>
-              <Text style={styles.label}>Display Audiographs</Text>
-              <Pressable onPress={() => setAutoWaveState(!autoWaveState)} accessibilityRole="switch" accessibilityLabel="Toggle Display Audiographs">
-                <FontAwesome
-                  name="check"
-                  size={24}
-                  color={autoWaveState ? 'green' : 'black'}
-                />
-              </Pressable>
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* Force Full Display Toggle */}
-            <View style={styles.formCheck}>
-              <Text style={styles.label}>Force Full Display</Text>
-              <Pressable onPress={() => setForceFullDisplayState(!forceFullDisplayState)} accessibilityRole="switch" accessibilityLabel="Toggle Force Full Display">
-                <FontAwesome
-                  name="check"
-                  size={24}
-                  color={forceFullDisplayState ? 'green' : 'black'}
-                />
-              </Pressable>
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-
-            {/* Force Video Participants Toggle */}
-            <View style={styles.formCheck}>
-              <Text style={styles.label}>Force Video Participants</Text>
-              <Pressable onPress={() => setMeetingVideoOptimizedState(!meetingVideoOptimizedState)} accessibilityRole="switch" accessibilityLabel="Toggle Force Video Participants">
-                <FontAwesome
-                  name="check"
-                  size={24}
-                  color={meetingVideoOptimizedState ? 'green' : 'black'}
-                />
-              </Pressable>
-            </View>
-
-            {/* Separator */}
-            <View style={styles.sep} />
-          </View>
-
-          {/* Footer */}
-          <View style={styles.modalFooter}>
-            <Pressable
-              onPress={handleSaveSettings}
-              style={styles.btnApplySettings}
-              accessibilityRole="button"
-              accessibilityLabel="Save Display Settings"
-            >
-              <Text style={styles.btnText}>Save</Text>
-            </Pressable>
-          </View>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default DisplaySettingsModal;

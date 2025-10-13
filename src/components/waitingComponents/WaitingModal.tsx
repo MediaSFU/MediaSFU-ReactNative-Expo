@@ -94,6 +94,27 @@ export interface WaitingRoomModalOptions {
    * Defaults to respondToWaiting.
    */
   onWaitingRoomItemPress?: RespondToWaitingType;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type WaitingRoomModalType = (
@@ -159,6 +180,9 @@ const WaitingRoomModal: React.FC<WaitingRoomModalOptions> = ({
   position = "topRight",
   backgroundColor = "#83c0e9",
   parameters,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const screenWidth: number = Dimensions.get("window").width;
   let modalWidth: number = 0.8 * screenWidth;
@@ -180,7 +204,104 @@ const WaitingRoomModal: React.FC<WaitingRoomModalOptions> = ({
     setWaitingRoomCounter_s(updatedParams.filteredWaitingRoomList.length);
   }, [waitingRoomList, parameters]);
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          Waiting <Text style={styles.badge}>{waitingRoomCounter_s}</Text>
+        </Text>
+        <Pressable onPress={onWaitingRoomClose} style={styles.closeButton}>
+          <FontAwesome name="times" size={24} color="black" />
+        </Pressable>
+      </View>
+
+      <View style={styles.separator} />
+
+      {/* Search Input */}
+
+      <View style={styles.modalBody}>
+        <View style={styles.formGroup}>
+          <TextInput
+            style={styles.input}
+            placeholder="Search ..."
+            value={filterText}
+            onChangeText={(text) => {
+              setFilterText(text);
+              onWaitingRoomFilterChange(text);
+            }}
+          />
+        </View>
+
+        {/* Waiting List */}
+        <ScrollView style={styles.scrollView}>
+          <View>
+            {filteredWaitingRoomList &&
+            filteredWaitingRoomList.length > 0 ? (
+              filteredWaitingRoomList.map((participant, index) => (
+                <View key={index} style={styles.waitingItem}>
+                  <View style={styles.participantName}>
+                    <Text style={styles.participantText}>
+                      {participant.name}
+                    </Text>
+                  </View>
+                  <View style={styles.actionButtons}>
+                    {/* Accept Button */}
+                    <Pressable
+                      style={styles.acceptButton}
+                      onPress={() =>
+                        onWaitingRoomItemPress({
+                          participantId: participant.id,
+                          participantName: participant.name,
+                          updateWaitingList,
+                          waitingList: waitingRoomList,
+                          roomName,
+                          type: true, // accepted
+                          socket,
+                        })
+                      }
+                    >
+                      <FontAwesome name="check" size={24} color="green" />
+                    </Pressable>
+
+                    {/* Reject Button */}
+                    <Pressable
+                      style={styles.rejectButton}
+                      onPress={() =>
+                        onWaitingRoomItemPress({
+                          participantId: participant.id,
+                          participantName: participant.name,
+                          updateWaitingList,
+                          waitingList: waitingRoomList,
+                          roomName,
+                          type: false, // rejected
+                          socket,
+                        })
+                      }
+                    >
+                      <FontAwesome name="times" size={24} color="red" />
+                    </Pressable>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noParticipantsText}>
+                No participants found.
+              </Text>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="fade"
@@ -189,98 +310,17 @@ const WaitingRoomModal: React.FC<WaitingRoomModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              Waiting <Text style={styles.badge}>{waitingRoomCounter_s}</Text>
-            </Text>
-            <Pressable onPress={onWaitingRoomClose} style={styles.closeButton}>
-              <FontAwesome name="times" size={24} color="black" />
-            </Pressable>
-          </View>
-
-          <View style={styles.separator} />
-
-          {/* Search Input */}
-
-          <View style={styles.modalBody}>
-            <View style={styles.formGroup}>
-              <TextInput
-                style={styles.input}
-                placeholder="Search ..."
-                value={filterText}
-                onChangeText={(text) => {
-                  setFilterText(text);
-                  onWaitingRoomFilterChange(text);
-                }}
-              />
-            </View>
-
-            {/* Waiting List */}
-            <ScrollView style={styles.scrollView}>
-              <View>
-                {filteredWaitingRoomList &&
-                filteredWaitingRoomList.length > 0 ? (
-                  filteredWaitingRoomList.map((participant, index) => (
-                    <View key={index} style={styles.waitingItem}>
-                      <View style={styles.participantName}>
-                        <Text style={styles.participantText}>
-                          {participant.name}
-                        </Text>
-                      </View>
-                      <View style={styles.actionButtons}>
-                        {/* Accept Button */}
-                        <Pressable
-                          style={styles.acceptButton}
-                          onPress={() =>
-                            onWaitingRoomItemPress({
-                              participantId: participant.id,
-                              participantName: participant.name,
-                              updateWaitingList,
-                              waitingList: waitingRoomList,
-                              roomName,
-                              type: true, // accepted
-                              socket,
-                            })
-                          }
-                        >
-                          <FontAwesome name="check" size={24} color="green" />
-                        </Pressable>
-
-                        {/* Reject Button */}
-                        <Pressable
-                          style={styles.rejectButton}
-                          onPress={() =>
-                            onWaitingRoomItemPress({
-                              participantId: participant.id,
-                              participantName: participant.name,
-                              updateWaitingList,
-                              waitingList: waitingRoomList,
-                              roomName,
-                              type: false, // rejected
-                              socket,
-                            })
-                          }
-                        >
-                          <FontAwesome name="times" size={24} color="red" />
-                        </Pressable>
-                      </View>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noParticipantsText}>
-                    No participants found.
-                  </Text>
-                )}
-              </View>
-            </ScrollView>
-          </View>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default WaitingRoomModal;

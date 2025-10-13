@@ -42,6 +42,27 @@ export interface FlexibleGridOptions {
    * @default 'transparent'
    */
   backgroundColor?: string;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type FlexibleGridType = (options: FlexibleGridOptions) => JSX.Element;
@@ -101,6 +122,9 @@ const FlexibleGrid: React.FC<FlexibleGridOptions> = ({
   componentsToRender,
   showAspect = false,
   backgroundColor = 'transparent',
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [key, setKey] = useState<number>(0);
 
@@ -150,11 +174,25 @@ const FlexibleGrid: React.FC<FlexibleGridOptions> = ({
     return grid;
   };
 
-  return (
-    <View key={key} style={[styles.gridContainer, showAspect && styles.aspectContainer]}>
-      {renderGrid()}
+  const dimensions = {
+    width: customWidth * columns,
+    height: customHeight * rows,
+  };
+
+  const defaultContent = renderGrid();
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View key={key} style={[styles.gridContainer, showAspect && styles.aspectContainer, style]}>
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default FlexibleGrid;

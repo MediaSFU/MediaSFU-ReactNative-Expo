@@ -72,6 +72,27 @@ export interface MiniCardOptions {
    * Additional parameters that can be passed to custom components.
    */
   parameters?: any;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type MiniCardType = (options: MiniCardOptions) => JSX.Element;
@@ -127,15 +148,20 @@ const MiniCard: React.FC<MiniCardOptions> = ({
   name,
   customMiniCard,
   parameters,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // Define the style for the MiniCard
   const cardStyle: StyleProp<ViewStyle> = [
     styles.miniCard,
     customStyle,
+    style,
   ];
 
-  // Render the MiniCard with either an image or initials
-  return (
+  const dimensions = { width: 0, height: 0 }; // MiniCard uses percentage-based sizing
+
+  const defaultContent = (
     <>
       {customMiniCard ? (
         customMiniCard({
@@ -151,7 +177,7 @@ const MiniCard: React.FC<MiniCardOptions> = ({
           parameters,
         })
       ) : (
-        <View style={cardStyle}>
+        <>
           {imageSource ? (
             <View style={styles.imageContainer}>
               <Image
@@ -167,10 +193,24 @@ const MiniCard: React.FC<MiniCardOptions> = ({
           ) : (
             <Text style={[styles.initials, { fontSize }]}>{initials}</Text>
           )}
-        </View>
+        </>
       )}
     </>
   );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View style={cardStyle}>
+      {content}
+    </View>
+  );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default MiniCard;

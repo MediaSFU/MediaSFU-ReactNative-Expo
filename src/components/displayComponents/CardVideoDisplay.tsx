@@ -12,6 +12,27 @@ export interface CardVideoDisplayOptions {
   videoStream: MediaStream | null;
   backgroundColor?: string;
   doMirror?: boolean;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 // Define the CardVideoDisplayType
@@ -64,6 +85,9 @@ const CardVideoDisplay: React.FC<CardVideoDisplayOptions> = ({
   videoStream,
   backgroundColor = 'transparent',
   doMirror = false,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   /**
    * getRTCViewStyle - Helper function to get styles for RTCView based on platform.
@@ -96,9 +120,10 @@ const CardVideoDisplay: React.FC<CardVideoDisplayOptions> = ({
     return {};
   };
 
-  return (
-    <View style={[styles.videoContainer, { backgroundColor }]}>
-      {/* Conditionally render RTCView based on the platform */}
+  const dimensions = { width: 0, height: 0 }; // Video fills container
+
+  const defaultContent = (
+    <>
       {Platform.OS === 'web' ? (
         <RTCView stream={videoStream} style={getRTCViewStyle()} />
       ) : (
@@ -109,8 +134,22 @@ const CardVideoDisplay: React.FC<CardVideoDisplayOptions> = ({
           style={styles.video}
         />
       )}
+    </>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View style={[styles.videoContainer, { backgroundColor }, style]}>
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 const styles = StyleSheet.create({

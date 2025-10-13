@@ -38,6 +38,27 @@ export interface PollModalOptions {
   handleCreatePoll: HandleCreatePollType;
   handleEndPoll: HandleEndPollType;
   handleVotePoll: HandleVotePollType;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type PollModalType = (options: PollModalOptions) => JSX.Element;
@@ -103,6 +124,9 @@ const PollModal: React.FC<PollModalOptions> = ({
   handleCreatePoll,
   handleEndPoll,
   handleVotePoll,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [newPoll, setNewPoll] = useState<{
     question: string;
@@ -284,7 +308,169 @@ const PollModal: React.FC<PollModalOptions> = ({
     </Pressable>
   ));
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Polls</Text>
+        <Pressable onPress={onClose} style={styles.closeButton}>
+          <FontAwesome5 name="times" size={24} color="black" />
+        </Pressable>
+      </View>
+
+      <View style={styles.separator} />
+
+      <ScrollView>
+        {islevel === '2' && (
+          <>
+            {/* Previous Polls */}
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>Previous Polls</Text>
+              {polls.length === 0 && (
+                <Text style={styles.noPollText}>No polls available</Text>
+              )}
+              {polls.map(
+                (polled, index) => polled
+                  && (!poll
+                    || (poll
+                      && (poll.status !== 'active'
+                        || polled.id !== poll.id))) && (
+                        <View key={index} style={styles.poll}>
+                          <Text style={styles.pollLabel}>Question:</Text>
+                          <TextInput
+                            style={styles.textarea}
+                            multiline
+                            editable={false}
+                            value={polled.question}
+                          />
+                          <Text style={styles.pollLabel}>Options:</Text>
+                          {polled.options.map((option, i) => (
+                            <Text key={i} style={styles.optionText}>
+                              {`${option}: ${
+                                polled.votes[i]
+                              } votes (${calculatePercentage(
+                                polled.votes,
+                                i,
+                              )}%)`}
+                            </Text>
+                          ))}
+                          {polled.status === 'active' && (
+                          <Pressable
+                            style={[styles.button, styles.buttonDanger]}
+                            onPress={() => handleEndPoll({
+                              pollId: polled.id,
+                              socket,
+                              showAlert,
+                              roomName,
+                              updateIsPollModalVisible,
+                            })}
+                          >
+                            <Text style={styles.buttonText}>End Poll</Text>
+                          </Pressable>
+                          )}
+                        </View>
+                ),
+              )}
+            </View>
+
+            <View style={styles.separator} />
+
+            {/* Create New Poll */}
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>Create a New Poll</Text>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Poll Question</Text>
+                <TextInput
+                  style={styles.textarea}
+                  multiline
+                  maxLength={300}
+                  value={newPoll.question}
+                  onChangeText={(text) => setNewPoll({ ...newPoll, question: text })}
+                  placeholder="Enter your question here..."
+                  placeholderTextColor="gray"
+                />
+              </View>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Select Poll Answer Type
+                </Text>
+                <RNPickerSelect
+                  onValueChange={handlePollTypeChange}
+                  items={[
+                    { label: 'Choose...', value: '' },
+                    { label: 'True/False', value: 'trueFalse' },
+                    { label: 'Yes/No', value: 'yesNo' },
+                    { label: 'Custom', value: 'custom' },
+                  ]}
+                  placeholder={{}}
+                  style={pickerSelectStyles}
+                  value={newPoll.type}
+                  useNativeAndroidPickerStyle={false}
+                />
+              </View>
+              {renderPollOptions()}
+              <Pressable
+                style={[styles.button, styles.buttonPrimary]}
+                onPress={() => handleCreatePoll({
+                  poll: newPoll,
+                  socket,
+                  roomName,
+                  showAlert,
+                  updateIsPollModalVisible,
+                })}
+              >
+                <Text style={styles.buttonText}>Create Poll</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.separator} />
+          </>
+        )}
+
+        {/* Current Poll */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Current Poll</Text>
+          {poll && poll.status === 'active' ? (
+            <View style={styles.poll}>
+              <Text style={styles.pollLabel}>Question:</Text>
+              <TextInput
+                style={styles.textarea}
+                multiline
+                editable={false}
+                value={poll.question}
+              />
+              <Text style={styles.pollLabel}>Options:</Text>
+              {renderCurrentPollOptions()}
+              {poll.status === 'active' && islevel === '2' && (
+                <Pressable
+                  style={[styles.button, styles.buttonDanger]}
+                  onPress={() => handleEndPoll({
+                    pollId: poll.id,
+                    socket,
+                    showAlert,
+                    roomName,
+                    updateIsPollModalVisible,
+                  })}
+                >
+                  <Text style={styles.buttonText}>End Poll</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.noPollText}>No active poll</Text>
+          )}
+        </View>
+      </ScrollView>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       visible={isPollModalVisible}
       transparent
@@ -293,163 +479,17 @@ const PollModal: React.FC<PollModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Polls</Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <FontAwesome5 name="times" size={24} color="black" />
-            </Pressable>
-          </View>
-
-          <View style={styles.separator} />
-
-          <ScrollView>
-            {islevel === '2' && (
-              <>
-                {/* Previous Polls */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionHeader}>Previous Polls</Text>
-                  {polls.length === 0 && (
-                    <Text style={styles.noPollText}>No polls available</Text>
-                  )}
-                  {polls.map(
-                    (polled, index) => polled
-                      && (!poll
-                        || (poll
-                          && (poll.status !== 'active'
-                            || polled.id !== poll.id))) && (
-                            <View key={index} style={styles.poll}>
-                              <Text style={styles.pollLabel}>Question:</Text>
-                              <TextInput
-                                style={styles.textarea}
-                                multiline
-                                editable={false}
-                                value={polled.question}
-                              />
-                              <Text style={styles.pollLabel}>Options:</Text>
-                              {polled.options.map((option, i) => (
-                                <Text key={i} style={styles.optionText}>
-                                  {`${option}: ${
-                                    polled.votes[i]
-                                  } votes (${calculatePercentage(
-                                    polled.votes,
-                                    i,
-                                  )}%)`}
-                                </Text>
-                              ))}
-                              {polled.status === 'active' && (
-                              <Pressable
-                                style={[styles.button, styles.buttonDanger]}
-                                onPress={() => handleEndPoll({
-                                  pollId: polled.id,
-                                  socket,
-                                  showAlert,
-                                  roomName,
-                                  updateIsPollModalVisible,
-                                })}
-                              >
-                                <Text style={styles.buttonText}>End Poll</Text>
-                              </Pressable>
-                              )}
-                            </View>
-                    ),
-                  )}
-                </View>
-
-                <View style={styles.separator} />
-
-                {/* Create New Poll */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionHeader}>Create a New Poll</Text>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>Poll Question</Text>
-                    <TextInput
-                      style={styles.textarea}
-                      multiline
-                      maxLength={300}
-                      value={newPoll.question}
-                      onChangeText={(text) => setNewPoll({ ...newPoll, question: text })}
-                      placeholder="Enter your question here..."
-                      placeholderTextColor="gray"
-                    />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>
-                      Select Poll Answer Type
-                    </Text>
-                    <RNPickerSelect
-                      onValueChange={handlePollTypeChange}
-                      items={[
-                        { label: 'Choose...', value: '' },
-                        { label: 'True/False', value: 'trueFalse' },
-                        { label: 'Yes/No', value: 'yesNo' },
-                        { label: 'Custom', value: 'custom' },
-                      ]}
-                      placeholder={{}}
-                      style={pickerSelectStyles}
-                      value={newPoll.type}
-                      useNativeAndroidPickerStyle={false}
-                    />
-                  </View>
-                  {renderPollOptions()}
-                  <Pressable
-                    style={[styles.button, styles.buttonPrimary]}
-                    onPress={() => handleCreatePoll({
-                      poll: newPoll,
-                      socket,
-                      roomName,
-                      showAlert,
-                      updateIsPollModalVisible,
-                    })}
-                  >
-                    <Text style={styles.buttonText}>Create Poll</Text>
-                  </Pressable>
-                </View>
-
-                <View style={styles.separator} />
-              </>
-            )}
-
-            {/* Current Poll */}
-            <View style={styles.section}>
-              <Text style={styles.sectionHeader}>Current Poll</Text>
-              {poll && poll.status === 'active' ? (
-                <View style={styles.poll}>
-                  <Text style={styles.pollLabel}>Question:</Text>
-                  <TextInput
-                    style={styles.textarea}
-                    multiline
-                    editable={false}
-                    value={poll.question}
-                  />
-                  <Text style={styles.pollLabel}>Options:</Text>
-                  {renderCurrentPollOptions()}
-                  {poll.status === 'active' && islevel === '2' && (
-                    <Pressable
-                      style={[styles.button, styles.buttonDanger]}
-                      onPress={() => handleEndPoll({
-                        pollId: poll.id,
-                        socket,
-                        showAlert,
-                        roomName,
-                        updateIsPollModalVisible,
-                      })}
-                    >
-                      <Text style={styles.buttonText}>End Poll</Text>
-                    </Pressable>
-                  )}
-                </View>
-              ) : (
-                <Text style={styles.noPollText}>No active poll</Text>
-              )}
-            </View>
-          </ScrollView>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 const styles = StyleSheet.create({

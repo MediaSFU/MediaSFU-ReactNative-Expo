@@ -99,6 +99,27 @@ export interface RecordingModalOptions {
    * Parameters for configuring the recording.
    */
   parameters: RecordingModalParameters;
+
+  /**
+   * Optional custom style for the modal container.
+   */
+  style?: object;
+
+  /**
+   * Custom render function for modal content.
+   */
+  renderContent?: (options: {
+    defaultContent: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => JSX.Element;
+
+  /**
+   * Custom render function for the modal container.
+   */
+  renderContainer?: (options: {
+    defaultContainer: JSX.Element;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type RecordingModalType = (options: RecordingModalOptions) => JSX.Element;
@@ -172,6 +193,9 @@ const RecordingModal: React.FC<RecordingModalOptions> = ({
   confirmRecording,
   startRecording,
   parameters,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const { recordPaused } = parameters;
 
@@ -181,7 +205,62 @@ const RecordingModal: React.FC<RecordingModalOptions> = ({
     modalWidth = 400;
   }
 
-  return (
+  const dimensions = { width: modalWidth, height: 0 };
+
+  const defaultContent = (
+    <>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          <FontAwesome name="bars" size={24} color="black" />
+          {' Recording Settings'}
+        </Text>
+        <Pressable onPress={onClose} style={styles.closeButton}>
+          <FontAwesome name="times" size={24} color="black" />
+        </Pressable>
+      </View>
+
+      <View style={styles.separator} />
+
+      {/* Modal Body */}
+      <View style={styles.modalBody}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.listGroup}>
+            <StandardPanelComponent parameters={parameters} />
+            <AdvancedPanelComponent parameters={parameters} />
+          </View>
+        </ScrollView>
+      </View>
+
+      <View style={styles.separator} />
+
+      {/* Action Buttons */}
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={[styles.button, styles.confirmButton]}
+          onPress={() => confirmRecording({ parameters })}
+        >
+          <Text style={styles.buttonText}>Confirm</Text>
+        </Pressable>
+        {!recordPaused && (
+          <Pressable
+            style={[styles.button, styles.startButton]}
+            onPress={() => startRecording({ parameters })}
+          >
+            <Text style={styles.buttonText}>
+              Start <FontAwesome name="play" size={16} color="black" />
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    </>
+  );
+
+  const content = renderContent
+    ? renderContent({ defaultContent, dimensions })
+    : defaultContent;
+
+  const defaultContainer = (
     <Modal
       transparent
       animationType="slide"
@@ -190,56 +269,17 @@ const RecordingModal: React.FC<RecordingModalOptions> = ({
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
         <View
-          style={[styles.modalContent, { backgroundColor, width: modalWidth }]}
+          style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}
         >
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              <FontAwesome name="bars" size={24} color="black" />
-              {' Recording Settings'}
-            </Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <FontAwesome name="times" size={24} color="black" />
-            </Pressable>
-          </View>
-
-          <View style={styles.separator} />
-
-          {/* Modal Body */}
-          <View style={styles.modalBody}>
-            <ScrollView style={styles.scrollView}>
-              <View style={styles.listGroup}>
-                <StandardPanelComponent parameters={parameters} />
-                <AdvancedPanelComponent parameters={parameters} />
-              </View>
-            </ScrollView>
-          </View>
-
-          <View style={styles.separator} />
-
-          {/* Action Buttons */}
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={[styles.button, styles.confirmButton]}
-              onPress={() => confirmRecording({ parameters })}
-            >
-              <Text style={styles.buttonText}>Confirm</Text>
-            </Pressable>
-            {!recordPaused && (
-              <Pressable
-                style={[styles.button, styles.startButton]}
-                onPress={() => startRecording({ parameters })}
-              >
-                <Text style={styles.buttonText}>
-                  Start <FontAwesome name="play" size={16} color="black" />
-                </Text>
-              </Pressable>
-            )}
-          </View>
+          {content}
         </View>
       </View>
     </Modal>
   );
+
+  return renderContainer
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default RecordingModal;

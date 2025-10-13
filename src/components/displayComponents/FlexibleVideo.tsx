@@ -59,6 +59,27 @@ export interface FlexibleVideoOptions {
    * The local screen stream to use for annotation.
    */
   localStreamScreen?: MediaStream;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type FlexibleVideoType = (options: FlexibleVideoOptions) => JSX.Element
@@ -127,6 +148,9 @@ const FlexibleVideo: React.FC<FlexibleVideoOptions> = ({
   Screenboard,
   annotateScreenStream = false,
   localStreamScreen,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   const [key, setKey] = useState<number>(0);
   const [cardWidth, setCardWidth] = useState<number>(customWidth);
@@ -212,23 +236,13 @@ const FlexibleVideo: React.FC<FlexibleVideoOptions> = ({
     return grid;
   };
 
-  return (
-    <View
-      key={key}
-      style={[
-        styles.gridContainer,
-        {
-          padding: 0,
-          flex: 1,
-          margin: 0,
-          position: 'relative',
-          display: showAspect ? 'flex' : 'none',
-          maxWidth: customWidth,
-          overflow: 'hidden',
-          left: cardLeft > 0 ? cardLeft : 0,
-        },
-      ]}
-    >
+  const dimensions = {
+    width: cardWidth * columns,
+    height: cardHeight * rows,
+  };
+
+  const defaultContent = (
+    <>
       {renderGrid()}
       {Screenboard && (
         <View
@@ -247,8 +261,38 @@ const FlexibleVideo: React.FC<FlexibleVideoOptions> = ({
           {Screenboard}
         </View>
       )}
+    </>
+  );
+
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
+    <View
+      key={key}
+      style={[
+        styles.gridContainer,
+        {
+          padding: 0,
+          flex: 1,
+          margin: 0,
+          position: 'relative',
+          display: showAspect ? 'flex' : 'none',
+          maxWidth: customWidth,
+          overflow: 'hidden',
+          left: cardLeft > 0 ? cardLeft : 0,
+        },
+        style,
+      ]}
+    >
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default FlexibleVideo;

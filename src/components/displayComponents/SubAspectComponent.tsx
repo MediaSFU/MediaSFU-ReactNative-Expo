@@ -45,6 +45,27 @@ export interface SubAspectComponentOptions {
    * @default 0.0
    */
   defaultFractionSub?: number;
+
+  /**
+   * Optional custom style to apply to the container.
+   */
+  style?: object;
+
+  /**
+   * Optional function to render custom content, receiving the default content and dimensions.
+   */
+  renderContent?: (options: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
+
+  /**
+   * Optional function to render a custom container, receiving the default container and dimensions.
+   */
+  renderContainer?: (options: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => React.ReactNode;
 }
 
 export type SubAspectComponentType = (options: SubAspectComponentOptions) => JSX.Element;
@@ -91,6 +112,9 @@ const SubAspectComponent: React.FC<SubAspectComponentOptions> = ({
   containerWidthFraction = 1.0, // Default to full width if not provided
   containerHeightFraction = 1.0, // Default to full height if not provided
   defaultFractionSub = 0.0,
+  style,
+  renderContent,
+  renderContainer,
 }) => {
   // Calculate sub-aspect fraction based on showControls
   const subAspectFraction = showControls ? defaultFractionSub : 0.0;
@@ -156,17 +180,34 @@ const SubAspectComponent: React.FC<SubAspectComponentOptions> = ({
     subAspectFraction,
   ]);
 
-  return (
+  // Extract dimensions from aspectStyles
+  const styleObj = aspectStyles as ViewStyle;
+  const dimensions = {
+    width: typeof styleObj.width === 'number' ? styleObj.width : 0,
+    height: typeof styleObj.height === 'number' ? styleObj.height : 0,
+  };
+
+  const defaultContent = children;
+  const content = renderContent 
+    ? renderContent({ defaultContent, dimensions }) 
+    : defaultContent;
+
+  const defaultContainer = (
     <View
       style={[
         styles.subAspectContainer,
         { backgroundColor },
         aspectStyles,
+        style,
       ]}
     >
-      {children}
+      {content}
     </View>
   );
+
+  return renderContainer 
+    ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
+    : defaultContainer;
 };
 
 export default SubAspectComponent;

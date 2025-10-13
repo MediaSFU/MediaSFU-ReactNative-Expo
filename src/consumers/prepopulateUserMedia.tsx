@@ -1,11 +1,13 @@
+import React from 'react';
 import MiniCard from '../components/displayComponents/MiniCard';
 import VideoCard from '../components/displayComponents/VideoCard';
 import AudioCard from '../components/displayComponents/AudioCard';
 // import { RTCView } from "../methods/utils/webrtc/webrtc";
 import {
-  Participant, Stream, AudioCardParameters, EventType, MediaStream,
+  Participant, Stream, AudioCardParameters, EventType,
   CustomVideoCardType, CustomAudioCardType, CustomMiniCardType,
 } from '../@types/types';
+import type { MediaStream } from '../@types/types';
 
 export interface PrepopulateUserMediaParameters extends AudioCardParameters {
 
@@ -50,6 +52,11 @@ export interface PrepopulateUserMediaParameters extends AudioCardParameters {
   customVideoCard?: CustomVideoCardType;
   customAudioCard?: CustomAudioCardType;
   customMiniCard?: CustomMiniCardType;
+
+  // Override-provided component references
+  videoCardComponent?: React.ComponentType<React.ComponentProps<typeof VideoCard>>;
+  audioCardComponent?: React.ComponentType<React.ComponentProps<typeof AudioCard>>;
+  miniCardComponent?: React.ComponentType<React.ComponentProps<typeof MiniCard>>;
 
   // mediasfu functions
   getUpdatedAllParams: () => PrepopulateUserMediaParameters;
@@ -155,7 +162,170 @@ export async function prepopulateUserMedia({
       customVideoCard,
       customAudioCard,
       customMiniCard,
+      videoCardComponent,
+      audioCardComponent,
+      miniCardComponent,
     } = parameters;
+
+    const VideoCardComponentOverride =
+      (videoCardComponent ?? VideoCard) as React.ComponentType<React.ComponentProps<typeof VideoCard>>;
+    const AudioCardComponentOverride =
+      (audioCardComponent ?? AudioCard) as React.ComponentType<React.ComponentProps<typeof AudioCard>>;
+    const MiniCardComponentOverride =
+      (miniCardComponent ?? MiniCard) as React.ComponentType<React.ComponentProps<typeof MiniCard>>;
+
+    const buildVideoCard = ({
+      key,
+      videoStream,
+      remoteProducerId = "",
+      eventType: cardEventType,
+      forceFullDisplay: cardForceFullDisplay = false,
+      customStyle,
+      participant: cardParticipant,
+      backgroundColor,
+      showControls = false,
+      showInfo = true,
+      name = "",
+      doMirror = false,
+    }: {
+      key: string;
+      videoStream: MediaStream | null;
+      remoteProducerId?: string;
+      eventType: EventType;
+      forceFullDisplay?: boolean;
+      customStyle?: React.CSSProperties;
+      participant: Participant;
+      backgroundColor?: string;
+      showControls?: boolean;
+      showInfo?: boolean;
+      name?: string;
+      doMirror?: boolean;
+    }) => {
+      if (customVideoCard) {
+        return React.createElement(customVideoCard as any, {
+          key,
+          videoStream: videoStream || new MediaStream(),
+          remoteProducerId,
+          eventType: cardEventType,
+          forceFullDisplay: cardForceFullDisplay,
+          customStyle,
+          participant: cardParticipant,
+          backgroundColor,
+          showControls,
+          showInfo,
+          name,
+          doMirror,
+          parameters,
+        });
+      }
+
+      return (
+        <VideoCardComponentOverride
+          key={key}
+          videoStream={videoStream}
+          remoteProducerId={remoteProducerId}
+          eventType={cardEventType}
+          forceFullDisplay={cardForceFullDisplay}
+          customStyle={customStyle as any}
+          participant={cardParticipant}
+          backgroundColor={backgroundColor}
+          showControls={showControls}
+          showInfo={showInfo}
+          name={name}
+          doMirror={doMirror}
+          parameters={parameters}
+        />
+      );
+    };
+
+    const buildAudioCard = ({
+      key,
+      name,
+      barColor = "red",
+      textColor = "white",
+      customStyle,
+      roundedImage = true,
+      backgroundColor = "transparent",
+      participant: cardParticipant,
+    }: {
+      key: string;
+      name: string;
+      barColor?: string;
+      textColor?: string;
+      customStyle?: React.CSSProperties;
+      roundedImage?: boolean;
+      backgroundColor?: string;
+      participant: Participant;
+    }) => {
+      if (customAudioCard) {
+        return React.createElement(customAudioCard as any, {
+          key,
+          name,
+          barColor,
+          textColor,
+          imageSource: "",
+          roundedImage,
+          imageStyle: {},
+          parameters,
+        });
+      }
+
+      return (
+        <AudioCardComponentOverride
+          key={key}
+          name={name}
+          barColor={barColor}
+          textColor={textColor}
+          customStyle={customStyle as any}
+          controlsPosition="topLeft"
+          infoPosition="topRight"
+          roundedImage={roundedImage}
+          parameters={parameters}
+          showControls={false}
+          backgroundColor={backgroundColor}
+          participant={cardParticipant}
+        />
+      );
+    };
+
+    const buildMiniCard = ({
+      key,
+      initials,
+      fontSize = 20,
+      borderColor,
+    }: {
+      key: string;
+      initials: string;
+      fontSize?: number;
+      borderColor?: string;
+    }) => {
+      if (customMiniCard) {
+        return React.createElement(customMiniCard as any, {
+          key,
+          initials,
+          fontSize: `${fontSize}px`,
+          name: initials,
+          showVideoIcon: false,
+          showAudioIcon: false,
+          imageSource: "",
+          roundedImage: true,
+          imageStyle: {},
+          parameters,
+        });
+      }
+
+      return (
+        <MiniCardComponentOverride
+          key={key}
+          initials={initials}
+          fontSize={fontSize}
+          customStyle={{
+            backgroundColor: "transparent",
+            borderColor: borderColor,
+          } as any}
+        />
+      );
+    };
 
     // If the event type is 'chat', return early
     if (eventType == 'chat') {
@@ -272,27 +442,23 @@ export async function prepopulateUserMedia({
           // Whiteboard is active
         } else {
           newComponent.push(
-            <VideoCard
-              key={host.ScreenID}
-              videoStream={shared ? hostStream : hostStream!.stream ?? null}
-              remoteProducerId={host.ScreenID!}
-              eventType={eventType}
-              forceFullDisplay={
-                annotateScreenStream && shared ? false : forceFullDisplay
-              }
-              customStyle={{
+            buildVideoCard({
+              key: host.ScreenID!,
+              videoStream: shared ? hostStream : hostStream!.stream ?? null,
+              remoteProducerId: host.ScreenID!,
+              eventType: eventType,
+              forceFullDisplay: annotateScreenStream && shared ? false : forceFullDisplay,
+              customStyle: {
                 borderWidth: eventType !== 'broadcast' ? 2 : 0,
                 borderColor: 'black',
-              }}
-              participant={host}
-              backgroundColor="rgba(217, 227, 234, 0.99)"
-              showControls={false}
-              showInfo
-              name={host.name || ''}
-              doMirror={false}
-              parameters={parameters}
-              customVideoCard={customVideoCard}
-            />,
+              },
+              participant: host,
+              backgroundColor: "rgba(217, 227, 234, 0.99)",
+              showControls: false,
+              showInfo: true,
+              name: host.name || '',
+              doMirror: false,
+            }),
           );
         }
 
@@ -318,29 +484,25 @@ export async function prepopulateUserMedia({
         if (islevel == '2' && videoAlreadyOn) {
           // Admin's video is on
           newComponent.push(
-            <VideoCard
-              key={host.videoID}
-              videoStream={
-                keepBackground && virtualStream
-                  ? virtualStream
-                  : localStreamVideo!
-              }
-              remoteProducerId={host.videoID || ''}
-              eventType={eventType}
-              forceFullDisplay={forceFullDisplay}
-              customStyle={{
+            buildVideoCard({
+              key: host.videoID!,
+              videoStream: keepBackground && virtualStream
+                ? virtualStream
+                : localStreamVideo!,
+              remoteProducerId: host.videoID || '',
+              eventType: eventType,
+              forceFullDisplay: forceFullDisplay,
+              customStyle: {
                 borderWidth: eventType !== 'broadcast' ? 2 : 0,
                 borderColor: 'black',
-              }}
-              participant={host}
-              backgroundColor="rgba(217, 227, 234, 0.99)"
-              showControls={false}
-              showInfo
-              name={host.name || ''}
-              doMirror
-              parameters={parameters}
-              customVideoCard={customVideoCard}
-            />,
+              },
+              participant: host,
+              backgroundColor: "rgba(217, 227, 234, 0.99)",
+              showControls: false,
+              showInfo: true,
+              name: host.name || '',
+              doMirror: true,
+            }),
           );
 
           updateMainGridStream(newComponent);
@@ -365,25 +527,20 @@ export async function prepopulateUserMedia({
             // Audio is on
             try {
               newComponent.push(
-                <AudioCard
-                  key={host.name}
-                  name={host.name || ''}
-                  barColor="red"
-                  textColor="white"
-                  customStyle={{
+                buildAudioCard({
+                  key: host.name!,
+                  name: host.name || '',
+                  barColor: "red",
+                  textColor: "white",
+                  customStyle: {
                     backgroundColor: 'transparent',
                     borderWidth: eventType !== 'broadcast' ? 2 : 0,
                     borderColor: 'black',
-                  }}
-                  controlsPosition="topLeft"
-                  infoPosition="topRight"
-                  roundedImage
-                  parameters={parameters}
-                  showControls={false}
-                  backgroundColor="transparent"
-                  participant={host}
-                  customAudioCard={customAudioCard}
-                />,
+                  },
+                  roundedImage: true,
+                  backgroundColor: "transparent",
+                  participant: host,
+                }),
               );
 
               updateMainGridStream(newComponent);
@@ -401,17 +558,12 @@ export async function prepopulateUserMedia({
             // Audio is off
             try {
               newComponent.push(
-                <MiniCard
-                  key={name}
-                  initials={name}
-                  fontSize={20}
-                  customStyle={{
-                    backgroundColor: 'transparent',
-                    borderWidth: eventType !== 'broadcast' ? 2 : 0,
-                    borderColor: 'black',
-                  }}
-                  customMiniCard={customMiniCard}
-                />,
+                buildMiniCard({
+                  key: name,
+                  initials: name,
+                  fontSize: 20,
+                  borderColor: eventType !== 'broadcast' ? 'black' : undefined,
+                }),
               );
 
               updateMainGridStream(newComponent);
@@ -436,25 +588,23 @@ export async function prepopulateUserMedia({
           } else {
             try {
               newComponent.push(
-                <VideoCard
-                  key={host.ScreenID}
-                  videoStream={shared ? hostStream : hostStream!.stream ?? null}
-                  remoteProducerId={host.ScreenID!}
-                  eventType={eventType}
-                  forceFullDisplay={forceFullDisplay}
-                  customStyle={{
+                buildVideoCard({
+                  key: host.ScreenID!,
+                  videoStream: shared ? hostStream : hostStream!.stream ?? null,
+                  remoteProducerId: host.ScreenID!,
+                  eventType: eventType,
+                  forceFullDisplay: forceFullDisplay,
+                  customStyle: {
                     borderWidth: eventType !== 'broadcast' ? 2 : 0,
                     borderColor: 'black',
-                  }}
-                  participant={host}
-                  backgroundColor="rgba(217, 227, 234, 0.99)"
-                  showControls={false}
-                  showInfo
-                  name={host.name || ''}
-                  doMirror={false}
-                  parameters={parameters}
-                  customVideoCard={customVideoCard}
-                />,
+                  },
+                  participant: host,
+                  backgroundColor: "rgba(217, 227, 234, 0.99)",
+                  showControls: false,
+                  showInfo: true,
+                  name: host.name || '',
+                  doMirror: false,
+                }),
               );
 
               updateMainGridStream(newComponent);
@@ -486,25 +636,23 @@ export async function prepopulateUserMedia({
           try {
             if (host.stream) {
               newComponent.push(
-                <VideoCard
-                  key={host.videoID}
-                  videoStream={host.stream || null}
-                  remoteProducerId={host.videoID || ''}
-                  eventType={eventType}
-                  forceFullDisplay={forceFullDisplay}
-                  customStyle={{
+                buildVideoCard({
+                  key: host.videoID!,
+                  videoStream: host.stream || null,
+                  remoteProducerId: host.videoID || '',
+                  eventType: eventType,
+                  forceFullDisplay: forceFullDisplay,
+                  customStyle: {
                     borderWidth: eventType !== 'broadcast' ? 2 : 0,
                     borderColor: 'black',
-                  }}
-                  participant={host}
-                  backgroundColor="rgba(217, 227, 234, 0.99)"
-                  showControls={false}
-                  showInfo
-                  name={host.name || ''}
-                  doMirror={member == host.name}
-                  parameters={parameters}
-                  customVideoCard={customVideoCard}
-                />,
+                  },
+                  participant: host,
+                  backgroundColor: "rgba(217, 227, 234, 0.99)",
+                  showControls: false,
+                  showInfo: true,
+                  name: host.name || '',
+                  doMirror: member == host.name,
+                }),
               );
 
               updateMainGridStream(newComponent);
@@ -513,17 +661,12 @@ export async function prepopulateUserMedia({
               mainScreenPerson = host.name ?? '';
             } else {
               newComponent.push(
-                <MiniCard
-                  key={name}
-                  initials={name}
-                  fontSize={20}
-                  customStyle={{
-                    backgroundColor: 'transparent',
-                    borderWidth: eventType !== 'broadcast' ? 2 : 0,
-                    borderColor: 'black',
-                  }}
-                  customMiniCard={customMiniCard}
-                />,
+                buildMiniCard({
+                  key: name,
+                  initials: name,
+                  fontSize: 20,
+                  borderColor: eventType !== 'broadcast' ? 'black' : undefined,
+                }),
               );
 
               updateMainGridStream(newComponent);
@@ -546,17 +689,12 @@ export async function prepopulateUserMedia({
       // Host is null, add a mini card
       try {
         newComponent.push(
-          <MiniCard
-            key={name}
-            initials={name}
-            fontSize={20}
-            customStyle={{
-              backgroundColor: 'transparent',
-              borderWidth: eventType !== 'broadcast' ? 2 : 0,
-              borderColor: 'black',
-            }}
-            customMiniCard={customMiniCard}
-          />,
+          buildMiniCard({
+            key: name,
+            initials: name,
+            fontSize: 20,
+            borderColor: eventType !== 'broadcast' ? 'black' : undefined,
+          }),
         );
 
         updateMainGridStream(newComponent);
