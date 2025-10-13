@@ -52,6 +52,11 @@ export type AddVideosGridType = (options: AddVideosGridOptions) => Promise<void>
 
 /**
  * Adds participants to the main and alternate video grids based on the provided parameters.
+ * 
+ * This function populates video grids with participant cards, supporting both custom render functions
+ * and component overrides for full UI customization. It uses a two-tier override system:
+ * 1. Custom render functions (customVideoCard, customAudioCard, customMiniCard) - Full control via functions
+ * 2. Component overrides (videoCardComponent, audioCardComponent, miniCardComponent) - Replace default components
  *
  * @function
  * @async
@@ -78,44 +83,92 @@ export type AddVideosGridType = (options: AddVideosGridOptions) => Promise<void>
  * @param {Function} options.parameters.updateOtherGridStreams - Callback to update other grid streams.
  * @param {Function} options.parameters.updateMiniCardsGrid - Callback to update the mini card display.
  * @param {Function} options.parameters.getUpdatedAllParams - Function to retrieve updated parameters.
+ * 
+ * **Custom UI & Component Overrides:**
+ * @param {CustomVideoCardType} [options.parameters.customVideoCard] - Custom render function for video cards. 
+ *   Receives props and returns JSX. Use for complete control over video card rendering.
+ * @param {CustomAudioCardType} [options.parameters.customAudioCard] - Custom render function for audio cards.
+ *   Receives props and returns JSX. Use for complete control over audio card rendering.
+ * @param {CustomMiniCardType} [options.parameters.customMiniCard] - Custom render function for mini cards.
+ *   Receives props and returns JSX. Use for complete control over mini card rendering.
+ * @param {React.ComponentType} [options.parameters.videoCardComponent] - Component override for VideoCard.
+ *   Replaces the default VideoCard component. Use when you want to replace the component but not control rendering.
+ * @param {React.ComponentType} [options.parameters.audioCardComponent] - Component override for AudioCard.
+ *   Replaces the default AudioCard component.
+ * @param {React.ComponentType} [options.parameters.miniCardComponent] - Component override for MiniCard.
+ *   Replaces the default MiniCard component.
+ * 
  * @returns {Promise<void>} A promise that resolves when the grid has been updated successfully.
  *
  * @example
+ * // Basic usage without customization
  * import { addVideosGrid } from 'mediasfu-reactnative-expo';
  *
- * const options = {
+ * await addVideosGrid({
  *   mainGridStreams: mainGridStreams,
  *   altGridStreams: altGridStreams,
- *   numtoadd: numtoadd,
- *   numRows: numRows,
- *   numCols: numCols,
- *   actualRows: actualRows,
- *   lastrowcols: lastrowcols,
- *   removeAltGrid: removeAltGrid,
+ *   numtoadd: 4,
+ *   numRows: 2,
+ *   numCols: 2,
+ *   actualRows: 2,
+ *   lastrowcols: 2,
+ *   removeAltGrid: false,
  *   parameters: {
- *     eventType: eventType,
- *     updateAddAltGrid: updateAddAltGrid,
- *     ref_participants: ref_participants,
- *     islevel: islevel,
- *     videoAlreadyOn: videoAlreadyOn,
- *     localStreamVideo: localStreamVideo,
- *     keepBackground: keepBackground,
- *     virtualStream: virtualStream,
- *     forceFullDisplay: forceFullDisplay,
- *     otherGridStreams: otherGridStreams,
- *     updateOtherGridStreams: updateOtherGridStreams,
- *     updateMiniCardsGrid: updateMiniCardsGrid,
- *     getUpdatedAllParams: getUpdatedAllParams,
+ *     eventType: 'conference',
+ *     videoAlreadyOn: true,
+ *     // ... other required parameters
  *   },
- * };
+ * });
  *
- * addVideosGrid(options)
- *   .then(() => {
- *     console.log('Videos grid updated successfully');
- *   })
- *   .catch((error) => {
- *     console.error('Error updating videos grid:', error);
- *   });
+ * @example
+ * // Using custom render function for complete control
+ * import { addVideosGrid } from 'mediasfu-reactnative-expo';
+ * 
+ * const CustomVideoCard = ({ participant, videoStream, showControls }) => (
+ *   <View style={{ border: '2px solid blue' }}>
+ *     <Text>{participant.name}</Text>
+ *     {/* Your custom video rendering logic *\/}
+ *   </View>
+ * );
+ *
+ * await addVideosGrid({
+ *   mainGridStreams: streams,
+ *   altGridStreams: [],
+ *   numtoadd: 4,
+ *   numRows: 2,
+ *   numCols: 2,
+ *   actualRows: 2,
+ *   lastrowcols: 2,
+ *   removeAltGrid: false,
+ *   parameters: {
+ *     customVideoCard: CustomVideoCard, // Custom render function
+ *     eventType: 'conference',
+ *     // ... other parameters
+ *   },
+ * });
+ *
+ * @example
+ * // Using component override to replace default component
+ * import { addVideosGrid } from 'mediasfu-reactnative-expo';
+ * import { MyCustomVideoCard } from './MyCustomVideoCard';
+ *
+ * await addVideosGrid({
+ *   mainGridStreams: streams,
+ *   altGridStreams: [],
+ *   numtoadd: 4,
+ *   numRows: 2,
+ *   numCols: 2,
+ *   actualRows: 2,
+ *   lastrowcols: 2,
+ *   removeAltGrid: false,
+ *   parameters: {
+ *     videoCardComponent: MyCustomVideoCard, // Component override
+ *     audioCardComponent: MyCustomAudioCard,
+ *     miniCardComponent: MyCustomMiniCard,
+ *     eventType: 'conference',
+ *     // ... other parameters
+ *   },
+ * });
  */
 
 

@@ -13,7 +13,34 @@ import { confirmExit, ConfirmExitOptions } from '../../methods/exitMethods/confi
 import { getModalPosition } from '../../methods/utils/getModalPosition';
 
 /**
- * Interface defining the options required by the ConfirmExitModal component.
+ * Configuration options for the ConfirmExitModal component.
+ * 
+ * @interface ConfirmExitModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isConfirmExitModalVisible - Controls modal visibility
+ * @property {() => void} onConfirmExitClose - Callback when modal is closed
+ * 
+ * **Exit Action:**
+ * @property {(options: ConfirmExitOptions) => void} [exitEventOnConfirm] - Custom handler for confirming exit (defaults to confirmExit)
+ * 
+ * **User Context:**
+ * @property {string} member - Name of member exiting or being removed
+ * @property {boolean} [ban] - Whether this is a ban action (removes from room permanently)
+ * @property {string} islevel - User level ('0'=participant, '1'=co-host, '2'=host) - determines if "End Event for All" option is shown
+ * 
+ * **Session Context:**
+ * @property {string} roomName - Room identifier for exit event
+ * @property {Socket} socket - Socket.io instance for exit notification
+ * 
+ * **Customization:**
+ * @property {'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft'} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
  */
 export interface ConfirmExitModalOptions {
   /**
@@ -94,39 +121,91 @@ export interface ConfirmExitModalOptions {
 export type ConfirmExitModalType = (options: ConfirmExitModalOptions) => JSX.Element;
 
 /**
- * ConfirmExitModal provides a modal interface to confirm user exit or end an event, with the option for admin-level users to end the event for all participants.
- *
+ * ConfirmExitModal - Exit confirmation dialog with "End Event for All" option
+ * 
+ * ConfirmExitModal is a React Native component that provides a confirmation interface
+ * when users want to leave a meeting. For host-level users (islevel='2'), it offers
+ * an additional option to end the event for all participants. Supports ban/kick actions.
+ * 
+ * **Key Features:**
+ * - Personal exit confirmation ("Leave Room")
+ * - "End Event for All" option for hosts (islevel='2')
+ * - Ban/kick action support
+ * - Socket.io notification on exit
+ * - Position-configurable modal (4 corners)
+ * - Customizable exit confirmation handler
+ * - Cancel option to close modal
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.confirmExitModal` to
+ * provide a completely custom exit confirmation interface.
+ * 
+ * @component
+ * @param {ConfirmExitModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered exit confirmation modal
+ * 
  * @example
  * ```tsx
+ * // Basic usage for participant exit
  * import React, { useState } from 'react';
  * import { ConfirmExitModal } from 'mediasfu-reactnative-expo';
  * import { io } from 'socket.io-client';
- *
- * const socket = io('https://your-server-url.com');
- *
- * function App() {
- *   const [isModalVisible, setModalVisible] = useState(true);
- *
- *   return (
- *     <View>
- *       <Button title="Confirm Exit" onPress={() => setModalVisible(true)} />
- *       <ConfirmExitModal
- *         isConfirmExitModalVisible={isModalVisible}
- *         onConfirmExitClose={() => setModalVisible(false)}
- *         position="bottomLeft"
- *         backgroundColor="#ffcccc"
- *         exitEventOnConfirm={() => console.log("Exit confirmed")}
- *         member="John Doe"
- *         ban={false}
- *         roomName="MainRoom"
- *         socket={socket}
- *         islevel="2"
- *       />
- *     </View>
- *   );
- * }
- *
- * export default App;
+ * 
+ * const socket = io('https://your-server.com');
+ * const [showExitModal, setShowExitModal] = useState(false);
+ * 
+ * return (
+ *   <ConfirmExitModal
+ *     isConfirmExitModalVisible={showExitModal}
+ *     onConfirmExitClose={() => setShowExitModal(false)}
+ *     member="John Doe"
+ *     roomName="meeting-room-123"
+ *     socket={socket}
+ *     islevel="0" // Regular participant - only "Leave Room" option
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Host usage with "End Event for All" option
+ * const handleExitConfirm = (options: ConfirmExitOptions) => {
+ *   confirmExit(options);
+ *   console.log('Exit action completed');
+ * };
+ * 
+ * return (
+ *   <ConfirmExitModal
+ *     isConfirmExitModalVisible={showModal}
+ *     onConfirmExitClose={handleClose}
+ *     exitEventOnConfirm={handleExitConfirm}
+ *     member="Host Name"
+ *     roomName={roomId}
+ *     socket={socketConnection}
+ *     islevel="2" // Host - shows "End Event for All" option
+ *     position="bottomRight"
+ *     backgroundColor="#e74c3c"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     confirmExitModal: {
+ *       component: MyCustomExitConfirmation,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         confirmationText: 'Are you sure you want to leave?',
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

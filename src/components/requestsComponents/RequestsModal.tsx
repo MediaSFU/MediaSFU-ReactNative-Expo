@@ -21,6 +21,15 @@ import {
 import { Request } from "../../@types/types";
 import { getModalPosition } from "../../methods/utils/getModalPosition";
 
+/**
+ * Configuration parameters for requests modal.
+ * 
+ * @interface RequestsModalParameters
+ * 
+ * **Utility:**
+ * @property {() => { filteredRequestList: Request[] }} getUpdatedAllParams - Function to retrieve latest filtered request list
+ * @property {any} [key: string] - Additional dynamic parameters
+ */
 export interface RequestsModalParameters {
   /**
    * Function to get updated parameters, particularly the filtered request list.
@@ -29,6 +38,39 @@ export interface RequestsModalParameters {
   [key: string]: any;
 }
 
+/**
+ * Configuration options for the RequestsModal component.
+ * 
+ * @interface RequestsModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isRequestsModalVisible - Controls modal visibility
+ * @property {() => void} onRequestClose - Callback when modal is closed
+ * 
+ * **Request Management:**
+ * @property {number} requestCounter - Current count of pending requests (for badge display)
+ * @property {Request[]} requestList - Array of participant requests to display
+ * @property {(newRequestList: Request[]) => void} updateRequestList - Updates request list state
+ * @property {(text: string) => void} onRequestFilterChange - Handler for filter input changes
+ * @property {RespondToRequestsType} [onRequestItemPress] - Handler for accept/reject actions (defaults to respondToRequests)
+ * 
+ * **Session Context:**
+ * @property {string} roomName - Room identifier for request processing
+ * @property {Socket} socket - Socket.io instance for real-time request responses
+ * 
+ * **State Parameters:**
+ * @property {RequestsModalParameters} parameters - Additional modal parameters (filtered request list)
+ * 
+ * **Customization:**
+ * @property {'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center'} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * @property {React.FC<RenderRequestComponentOptions>} [renderRequestComponent] - Custom component for rendering each request item (defaults to RenderRequestComponent)
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
+ */
 export interface RequestsModalOptions {
   /**
    * Flag to control the visibility of the modal.
@@ -124,47 +166,106 @@ export interface RequestsModalOptions {
 export type RequestsModalType = (options: RequestsModalOptions) => JSX.Element;
 
 /**
- * RequestsModal component displays a modal that shows a list of participant requests with options to filter, accept, or reject requests.
- *
+ * RequestsModal - Participant request management interface
+ * 
+ * RequestsModal is a React Native component that displays pending participant requests
+ * (microphone, video, screenshare) with options to filter, accept, or reject each request.
+ * Host users can review and respond to requests in real-time via Socket.io.
+ * 
+ * **Key Features:**
+ * - Scrollable list of participant requests (mic, video, screenshare)
+ * - Accept/reject actions for each request
+ * - Real-time filtering by participant name or request type
+ * - Request counter badge display
+ * - Socket.io synchronization for instant responses
+ * - Custom request item rendering
+ * - Position-configurable modal (5 positions)
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.requestsModal` to
+ * provide a completely custom requests management interface.
+ * 
  * @component
- * @param {RequestsModalOptions} props - The properties for the RequestsModal component.
- * @returns {JSX.Element} The rendered RequestsModal component.
- *
+ * @param {RequestsModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered requests modal
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage with request handling
+ * import React, { useState } from 'react';
  * import { RequestsModal } from 'mediasfu-reactnative-expo';
- *
- * const requestList = [
- *   { id: 1, name: 'Request to share screen', icon: 'fa-desktop' },
- *   { id: 2, name: 'Request to unmute', icon: 'fa-microphone' },
- * ];
- *
- * function App() {
- *   const handleRequestAction = (params) => {
- *     console.log(`Request action taken: ${params.action}`);
- *   };
+ * import { io } from 'socket.io-client';
  * 
- *   return (
- *     <RequestsModal
- *       isRequestsModalVisible={true}
- *       onRequestClose={() => console.log('Modal closed')}
- *       requestCounter={requestList.length}
- *       onRequestFilterChange={(text) => console.log('Filter text:', text)}
- *       onRequestItemPress={handleRequestAction}
- *       requestList={requestList}
- *       updateRequestList={(newList) => console.log('Updated request list:', newList)}
- *       roomName="exampleRoom"
- *       socket={socketInstance}
- *       backgroundColor="#83c0e9"
- *       position="topRight"
- *       parameters={{
- *         getUpdatedAllParams: () => ({ filteredRequestList: requestList }),
- *       }}
- *     />
- *   );
- * }
- * export default App;
+ * const socket = io('https://your-server.com');
+ * const [showRequests, setShowRequests] = useState(false);
+ * const [filter, setFilter] = useState('');
+ * 
+ * const requests = [
+ *   { id: '1', name: 'John Doe', icon: 'fa-microphone', username: 'john' },
+ *   { id: '2', name: 'Jane Smith', icon: 'fa-video', username: 'jane' },
+ *   { id: '3', name: 'Bob Wilson', icon: 'fa-desktop', username: 'bob' },
+ * ];
+ * 
+ * return (
+ *   <RequestsModal
+ *     isRequestsModalVisible={showRequests}
+ *     onRequestClose={() => setShowRequests(false)}
+ *     requestCounter={requests.length}
+ *     onRequestFilterChange={setFilter}
+ *     requestList={requests}
+ *     updateRequestList={(newList) => console.log('Updated:', newList)}
+ *     roomName="meeting-room-123"
+ *     socket={socket}
+ *     parameters={{
+ *       getUpdatedAllParams: () => ({ filteredRequestList: requests }),
+ *     }}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom positioning and request handling
+ * const handleRequestResponse = async (options: RespondToRequestsOptions) => {
+ *   await respondToRequests(options);
+ *   console.log('Request handled');
+ * };
+ * 
+ * return (
+ *   <RequestsModal
+ *     isRequestsModalVisible={isVisible}
+ *     onRequestClose={handleClose}
+ *     requestCounter={pendingCount}
+ *     onRequestFilterChange={handleFilterChange}
+ *     onRequestItemPress={handleRequestResponse}
+ *     requestList={pendingRequests}
+ *     updateRequestList={setPendingRequests}
+ *     roomName={roomId}
+ *     socket={socketConnection}
+ *     parameters={requestParams}
+ *     position="bottomLeft"
+ *     backgroundColor="#2c3e50"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     requestsModal: {
+ *       component: MyCustomRequestsManager,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         showAutoApprove: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

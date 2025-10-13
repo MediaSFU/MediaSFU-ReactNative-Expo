@@ -40,59 +40,148 @@ export type MiniAudioPlayerType = (
 ) => JSX.Element;
 
 /**
- * MiniAudioPlayer component is a React Native component for playing audio streams
- * and optionally a mini audio component for visualizing audio waveforms.
+ * MiniAudioPlayer component renders audio streams and optional audio waveform visualization.
+ * 
+ * This component is used to display and play audio for participants who are not currently visible
+ * in the main video grid. It supports component override for the MiniAudio visualization component,
+ * allowing full customization of the audio waveform display.
+ *
+ * The component handles:
+ * - Audio stream playback through RTCView
+ * - Audio level monitoring and decibel calculations
+ * - Optional waveform visualization through MiniAudio component
+ * - Breakout room audio filtering
+ * - Automatic audio level updates
  *
  * @component
  * @param {MiniAudioPlayerOptions} props - The properties for the MiniAudioPlayer component.
  * @param {MediaStream | null} props.stream - The media stream to be played by the audio player.
- * @param {Consumer} props.consumer - The consumer object for consuming media.
+ *   This should be an audio MediaStream from a remote participant.
+ * @param {Consumer} props.consumer - The mediasoup consumer object for consuming media.
+ *   Used to access producer information and track state.
  * @param {string} props.remoteProducerId - The ID of the remote producer.
+ *   Used to identify which participant's audio is being played.
  * @param {MiniAudioPlayerParameters} props.parameters - The parameters object containing various settings and methods.
  * @param {Function} props.parameters.getUpdatedAllParams - Function to get updated parameters.
  * @param {Function} props.parameters.reUpdateInter - Function to re-update interaction parameters.
+ *   Called periodically to update audio levels and UI state.
  * @param {Function} props.parameters.updateParticipantAudioDecibels - Function to update participant audio decibels.
+ *   Updates the audio level state for the participant.
  * @param {boolean} props.parameters.breakOutRoomStarted - Flag indicating if the breakout room has started.
  * @param {boolean} props.parameters.breakOutRoomEnded - Flag indicating if the breakout room has ended.
  * @param {Array<BreakoutParticipant>} props.parameters.limitedBreakRoom - Array of limited breakout room participants.
+ *   Used to filter audio in breakout room scenarios.
+ * 
+ * **Component Override:**
  * @param {React.ComponentType} [props.MiniAudioComponent] - An optional component to render for audio visualization.
+ *   This component replaces the default MiniAudio component and receives audio stream data for
+ *   custom waveform or audio level visualization. If not provided, the default MiniAudio component
+ *   (or the one from parameters.miniAudioComponent) is used.
+ *   @example
+ *   const CustomWaveform = ({ stream, name, participant }) => (
+ *     <View style={{ padding: 10, backgroundColor: '#1a1a1a' }}>
+ *       <Text style={{ color: '#fff' }}>🎵 {name}</Text>
+ *       {/* Custom audio visualization logic *\/}
+ *     </View>
+ *   );
+ * 
  * @param {Object} [props.miniAudioProps] - Additional properties to pass to the MiniAudioComponent.
+ *   These props are spread onto the MiniAudio component, allowing for additional customization.
  *
- * @returns {JSX.Element} The rendered MiniAudioPlayer component.
+ * @returns {JSX.Element} The rendered MiniAudioPlayer component with audio stream and optional visualization.
  *
  * @example
- * ```tsx
- * // Import and use MiniAudioPlayer in a React component
+ * // Basic usage with default MiniAudio component
  * import { MiniAudioPlayer } from 'mediasfu-reactnative-expo';
  *
- * const WaveformVisualizer = ({ stream }: { stream: MediaStream }) => (
- *   <canvas width='300' height='50' />
- * );
- *
- * const App = () => {
- *   const stream = useMediaStream(); // Custom hook to get MediaStream
- *   const parameters = {
- *     // Mocked parameters with required functions
- *     getUpdatedAllParams: () => updatedParameters,
- *     reUpdateInter: () => {},
- *     updateParticipantAudioDecibels: () => {},
+ * <MiniAudioPlayer
+ *   stream={audioStream}
+ *   consumer={consumerInstance}
+ *   remoteProducerId='producer-123'
+ *   parameters={{
+ *     getUpdatedAllParams: () => params,
+ *     reUpdateInter: ({ name, add, average, parameters }) => {},
+ *     updateParticipantAudioDecibels: ({ name, averageLoudness, parameters }) => {},
  *     breakOutRoomStarted: false,
  *     breakOutRoomEnded: false,
  *     limitedBreakRoom: [],
- *   };
+ *   }}
+ * />
+ *
+ * @example
+ * // With custom MiniAudio component override
+ * import { MiniAudioPlayer } from 'mediasfu-reactnative-expo';
+ * import { CustomAudioVisualizer } from './CustomAudioVisualizer';
+ *
+ * <MiniAudioPlayer
+ *   stream={audioStream}
+ *   consumer={consumerInstance}
+ *   remoteProducerId='producer-123'
+ *   parameters={{
+ *     getUpdatedAllParams: () => params,
+ *     reUpdateInter: ({ name, add, average, parameters }) => {},
+ *     updateParticipantAudioDecibels: ({ name, averageLoudness, parameters }) => {},
+ *     breakOutRoomStarted: false,
+ *     breakOutRoomEnded: false,
+ *     limitedBreakRoom: [],
+ *   }}
+ *   MiniAudioComponent={CustomAudioVisualizer}
+ *   miniAudioProps={{ 
+ *     showName: true,
+ *     waveColor: '#00ff00',
+ *     backgroundColor: '#000000'
+ *   }}
+ * />
+ *
+ * @example
+ * // Using component override from parameters (typical in MediaSFU components)
+ * import { MediasfuGeneric } from 'mediasfu-reactnative-expo';
+ * import { MyCustomMiniAudio } from './components/MyCustomMiniAudio';
+ *
+ * <MediasfuGeneric
+ *   credentials={credentials}
+ *   // MiniAudioPlayer will automatically use this component override
+ *   miniAudioComponent={MyCustomMiniAudio}
+ * />
+ *
+ * @example
+ * // Advanced: Custom audio visualizer with waveform animation
+ * import React from 'react';
+ * import { View, Text, Animated, StyleSheet } from 'react-native';
+ *
+ * const AnimatedAudioVisualizer = ({ stream, name, participant }) => {
+ *   const [audioLevel, setAudioLevel] = React.useState(0);
+ *   
+ *   // Monitor audio level from stream
+ *   React.useEffect(() => {
+ *     // Audio level monitoring logic here
+ *   }, [stream]);
  *
  *   return (
- *     <MiniAudioPlayer
- *       stream={stream}
- *       consumer={consumer}
- *       remoteProducerId='producer123'
- *       parameters={parameters}
- *       MiniAudioComponent={WaveformVisualizer}
- *       miniAudioProps={{ color: 'blue' }}
- *     />
+ *     <View style={styles.container}>
+ *       <Text style={styles.name}>{name}</Text>
+ *       <View style={styles.waveformContainer}>
+ *         {[1, 2, 3, 4, 5].map(i => (
+ *           <Animated.View 
+ *             key={i}
+ *             style={[
+ *               styles.waveBar,
+ *               { height: audioLevel * 40 * Math.random() }
+ *             ]}
+ *           />
+ *         ))}
+ *       </View>
+ *     </View>
  *   );
  * };
- * ```
+ *
+ * <MiniAudioPlayer
+ *   stream={audioStream}
+ *   consumer={consumerInstance}
+ *   remoteProducerId='producer-456'
+ *   parameters={parameters}
+ *   MiniAudioComponent={AnimatedAudioVisualizer}
+ * />
  */
 
 const MiniAudioPlayer: React.FC<MiniAudioPlayerOptions> = ({

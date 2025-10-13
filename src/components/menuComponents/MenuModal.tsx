@@ -18,6 +18,38 @@ import { EventType } from "../../@types/types";
 
 /**
  * Interface defining the options (props) for the MenuModal component.
+ * 
+ * MenuModal provides access to meeting information, custom actions, and sharing capabilities.
+ * 
+ * @interface MenuModalOptions
+ * 
+ * **Display Control:**
+ * @property {boolean} isVisible - Whether the modal is currently visible/open
+ * @property {() => void} onClose - Callback function invoked when modal is closed
+ * @property {"topRight" | "topLeft" | "bottomRight" | "bottomLeft"} [position="bottomRight"]
+ *   Screen position where the modal should appear
+ * 
+ * **Styling:**
+ * @property {string} [backgroundColor="#83c0e9"] - Background color of the modal content area
+ * @property {object} [style] - Additional custom styles for the modal container
+ * 
+ * **Meeting Information:**
+ * @property {string} roomName - Name/ID of the current room/meeting
+ * @property {string} adminPasscode - Admin passcode for the meeting (displayed to authorized users)
+ * @property {string} islevel - User's level/role (e.g., '0'=participant, '1'=moderator, '2'=host)
+ * @property {EventType} eventType - Type of event ('conference', 'webinar', 'broadcast', etc.)
+ * @property {string} [localLink] - Optional link to the Community Edition server
+ * 
+ * **Custom Content:**
+ * @property {CustomButton[]} [customButtons] - Array of custom action buttons to display
+ *   Each button can have custom icon, text, color, and action handler
+ * @property {boolean} [shareButtons=true] - Whether to display built-in share buttons
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number }}) => JSX.Element} [renderContent]
+ *   Function to wrap or replace the default modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire modal container
  */
 export interface MenuModalOptions {
   /**
@@ -104,44 +136,115 @@ export interface MenuModalOptions {
 export type MenuModalType = (options: MenuModalOptions) => JSX.Element;
 
 /**
- * MenuModal - A React Native component that displays a modal with various menu options and buttons.
- *
+ * MenuModal - Meeting menu with room info, custom actions, and share options
+ * 
+ * MenuModal is a comprehensive React Native modal component that displays meeting
+ * information (room name, passcode), custom action buttons, and sharing capabilities.
+ * It's typically accessed from a menu/hamburger button in the main UI.
+ * 
+ * **Key Features:**
+ * - Meeting ID and passcode display (for authorized users)
+ * - Custom action buttons with icons and handlers
+ * - Built-in share buttons for inviting participants
+ * - Flexible positioning (4 screen corners)
+ * - Scrollable content for long lists
+ * - Responsive design for different screen sizes
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.menuModalComponent` to provide
+ * a completely custom menu modal implementation.
+ * 
  * @component
- * @param {MenuModalOptions} props - The properties passed to the MenuModal component.
- * @returns {JSX.Element} - The MenuModal component JSX element.
+ * @param {MenuModalOptions} props - Configuration options for the MenuModal component
+ * 
+ * @returns {JSX.Element} Rendered menu modal with meeting info and actions
+ * 
  * @example
- * ```tsx
- * import React from 'react';
+ * // Basic usage - Display menu modal with default settings
+ * import React, { useState } from 'react';
  * import { MenuModal } from 'mediasfu-reactnative-expo';
  *
- * function App() {
+ * function MeetingControls() {
+ *   const [menuVisible, setMenuVisible] = useState(false);
+ *   
  *   return (
- *     <MenuModal
- *       backgroundColor="#83c0e9"
- *       isVisible={true}
- *       onClose={() => console.log('Modal closed')}
- *       customButtons={[
- *         {
- *           action: () => console.log('Button pressed'),
- *           show: true,
- *           backgroundColor: '#4CAF50',
- *           icon: 'check-circle',
- *           text: 'Confirm',
- *         },
- *       ]}
- *       shareButtons={true}
- *       position="bottomRight"
- *       roomName="MeetingRoom123"
- *       adminPasscode="123456"
- *       islevel="2"
- *       eventType="video"
- *       localLink="http://localhost:3000"
- *     />
+ *     <>
+ *       <Button title="Menu" onPress={() => setMenuVisible(true)} />
+ *       <MenuModal
+ *         isVisible={menuVisible}
+ *         onClose={() => setMenuVisible(false)}
+ *         backgroundColor="#83c0e9"
+ *         position="bottomRight"
+ *         roomName="MeetingRoom123"
+ *         adminPasscode="456789"
+ *         islevel="2"
+ *         eventType="conference"
+ *         shareButtons={true}
+ *       />
+ *     </>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // With custom action buttons
+ * <MenuModal
+ *   isVisible={showMenu}
+ *   onClose={() => setShowMenu(false)}
+ *   backgroundColor="#1a1a2e"
+ *   position="topRight"
+ *   roomName="TeamStandup"
+ *   adminPasscode="secret123"
+ *   islevel="1"
+ *   eventType="webinar"
+ *   customButtons={[
+ *     {
+ *       action: () => console.log('Settings clicked'),
+ *       show: true,
+ *       backgroundColor: '#4CAF50',
+ *       icon: 'cog',
+ *       text: 'Settings',
+ *     },
+ *     {
+ *       action: () => console.log('Help clicked'),
+ *       show: true,
+ *       backgroundColor: '#2196F3',
+ *       icon: 'question-circle',
+ *       text: 'Help',
+ *     },
+ *   ]}
+ *   shareButtons={true}
+ *   localLink="https://meet.example.com/room123"
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete modal replacement
+ * import { MyCustomMenuModal } from './MyCustomMenuModal';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     menuModalComponent: {
+ *       component: MyCustomMenuModal,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         compactMode: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomMenuModal.tsx
+ * export const MyCustomMenuModal = (props: MenuModalOptions & { theme: string; compactMode: boolean }) => {
+ *   return (
+ *     <Modal visible={props.isVisible} onRequestClose={props.onClose}>
+ *       <View style={{ backgroundColor: props.theme === 'dark' ? '#000' : '#fff' }}>
+ *         <Text>Room: {props.roomName}</Text>
+ *         <Text>Passcode: {props.adminPasscode}</Text>
+ *         <Button title="Close" onPress={props.onClose} />
+ *       </View>
+ *     </Modal>
+ *   );
+ * };
  */
 
 const MenuModal: React.FC<MenuModalOptions> = ({

@@ -7,6 +7,28 @@ import {
   Pressable,
 } from 'react-native';
 
+/**
+ * Interface defining the options for the AlertComponent.
+ * 
+ * @interface AlertComponentOptions
+ * 
+ * **Display Control:**
+ * @property {boolean} visible - Whether the alert is currently visible
+ * @property {string} message - Alert message text to display
+ * @property {"success" | "danger"} [type="success"] - Alert type determining background color (green/red)
+ * @property {number} [duration=4000] - Auto-hide duration in milliseconds (0 = no auto-hide)
+ * @property {() => void} [onHide] - Callback when alert is hidden (manually or auto)
+ * 
+ * **Styling:**
+ * @property {string} [textColor="black"] - Color of the message text
+ * @property {object} [style] - Custom styles for the alert container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContent]
+ *   Function to wrap or replace the default alert content
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire alert container
+ */
 export interface AlertComponentOptions {
   visible: boolean;
   message: string;
@@ -40,43 +62,96 @@ export interface AlertComponentOptions {
 export type AlertComponentType = (options: AlertComponentOptions) => JSX.Element;
 
 /**
- * AlertComponent displays a modal alert message with customizable type, duration, and style options.
- *
- * This component shows a message overlay with optional styling for different alert types, duration,
- * and an automatic hide function. The alert can be dismissed manually or after a set duration.
- *
+ * AlertComponent - Toast-style alert notification with auto-dismiss
+ * 
+ * AlertComponent is a simple yet effective React Native modal for displaying
+ * temporary alert messages. It supports success/danger styling, auto-dismiss
+ * with configurable duration, and manual dismissal by tapping the alert.
+ * 
+ * **Key Features:**
+ * - Two alert types (success: green, danger: red)
+ * - Auto-dismiss with configurable duration
+ * - Manual dismissal by tapping
+ * - Customizable text color
+ * - Centered overlay presentation
+ * - Smooth show/hide transitions
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.alertComponent` to
+ * provide a completely custom alert implementation.
+ * 
  * @component
- * @param {boolean} visible - Controls the visibility of the alert modal.
- * @param {string} message - The message displayed in the alert.
- * @param {'success' | 'danger'} [type='success'] - Type of the alert, determining its background color.
- * @param {number} [duration=4000] - Duration (in milliseconds) for which the alert is visible.
- * @param {() => void} [onHide] - Callback function executed when the alert hides.
- * @param {string} [textColor='black'] - Text color for the alert message.
- *
- * @returns {JSX.Element} The AlertComponent.
- *
+ * @param {AlertComponentOptions} props - Configuration options for the AlertComponent
+ * 
+ * @returns {JSX.Element} Rendered alert overlay
+ * 
  * @example
- * ```tsx
- * import React from 'react';
+ * // Basic usage - Display success alert with auto-dismiss
+ * import React, { useState } from 'react';
  * import { AlertComponent } from 'mediasfu-reactnative-expo';
- *
+ * 
  * function App() {
- *   const [alertVisible, setAlertVisible] = React.useState(true);
- *
+ *   const [alertVisible, setAlertVisible] = useState(false);
+ *   
+ *   const showSuccessAlert = () => {
+ *     setAlertVisible(true);
+ *   };
+ * 
  *   return (
- *     <AlertComponent
- *       visible={alertVisible}
- *       message="Operation successful"
- *       type="success"
- *       duration={3000}
- *       onHide={() => setAlertVisible(false)}
- *       textColor="white"
- *     />
+ *     <>
+ *       <Button title="Show Success" onPress={showSuccessAlert} />
+ *       <AlertComponent
+ *         visible={alertVisible}
+ *         message="Operation completed successfully!"
+ *         type="success"
+ *         duration={3000}
+ *         onHide={() => setAlertVisible(false)}
+ *         textColor="white"
+ *       />
+ *     </>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Danger alert with custom duration
+ * <AlertComponent
+ *   visible={showError}
+ *   message="Failed to connect to server. Please try again."
+ *   type="danger"
+ *   duration={5000}
+ *   onHide={() => setShowError(false)}
+ *   textColor="white"
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete alert replacement
+ * import { MyCustomAlert } from './MyCustomAlert';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     alertComponent: {
+ *       component: MyCustomAlert,
+ *       injectedProps: {
+ *         position: 'top',
+ *         animation: 'slide',
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomAlert.tsx
+ * export const MyCustomAlert = (props: AlertComponentOptions & { position: string; animation: string }) => {
+ *   return (
+ *     <Modal visible={props.visible} transparent>
+ *       <View style={{ position: 'absolute', [props.position]: 20 }}>
+ *         <Text style={{ color: props.type === 'success' ? 'green' : 'red' }}>
+ *           {props.message}
+ *         </Text>
+ *       </View>
+ *     </Modal>
+ *   );
+ * };
  */
 
 const AlertComponent: React.FC<AlertComponentOptions> = ({

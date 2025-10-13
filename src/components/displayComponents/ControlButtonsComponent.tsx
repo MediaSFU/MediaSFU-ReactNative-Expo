@@ -11,6 +11,26 @@ import {
 } from 'react-native';
 import { FontAwesome5 } from "@expo/vector-icons";
 
+/**
+ * Configuration for a single control button.
+ * 
+ * @interface Button
+ * 
+ * @property {string} [name] - Button label/name
+ * @property {string} [icon] - Icon name (FontAwesome5)
+ * @property {string} [alternateIcon] - Alternate icon name (shown when active)
+ * @property {function} [onPress] - Click handler
+ * @property {object} [backgroundColor] - Background colors with default and pressed states
+ * @property {boolean} [active] - Whether button is in active state
+ * @property {JSX.Element} [alternateIconComponent] - Custom alternate icon component
+ * @property {JSX.Element} [iconComponent] - Custom icon component
+ * @property {JSX.Element} [customComponent] - Completely custom button component
+ * @property {string} [color] - Icon color
+ * @property {string} [activeColor] - Icon color when active
+ * @property {string} [inActiveColor] - Icon color when inactive
+ * @property {boolean} [disabled] - Whether button is disabled
+ * @property {boolean} [show] - Whether to show the button
+ */
 export interface Button {
   name?: string;
   icon?: string;
@@ -31,6 +51,32 @@ export interface Button {
   show?: boolean;
 }
 
+/**
+ * Configuration options for the ControlButtonsComponent.
+ * 
+ * @interface ControlButtonsComponentOptions
+ * 
+ * **Button Configuration:**
+ * @property {Button[]} buttons - Array of button configurations
+ * 
+ * **Layout:**
+ * @property {'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly'} [alignment='flex-start'] - Button alignment within container
+ * @property {boolean} [vertical=false] - Whether to arrange buttons vertically (true) or horizontally (false)
+ * 
+ * **Styling:**
+ * @property {string} [buttonColor] - Default color for button icons
+ * @property {object} [buttonBackgroundColor] - Background colors with default and pressed states
+ * @property {StyleProp<ViewStyle>} [buttonsContainerStyle] - Custom styles for buttons container
+ * @property {object} [style] - Additional custom styles for outer container
+ * 
+ * **Custom Icons:**
+ * @property {JSX.Element} [alternateIconComponent] - Global alternate icon component
+ * @property {JSX.Element} [iconComponent] - Global icon component
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for button content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for outer container (receives defaultContainer and dimensions)
+ */
 export interface ControlButtonsComponentOptions {
   buttons: Button[];
   buttonColor?: string;
@@ -49,23 +95,11 @@ export interface ControlButtonsComponentOptions {
   buttonsContainerStyle?: StyleProp<ViewStyle>;
   alternateIconComponent?: JSX.Element;
   iconComponent?: JSX.Element;
-
-  /**
-   * Optional custom style to apply to the container.
-   */
   style?: object;
-
-  /**
-   * Optional function to render custom content, receiving the default content and dimensions.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Optional function to render a custom container, receiving the default container and dimensions.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -77,45 +111,158 @@ export type ControlButtonsComponentType = (
 ) => JSX.Element;
 
 /**
- * ControlButtonsComponent renders a set of customizable control buttons with options for layout, style, and alignment.
- *
- * This component supports flexible alignment, background colors, vertical/horizontal orientation, and custom icon behavior.
- * Each button can display an icon, alternate icon, or a custom component with active and disabled states.
- *
+ * ControlButtonsComponent - Flexible control button bar for meeting actions
+ * 
+ * ControlButtonsComponent is a React Native component that renders a customizable
+ * row or column of control buttons (mute, video, screen share, etc.). Each button
+ * supports active/inactive states, custom icons, disabled states, and press feedback.
+ * 
+ * **Key Features:**
+ * - Horizontal or vertical button arrangement
+ * - Active/inactive state visual feedback
+ * - Custom icon support (FontAwesome5 or custom components)
+ * - Pressed state animations
+ * - Disabled button handling
+ * - Flexible alignment options
+ * - Show/hide individual buttons
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.controlButtonsComponent` to
+ * provide a completely custom control button bar.
+ * 
  * @component
- * @param {ControlButtonsComponentOptions} props - Configuration options for the control buttons.
- * @param {Button[]} props.buttons - Array of button configurations, including icon, color, and onPress behavior.
- * @param {string} [props.buttonColor] - Default color for the button icons.
- * @param {object} [props.buttonBackgroundColor] - Background colors for buttons, with `default` and `pressed` states.
- * @param {'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly'} [props.alignment='flex-start'] - Alignment of buttons in the container.
- * @param {boolean} [props.vertical=false] - Determines whether buttons are arranged vertically.
- * @param {StyleProp<ViewStyle>} [props.buttonsContainerStyle] - Additional custom styles for the container.
- *
- * @returns {JSX.Element} The rendered ControlButtonsComponent.
- *
+ * @param {ControlButtonsComponentOptions} props - Configuration options for the control buttons
+ * 
+ * @returns {JSX.Element} Rendered control button bar
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Horizontal button bar
  * import React from 'react';
- * import { ControlButtonsComponent } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   const buttons = [
- *     { name: 'Play', icon: 'play', onPress: () => console.log('Play pressed'), active: true },
- *     { name: 'Stop', icon: 'stop', onPress: () => console.log('Stop pressed') }
+ * import { ControlButtonsComponent, Button } from 'mediasfu-reactnative-expo';
+ * 
+ * function MeetingControls() {
+ *   const [isMuted, setIsMuted] = React.useState(false);
+ *   const [isVideoOff, setIsVideoOff] = React.useState(false);
+ * 
+ *   const buttons: Button[] = [
+ *     {
+ *       name: 'Mic',
+ *       icon: 'microphone',
+ *       alternateIcon: 'microphone-slash',
+ *       active: isMuted,
+ *       onPress: () => setIsMuted(!isMuted),
+ *       activeColor: '#FF0000',
+ *       inActiveColor: '#FFFFFF',
+ *     },
+ *     {
+ *       name: 'Video',
+ *       icon: 'video',
+ *       alternateIcon: 'video-slash',
+ *       active: isVideoOff,
+ *       onPress: () => setIsVideoOff(!isVideoOff),
+ *       activeColor: '#FF0000',
+ *       inActiveColor: '#FFFFFF',
+ *     },
+ *     {
+ *       name: 'Leave',
+ *       icon: 'phone',
+ *       onPress: () => console.log('Leave meeting'),
+ *       backgroundColor: { default: '#FF0000', pressed: '#CC0000' },
+ *       color: '#FFFFFF',
+ *     },
  *   ];
- *
+ * 
  *   return (
  *     <ControlButtonsComponent
  *       buttons={buttons}
  *       alignment="center"
- *       buttonBackgroundColor={{ default: '#333', pressed: '#555' }}
+ *       buttonBackgroundColor={{ default: '#333333', pressed: '#555555' }}
  *       vertical={false}
  *     />
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Vertical button bar with custom styling
+ * <ControlButtonsComponent
+ *   buttons={controlButtons}
+ *   alignment="flex-start"
+ *   vertical={true}
+ *   buttonsContainerStyle={{
+ *     gap: 10,
+ *     padding: 8,
+ *     backgroundColor: 'rgba(0,0,0,0.7)',
+ *     borderRadius: 8,
+ *   }}
+ * />
+ * 
+ * @example
+ * // With custom icon components
+ * const customButtons: Button[] = [
+ *   {
+ *     name: 'Custom',
+ *     customComponent: <MyCustomButtonComponent />,
+ *     onPress: () => console.log('Custom pressed'),
+ *   },
+ *   {
+ *     name: 'Icon',
+ *     iconComponent: <CustomIcon name="custom" />,
+ *     alternateIconComponent: <CustomIcon name="custom-alt" />,
+ *     active: isActive,
+ *     onPress: toggleActive,
+ *   },
+ * ];
+ * 
+ * <ControlButtonsComponent
+ *   buttons={customButtons}
+ *   alignment="space-evenly"
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete control bar replacement
+ * import { MyCustomControlButtons } from './MyCustomControlButtons';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     controlButtonsComponent: {
+ *       component: MyCustomControlButtons,
+ *       injectedProps: {
+ *         theme: 'modern',
+ *         showLabels: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomControlButtons.tsx
+ * export const MyCustomControlButtons = (props: ControlButtonsComponentOptions & { theme: string; showLabels: boolean }) => {
+ *   return (
+ *     <View style={{ flexDirection: props.vertical ? 'column' : 'row', gap: 12 }}>
+ *       {props.buttons.filter(btn => btn.show !== false).map((button, index) => (
+ *         <Pressable
+ *           key={index}
+ *           onPress={button.onPress}
+ *           disabled={button.disabled}
+ *           style={{
+ *             padding: 12,
+ *             borderRadius: props.theme === 'modern' ? 24 : 8,
+ *             backgroundColor: button.active ? '#007bff' : '#e0e0e0',
+ *           }}
+ *         >
+ *           {button.customComponent || (
+ *             <FontAwesome5
+ *               name={button.active ? button.alternateIcon : button.icon}
+ *               size={20}
+ *               color={button.active ? button.activeColor : button.inActiveColor}
+ *             />
+ *           )}
+ *           {props.showLabels && <Text>{button.name}</Text>}
+ *         </Pressable>
+ *       ))}
+ *     </View>
+ *   );
+ * };
  */
 
 const ControlButtonsComponent: React.FC<ControlButtonsComponentOptions> = ({

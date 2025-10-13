@@ -72,32 +72,157 @@ export interface PrepopulateUserMediaOptions {
 export type PrepopulateUserMediaType = (options: PrepopulateUserMediaOptions) => Promise<JSX.Element[] | void>;
 
 /**
- * Processes consumer transports by pausing and resuming them based on certain conditions.
+ * Populates the main screen grid with participant video/audio cards based on current streams and settings.
+ * 
+ * This function is responsible for rendering the main user media grid, supporting both custom render functions
+ * and component overrides for comprehensive UI customization. It implements a two-tier override system:
+ * 1. Custom render functions (customVideoCard, customAudioCard, customMiniCard) - Full rendering control
+ * 2. Component overrides (videoCardComponent, audioCardComponent, miniCardComponent) - Component replacement
  *
- * @param {Object} options - The options for processing consumer transports.
- * @param {Array} options.consumerTransports - The list of consumer transports to process.
- * @param {Array} options.lStreams_ - The list of local streams.
- * @param {Object} options.parameters - The parameters object containing various stream arrays and utility functions.
+ * The function intelligently determines which type of card to display (video, audio, or mini) based on
+ * participant media state and event configuration, then uses helper functions to properly invoke custom
+ * render functions or render component overrides.
  *
- * @returns {Promise<void>} - A promise that resolves when the processing is complete.
+ * @function
+ * @async
+ * @param {PrepopulateUserMediaOptions} options - The options for populating user media.
+ * @param {string} options.name - The name identifier for the operation.
+ * @param {PrepopulateUserMediaParameters} options.parameters - Configuration and state parameters.
+ * @param {Array<Participant>} options.parameters.participants - List of all participants in the session.
+ * @param {Array<Stream|Participant>} options.parameters.allVideoStreams - All available video streams.
+ * @param {string} options.parameters.islevel - The user's participation level ('0', '1', '2').
+ * @param {string} options.parameters.member - The current user's name/identifier.
+ * @param {boolean} options.parameters.shared - Whether screen sharing is active.
+ * @param {boolean} options.parameters.shareScreenStarted - Whether screen share has been initiated.
+ * @param {EventType} options.parameters.eventType - Type of event ('chat', 'broadcast', 'conference', 'webinar').
+ * @param {string} [options.parameters.screenId] - ID of the screen sharing participant.
+ * @param {boolean} options.parameters.forceFullDisplay - Force full screen display mode.
+ * @param {boolean} options.parameters.updateMainWindow - Whether to update the main window.
+ * @param {boolean} options.parameters.mainScreenFilled - Whether main screen is occupied.
+ * @param {boolean} options.parameters.adminOnMainScreen - Whether admin is on main screen.
+ * @param {string} options.parameters.mainScreenPerson - Name of person on main screen.
+ * @param {boolean} options.parameters.videoAlreadyOn - Whether user's video is active.
+ * @param {boolean} options.parameters.audioAlreadyOn - Whether user's audio is active.
+ * @param {Array<Stream|Participant>} options.parameters.oldAllStreams - Previous stream state for comparison.
+ * @param {Function} options.parameters.checkOrientation - Function to check device orientation.
+ * @param {boolean} options.parameters.screenForceFullDisplay - Force full display for screen share.
+ * @param {MediaStream|null} options.parameters.localStreamScreen - Local screen share stream.
+ * @param {Array<Stream>} options.parameters.remoteScreenStream - Remote screen share streams.
+ * @param {MediaStream|null} options.parameters.localStreamVideo - Local video stream.
+ * @param {number} options.parameters.mainHeightWidth - Main screen height/width value.
+ * @param {boolean} options.parameters.isWideScreen - Whether display is wide screen.
+ * @param {boolean} options.parameters.localUIMode - Whether in local UI development mode.
+ * @param {boolean} options.parameters.whiteboardStarted - Whether whiteboard is active.
+ * @param {boolean} options.parameters.whiteboardEnded - Whether whiteboard has ended.
+ * @param {MediaStream|null} options.parameters.virtualStream - Virtual background stream.
+ * @param {boolean} options.parameters.keepBackground - Whether to keep virtual background.
+ * @param {boolean} options.parameters.annotateScreenStream - Whether screen annotation is active.
+ * 
+ * **Custom UI & Component Overrides:**
+ * @param {CustomVideoCardType} [options.parameters.customVideoCard] - Custom render function for video cards.
+ *   This function receives all video card props and should return a React element. Use React.createElement
+ *   internally to invoke this function with proper props.
+ *   @example
+ *   const customVideoCard = ({ participant, videoStream, showControls }) => (
+ *     <View><Text>{participant.name}</Text></View>
+ *   );
+ * 
+ * @param {CustomAudioCardType} [options.parameters.customAudioCard] - Custom render function for audio cards.
+ *   Receives audio card props and returns a React element for audio-only participants.
+ *   @example
+ *   const customAudioCard = ({ participant, showWaveform }) => (
+ *     <View><Text>🎤 {participant.name}</Text></View>
+ *   );
+ * 
+ * @param {CustomMiniCardType} [options.parameters.customMiniCard] - Custom render function for mini cards.
+ *   Receives mini card props and returns a React element for minimized participant views.
+ *   @example
+ *   const customMiniCard = ({ participant }) => (
+ *     <View style={{ width: 50, height: 50 }}><Text>{participant.name[0]}</Text></View>
+ *   );
+ * 
+ * @param {React.ComponentType} [options.parameters.videoCardComponent] - Component override for VideoCard.
+ *   Replaces the default VideoCard component entirely. The component receives the same props as VideoCard.
+ *   @example
+ *   import { MyCustomVideoCard } from './components/MyCustomVideoCard';
+ *   // Pass: videoCardComponent: MyCustomVideoCard
+ * 
+ * @param {React.ComponentType} [options.parameters.audioCardComponent] - Component override for AudioCard.
+ *   Replaces the default AudioCard component entirely.
+ * 
+ * @param {React.ComponentType} [options.parameters.miniCardComponent] - Component override for MiniCard.
+ *   Replaces the default MiniCard component entirely.
  *
- * @throws {Error} - Throws an error if there is an issue processing consumer transports.
+ * @param {Function} options.parameters.updateMainScreenPerson - Callback to update main screen person.
+ * @param {Function} options.parameters.updateMainScreenFilled - Callback to update main screen filled state.
+ * @param {Function} options.parameters.updateAdminOnMainScreen - Callback to update admin on main screen state.
+ * @param {Function} options.parameters.updateMainHeightWidth - Callback to update main screen dimensions.
+ * @param {Function} options.parameters.updateScreenForceFullDisplay - Callback to update screen force full display.
+ * @param {Function} options.parameters.updateUpdateMainWindow - Callback to update main window state.
+ * @param {Function} options.parameters.updateMainGridStream - Callback to update main grid with new components.
+ * @param {Function} options.parameters.getUpdatedAllParams - Function to retrieve updated parameters.
  *
- * The function performs the following steps:
- * 1. Destructures and updates the parameters.
- * 2. Defines a helper function to check if a producerId is valid in given stream arrays.
- * 3. Filters consumer transports to resume based on certain conditions.
- * 4. Filters consumer transports to pause based on certain conditions.
- * 5. Pauses consumer transports after a short delay.
- * 6. Emits `consumer-pause` event for each filtered transport (not audio).
- * 7. Emits `consumer-resume` event for each filtered transport (not audio).
+ * @returns {Promise<JSX.Element[]|void>} Array of React elements representing participant cards, or void.
+ *
+ * @throws {Error} Throws error if there's an issue processing streams or rendering components.
  *
  * @example
- * ```typescript
- * await processConsumerTransports({
- *   consumerTransports: [transport1, transport2],
- *   lStreams_: [stream1, stream2],
+ * // Basic usage without customization
+ * import { prepopulateUserMedia } from 'mediasfu-reactnative-expo';
+ *
+ * const components = await prepopulateUserMedia({
+ *   name: 'mainGrid',
  *   parameters: {
+ *     participants: allParticipants,
+ *     allVideoStreams: videoStreams,
+ *     eventType: 'conference',
+ *     islevel: '2',
+ *     member: 'John Doe',
+ *     // ... other required parameters
+ *   },
+ * });
+ *
+ * @example
+ * // Using custom render functions for full control
+ * import { prepopulateUserMedia } from 'mediasfu-reactnative-expo';
+ * 
+ * const CustomVideo = ({ participant, videoStream }) => (
+ *   <View style={{ borderWidth: 3, borderColor: 'gold' }}>
+ *     <Text style={{ fontSize: 20 }}>{participant.name}</Text>
+ *     {/* Custom video rendering *\/}
+ *   </View>
+ * );
+ *
+ * const components = await prepopulateUserMedia({
+ *   name: 'mainGrid',
+ *   parameters: {
+ *     participants: allParticipants,
+ *     customVideoCard: CustomVideo,
+ *     customAudioCard: CustomAudio,
+ *     customMiniCard: CustomMini,
+ *     eventType: 'conference',
+ *     // ... other parameters
+ *   },
+ * });
+ *
+ * @example
+ * // Using component overrides to replace defaults
+ * import { prepopulateUserMedia } from 'mediasfu-reactnative-expo';
+ * import { MyVideoCard, MyAudioCard, MyMiniCard } from './custom-components';
+ *
+ * const components = await prepopulateUserMedia({
+ *   name: 'mainGrid',
+ *   parameters: {
+ *     participants: allParticipants,
+ *     videoCardComponent: MyVideoCard,
+ *     audioCardComponent: MyAudioCard,
+ *     miniCardComponent: MyMiniCard,
+ *     eventType: 'webinar',
+ *     // ... other parameters
+ *   },
+ * });
+ *
+ * @example
  *     remoteScreenStream: [],
  *     oldAllStreams: [],
  *     newLimitedStreams: [],

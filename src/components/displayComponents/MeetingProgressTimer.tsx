@@ -9,7 +9,20 @@ import {
 } from 'react-native';
 
 /**
- * Interface defining the props for the MeetingProgressTimer component.
+ * Configuration options for the MeetingProgressTimer component.
+ * 
+ * @interface MeetingProgressTimerOptions
+ * 
+ * **Timer Display:**
+ * @property {string} meetingProgressTime - Current elapsed meeting time (format: "HH:MM" or "MM:SS")
+ * @property {boolean} [showTimer=true] - Controls timer visibility
+ * 
+ * **Positioning:**
+ * @property {'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'} [position='topLeft'] - Timer badge position on screen
+ * 
+ * **Styling:**
+ * @property {string} [initialBackgroundColor='green'] - Background color of the timer badge
+ * @property {StyleProp<TextStyle>} [textStyle] - Additional custom styles for timer text
  */
 export interface MeetingProgressTimerOptions {
   /**
@@ -57,38 +70,81 @@ const positions: Record<
 export type MeetingProgressTimerType = (options: MeetingProgressTimerOptions) => JSX.Element;
 
 /**
- * MeetingProgressTimer displays a timer badge indicating the progress time of a meeting, with customizable positioning and styles.
- *
- * This component is designed to show a timer in one of four corner positions with optional styling and background color customization.
- *
+ * MeetingProgressTimer - Elapsed meeting time display badge
+ * 
+ * MeetingProgressTimer is a React Native component that displays the elapsed time
+ * of a meeting in a colored badge positioned at one of four screen corners. The timer
+ * updates automatically as the meeting progresses and is commonly overlaid on video grids.
+ * 
+ * **Key Features:**
+ * - Real-time elapsed meeting time display
+ * - Four corner positioning options
+ * - Customizable badge background color
+ * - Customizable text styling
+ * - Show/hide toggle
+ * - Compact badge design
+ * - Absolute positioning for overlay
+ * 
+ * **UI Customization:**
+ * This component's styling can be customized via the provided props. For complete
+ * replacement, the parent grid component can be overridden via uiOverrides.
+ * 
  * @component
- * @param {MeetingProgressTimerOptions} props - Configuration options for MeetingProgressTimer.
- * @param {string} props.meetingProgressTime - The current progress time of the meeting to display.
- * @param {string} [props.initialBackgroundColor='green'] - Background color of the timer badge.
- * @param {'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'} [props.position='topLeft'] - Position of the timer on the screen.
- * @param {StyleProp<TextStyle>} [props.textStyle] - Additional styles for the timer text.
- * @param {boolean} [props.showTimer=true] - Controls whether the timer is visible.
- *
- * @returns {JSX.Element} The MeetingProgressTimer component.
- *
+ * @param {MeetingProgressTimerOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered meeting progress timer badge
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage with default green badge
+ * import React, { useState, useEffect } from 'react';
  * import { MeetingProgressTimer } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   return (
- *     <MeetingProgressTimer
- *       meetingProgressTime="15:30"
- *       initialBackgroundColor="blue"
- *       position="bottomRight"
- *       showTimer={true}
- *       textStyle={{ color: 'white', fontSize: 16 }}
- *     />
- *   );
- * }
- *
- * export default App;
+ * 
+ * const [elapsedTime, setElapsedTime] = useState('00:00');
+ * 
+ * useEffect(() => {
+ *   const interval = setInterval(() => {
+ *     // Update elapsed time logic
+ *     setElapsedTime(calculateElapsed());
+ *   }, 1000);
+ *   return () => clearInterval(interval);
+ * }, []);
+ * 
+ * return (
+ *   <MeetingProgressTimer
+ *     meetingProgressTime={elapsedTime}
+ *     position="topLeft"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom styling and positioning
+ * return (
+ *   <MeetingProgressTimer
+ *     meetingProgressTime="15:30"
+ *     initialBackgroundColor="#e74c3c"
+ *     position="bottomRight"
+ *     textStyle={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}
+ *     showTimer={true}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Conditional display based on meeting state
+ * const [showTimer, setShowTimer] = useState(false);
+ * 
+ * return (
+ *   <MeetingProgressTimer
+ *     meetingProgressTime={meetingTime}
+ *     position="topRight"
+ *     showTimer={meetingStarted && showTimer}
+ *     initialBackgroundColor="#27ae60"
+ *   />
+ * );
  * ```
  */
 

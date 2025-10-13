@@ -9,80 +9,47 @@ import {
 } from 'react-native';
 
 /**
- * Interface defining the props for the MainContainerComponent.
+ * Configuration options for the MainContainerComponent.
+ * 
+ * @interface MainContainerComponentOptions
+ * 
+ * **Content:**
+ * @property {React.ReactNode} children - Child elements to render inside the container
+ * 
+ * **Dimensions (Responsive):**
+ * @property {number} [containerWidthFraction=1] - Fraction of window width to use (0.0 to 1.0)
+ * @property {number} [containerHeightFraction=1] - Fraction of window height to use (0.0 to 1.0)
+ * 
+ * **Spacing:**
+ * @property {number} [marginLeft=0] - Left margin in pixels
+ * @property {number} [marginRight=0] - Right margin in pixels
+ * @property {number} [marginTop=0] - Top margin in pixels
+ * @property {number} [marginBottom=0] - Bottom margin in pixels
+ * @property {number} [padding=0] - Internal padding in pixels
+ * 
+ * **Styling:**
+ * @property {string} [backgroundColor='transparent'] - Background color for the container
+ * @property {object} [style] - Additional custom styles to apply to the container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for outer container (receives defaultContainer and dimensions)
  */
 export interface MainContainerComponentOptions {
-  /**
-   * The background color of the container.
-   * @default 'transparent'
-   */
   backgroundColor?: string;
-
-  /**
-   * The child elements to be rendered inside the container.
-   */
   children: React.ReactNode;
-
-  /**
-   * Fraction of the window width to be used for the container's width.
-   * @default 1
-   */
   containerWidthFraction?: number;
-
-  /**
-   * Fraction of the window height to be used for the container's height.
-   * @default 1
-   */
   containerHeightFraction?: number;
-
-  /**
-   * Left margin of the container.
-   * @default 0
-   */
   marginLeft?: number;
-
-  /**
-   * Right margin of the container.
-   * @default 0
-   */
   marginRight?: number;
-
-  /**
-   * Top margin of the container.
-   * @default 0
-   */
   marginTop?: number;
-
-  /**
-   * Bottom margin of the container.
-   * @default 0
-   */
   marginBottom?: number;
-
-  /**
-   * Padding inside the container.
-   * @default 0
-   */
   padding?: number;
-
-  /**
-   * Additional style object to apply to the container.
-   */
   style?: object;
-
-  /**
-   * Custom render function to wrap the default content.
-   * Receives the default content and current dimensions.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Custom render function to wrap the entire container.
-   * Receives the default container and current dimensions.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -94,50 +61,107 @@ export type MainContainerComponentType = (
 ) => JSX.Element;
 
 /**
- * MainContainerComponent renders a container with customizable dimensions, margins, and padding.
- * The container's width and height adjust based on window size and specified fractions.
- *
- * This component is responsive to window size changes, recalculating its dimensions dynamically
- * and supporting customization of margins, padding, and background color.
- *
+ * MainContainerComponent - Top-level responsive layout container
+ * 
+ * MainContainerComponent is a React Native component that provides the primary
+ * layout container for the entire meeting interface. It automatically responds
+ * to window size changes and calculates dimensions based on fractional values,
+ * enabling consistent layouts across different screen sizes and orientations.
+ * 
+ * **Key Features:**
+ * - Responsive dimension calculation based on window size
+ * - Fractional width/height support (e.g., 0.9 = 90% of window)
+ * - Automatic recalculation on window resize/rotation
+ * - Configurable margins and padding
+ * - Custom background color support
+ * - Advanced render override hooks
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.mainContainerComponent` to
+ * provide a completely custom top-level layout container.
+ * 
  * @component
- * @param {MainContainerComponentOptions} props - Configuration options for MainContainerComponent.
- * @param {string} [props.backgroundColor='transparent'] - Background color of the container.
- * @param {React.ReactNode} props.children - Elements to render inside the container.
- * @param {number} [props.containerWidthFraction=1] - Fraction of window width for container width.
- * @param {number} [props.containerHeightFraction=1] - Fraction of window height for container height.
- * @param {number} [props.marginLeft=0] - Left margin of the container.
- * @param {number} [props.marginRight=0] - Right margin of the container.
- * @param {number} [props.marginTop=0] - Top margin of the container.
- * @param {number} [props.marginBottom=0] - Bottom margin of the container.
- * @param {number} [props.padding=0] - Padding inside the container.
- *
- * @returns {JSX.Element} The MainContainerComponent with responsive dimensions and customizable styling.
- *
+ * @param {MainContainerComponentOptions} props - Configuration options for the main container
+ * 
+ * @returns {JSX.Element} Rendered responsive main container
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Full-screen container
  * import React from 'react';
  * import { MainContainerComponent } from 'mediasfu-reactnative-expo';
- *
- * function App() {
+ * import { Text } from 'react-native';
+ * 
+ * function MeetingApp() {
  *   return (
- *     <MainContainerComponent
- *       backgroundColor="lightblue"
- *       containerWidthFraction={0.9}
- *       containerHeightFraction={0.8}
- *       marginLeft={10}
- *       marginRight={10}
- *       marginTop={20}
- *       marginBottom={20}
- *       padding={15}
- *     >
- *       <Text>Main Content</Text>
+ *     <MainContainerComponent backgroundColor="#000000">
+ *       <Text style={{ color: 'white' }}>Meeting Content</Text>
  *     </MainContainerComponent>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // With fractional dimensions and margins
+ * <MainContainerComponent
+ *   backgroundColor="#1a1a1a"
+ *   containerWidthFraction={0.95}
+ *   containerHeightFraction={0.9}
+ *   marginLeft={20}
+ *   marginRight={20}
+ *   marginTop={10}
+ *   marginBottom={10}
+ *   padding={15}
+ * >
+ *   <MeetingLayout />
+ * </MainContainerComponent>
+ * 
+ * @example
+ * // With custom content renderer (add header/footer)
+ * <MainContainerComponent
+ *   backgroundColor="white"
+ *   renderContent={({ defaultContent, dimensions }) => (
+ *     <>
+ *       <View style={{ height: 60, backgroundColor: '#007bff' }}>
+ *         <Text>Meeting Header</Text>
+ *       </View>
+ *       {defaultContent}
+ *       <View style={{ height: 40, backgroundColor: '#f0f0f0' }}>
+ *         <Text>Footer - {dimensions.width}x{dimensions.height}</Text>
+ *       </View>
+ *     </>
+ *   )}
+ * >
+ *   <MeetingContent />
+ * </MainContainerComponent>
+ * 
+ * @example
+ * // Using uiOverrides for complete container replacement
+ * import { MyCustomMainContainer } from './MyCustomMainContainer';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     mainContainerComponent: {
+ *       component: MyCustomMainContainer,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         showGrid: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomMainContainer.tsx
+ * export const MyCustomMainContainer = (props: MainContainerComponentOptions & { theme: string; showGrid: boolean }) => {
+ *   return (
+ *     <View style={{ 
+ *       flex: 1, 
+ *       backgroundColor: props.theme === 'dark' ? '#000' : '#fff',
+ *       borderWidth: props.showGrid ? 1 : 0,
+ *     }}>
+ *       {props.children}
+ *     </View>
+ *   );
+ * };
  */
 
 const MainContainerComponent: React.FC<MainContainerComponentOptions> = ({

@@ -11,57 +11,41 @@ import {
 } from 'react-native';
 
 /**
- * Interface defining the props for the SubAspectComponent.
+ * Configuration options for the SubAspectComponent.
+ * 
+ * @interface SubAspectComponentOptions
+ * 
+ * **Content:**
+ * @property {React.ReactNode} children - Child components to render inside the sub-aspect container
+ * 
+ * **Dimensions (Responsive):**
+ * @property {number} [containerWidthFraction=1.0] - Fraction of window width to use (0.0 to 1.0)
+ * @property {number} [containerHeightFraction=1.0] - Fraction of window height to use (0.0 to 1.0)
+ * @property {number} [defaultFractionSub=0.0] - Additional height adjustment fraction when controls are visible
+ * 
+ * **Display Control:**
+ * @property {boolean} [showControls=true] - Whether controls are visible (affects height calculation with defaultFractionSub)
+ * 
+ * **Styling:**
+ * @property {string} backgroundColor - Background color for the sub-aspect container
+ * @property {object} [style] - Additional custom styles to apply to the container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for outer container (receives defaultContainer and dimensions)
  */
 export interface SubAspectComponentOptions {
-  /**
-   * The background color of the component.
-   */
   backgroundColor: string;
-
-  /**
-   * The child elements to be rendered inside the component.
-   */
   children: React.ReactNode;
-
-  /**
-   * Flag to show or hide the controls.
-   * @default true
-   */
   showControls?: boolean;
-
-  /**
-   * The fraction of the window width to be used for the component's width.
-   */
   containerWidthFraction?: number;
-
-  /**
-   * The fraction of the window height to be used for the component's height.
-   */
   containerHeightFraction?: number;
-
-  /**
-   * The default sub-aspect fraction to be used if controls are shown.
-   * @default 0.0
-   */
   defaultFractionSub?: number;
-
-  /**
-   * Optional custom style to apply to the container.
-   */
   style?: object;
-
-  /**
-   * Optional function to render custom content, receiving the default content and dimensions.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Optional function to render a custom container, receiving the default container and dimensions.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -71,38 +55,130 @@ export interface SubAspectComponentOptions {
 export type SubAspectComponentType = (options: SubAspectComponentOptions) => JSX.Element;
 
 /**
- * SubAspectComponent is a flexible sub-container for media or content displays, adjusting its dimensions
- * based on screen size and optional control visibility.
- *
- * @param {Object} props - Properties for configuring the SubAspectComponent.
- * @param {string} props.backgroundColor - Background color of the component.
- * @param {React.ReactNode} props.children - The elements to render inside the component.
- * @param {boolean} [props.showControls=true] - Whether to display the sub-aspect; affects height calculation.
- * @param {number} [props.containerWidthFraction=1.0] - Fraction of window width used for component width.
- * @param {number} [props.containerHeightFraction=1.0] - Fraction of window height used for component height.
- * @param {number} [props.defaultFractionSub=0.0] - Height fraction adjustment when `showControls` is `true`.
- *
+ * SubAspectComponent - Secondary responsive container for auxiliary content
+ * 
+ * SubAspectComponent is a React Native component that provides a responsive
+ * sub-container typically used for secondary content areas (e.g., chat panels,
+ * participant lists, control bars). It calculates dimensions based on window size
+ * and control visibility, automatically adjusting on resize/rotation.
+ * 
+ * **Key Features:**
+ * - Responsive dimension calculation with fractional sizing
+ * - Control visibility-based height adjustment
+ * - Automatic window resize/rotation handling
+ * - Custom background color support
+ * - Flexible positioning for auxiliary content
+ * - Advanced render override hooks
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.subAspectComponent` to
+ * provide a completely custom secondary container.
+ * 
+ * @component
+ * @param {SubAspectComponentOptions} props - Configuration options for the sub-aspect container
+ * 
+ * @returns {JSX.Element} Rendered responsive sub-aspect container
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Bottom control bar area
  * import React from 'react';
  * import { SubAspectComponent } from 'mediasfu-reactnative-expo';
- *
- * function App() {
+ * 
+ * function ControlBarArea() {
  *   return (
  *     <SubAspectComponent
- *       backgroundColor="#e0e0e0"
+ *       backgroundColor="#2c2c2c"
  *       showControls={true}
- *       containerWidthFraction={0.8}
- *       containerHeightFraction={0.15}
- *       defaultFractionSub={0.5}
+ *       containerWidthFraction={1.0}
+ *       containerHeightFraction={0.1}
+ *       defaultFractionSub={0}
  *     >
- *       <Text>Content inside sub-container</Text>
+ *       <ControlButtons />
  *     </SubAspectComponent>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Side panel with custom sizing
+ * <SubAspectComponent
+ *   backgroundColor="#f5f5f5"
+ *   showControls={true}
+ *   containerWidthFraction={0.25}
+ *   containerHeightFraction={0.8}
+ *   defaultFractionSub={0.05}
+ * >
+ *   <ParticipantsSidebar />
+ * </SubAspectComponent>
+ * 
+ * @example
+ * // With custom content renderer (add header)
+ * <SubAspectComponent
+ *   backgroundColor="white"
+ *   containerWidthFraction={0.3}
+ *   containerHeightFraction={0.7}
+ *   renderContent={({ defaultContent, dimensions }) => (
+ *     <>
+ *       <View style={{ padding: 10, borderBottomWidth: 1, borderColor: '#ccc' }}>
+ *         <Text style={{ fontWeight: 'bold' }}>Chat Panel</Text>
+ *       </View>
+ *       {defaultContent}
+ *     </>
+ *   )}
+ * >
+ *   <ChatMessages />
+ * </SubAspectComponent>
+ * 
+ * @example
+ * // Using uiOverrides for complete sub-aspect replacement
+ * import { MyCustomSubAspect } from './MyCustomSubAspect';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     subAspectComponent: {
+ *       component: MyCustomSubAspect,
+ *       injectedProps: {
+ *         collapsible: true,
+ *         minHeight: 50,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomSubAspect.tsx
+ * export const MyCustomSubAspect = (props: SubAspectComponentOptions & { collapsible: boolean; minHeight: number }) => {
+ *   const [collapsed, setCollapsed] = React.useState(false);
+ *   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
+ * 
+ *   React.useEffect(() => {
+ *     const updateDimensions = () => {
+ *       const { width, height } = Dimensions.get('window');
+ *       const containerHeight = collapsed ? props.minHeight : height * (props.containerHeightFraction || 1);
+ *       setDimensions({ 
+ *         width: width * (props.containerWidthFraction || 1), 
+ *         height: containerHeight,
+ *       });
+ *     };
+ *     const subscription = Dimensions.addEventListener('change', updateDimensions);
+ *     updateDimensions();
+ *     return () => subscription?.remove();
+ *   }, [collapsed, props.containerWidthFraction, props.containerHeightFraction]);
+ * 
+ *   return (
+ *     <View style={{ 
+ *       width: dimensions.width, 
+ *       height: dimensions.height, 
+ *       backgroundColor: props.backgroundColor,
+ *     }}>
+ *       {props.collapsible && (
+ *         <TouchableOpacity onPress={() => setCollapsed(!collapsed)}>
+ *           <Text>{collapsed ? '▲ Expand' : '▼ Collapse'}</Text>
+ *         </TouchableOpacity>
+ *       )}
+ *       {!collapsed && props.children}
+ *     </View>
+ *   );
+ * };
  */
 
 const SubAspectComponent: React.FC<SubAspectComponentOptions> = ({

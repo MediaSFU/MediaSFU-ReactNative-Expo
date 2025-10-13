@@ -37,6 +37,47 @@ interface EditRoomModalOptions {
   currentRoomIndex: number | null;
 }
 
+/**
+ * Configuration parameters for breakout rooms modal.
+ * 
+ * @interface BreakoutRoomsModalParameters
+ * 
+ * **Participant Management:**
+ * @property {Participant[]} participants - List of all meeting participants available for assignment
+ * 
+ * **Breakout Room State:**
+ * @property {BreakoutParticipant[][]} breakoutRooms - Array of breakout rooms, each containing assigned participants
+ * @property {boolean} breakOutRoomStarted - Whether breakout rooms session has started
+ * @property {boolean} breakOutRoomEnded - Whether breakout rooms session has ended
+ * @property {number | null} currentRoomIndex - Index of currently selected room for editing
+ * @property {boolean} canStartBreakout - Whether breakout rooms can be started (all participants assigned)
+ * @property {(breakoutRooms: BreakoutParticipant[][]) => void} updateBreakoutRooms - Updates breakout room assignments
+ * @property {(started: boolean) => void} updateBreakOutRoomStarted - Updates breakout started state
+ * @property {(ended: boolean) => void} updateBreakOutRoomEnded - Updates breakout ended state
+ * @property {(roomIndex: number) => void} updateCurrentRoomIndex - Updates selected room index
+ * @property {(canStart: boolean) => void} updateCanStartBreakout - Updates whether start is allowed
+ * 
+ * **Display State:**
+ * @property {string} meetingDisplayType - Current meeting display mode
+ * @property {string} prevMeetingDisplayType - Previous display mode (for restoration after breakout)
+ * @property {number} itemPageLimit - Number of items per page in participant lists
+ * @property {(displayType: string) => void} updateMeetingDisplayType - Updates display mode
+ * 
+ * **Session Context:**
+ * @property {string} roomName - Main room identifier
+ * @property {Socket} socket - Primary Socket.io instance for breakout room events
+ * @property {Socket} [localSocket] - Optional local Socket.io instance
+ * @property {boolean} shareScreenStarted - Whether screen sharing is active
+ * @property {boolean} shared - Whether screen is currently being shared
+ * @property {ShowAlert} [showAlert] - Alert display function for user feedback
+ * 
+ * **Modal State:**
+ * @property {boolean} isBreakoutRoomsModalVisible - Modal visibility state
+ * 
+ * **Utility:**
+ * @property {() => BreakoutRoomsModalParameters} getUpdatedAllParams - Function to retrieve latest parameters
+ * @property {any} [key: string] - Additional dynamic parameters
+ */
 export interface BreakoutRoomsModalParameters {
   participants: Participant[];
   showAlert?: ShowAlert;
@@ -65,6 +106,27 @@ export interface BreakoutRoomsModalParameters {
   [key: string]: any;
 }
 
+/**
+ * Configuration options for the BreakoutRoomsModal component.
+ * 
+ * @interface BreakoutRoomsModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isVisible - Controls modal visibility
+ * @property {() => void} onBreakoutRoomsClose - Callback when modal is closed
+ * 
+ * **State Parameters:**
+ * @property {BreakoutRoomsModalParameters} parameters - Breakout rooms configuration and state
+ * 
+ * **Customization:**
+ * @property {'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft'} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
+ */
 export interface BreakoutRoomsModalOptions {
   isVisible: boolean;
   onBreakoutRoomsClose: () => void;
@@ -191,39 +253,100 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
 };
 
 /**
- * BreakoutRoomsModal component is a React functional component that manages the breakout rooms modal.
- * It allows users to create, edit, and manage breakout rooms for participants in a meeting.
- *
+ * BreakoutRoomsModal - Breakout room creation and management interface
+ * 
+ * BreakoutRoomsModal is a React Native component that provides hosts with controls
+ * to create multiple breakout rooms, assign participants to rooms, and manage the
+ * breakout session lifecycle (start/stop). Participants can be manually assigned or
+ * randomly distributed across rooms.
+ * 
+ * **Key Features:**
+ * - Create multiple breakout rooms (customizable count)
+ * - Manual participant assignment to rooms
+ * - Random participant distribution option
+ * - Edit room assignments (add/remove participants)
+ * - Duplicate participant prevention
+ * - Start/stop breakout session controls
+ * - Real-time Socket.io synchronization
+ * - Display mode switching for breakout view
+ * - Validation for starting (all participants assigned)
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.breakoutRoomsModal` to
+ * provide a completely custom breakout room management interface.
+ * 
  * @component
- * @param {BreakoutRoomsModalOptions} props - The properties for the BreakoutRoomsModal component.
- * @param {boolean} props.isVisible - Determines if the modal is visible.
- * @param {Function} props.onBreakoutRoomsClose - Callback function to close the modal.
- * @param {Object} props.parameters - Parameters for managing breakout rooms.
- * @param {string} [props.position='topRight'] - Position of the modal on the screen.
- * @param {string} [props.backgroundColor='#83c0e9'] - Background color of the modal.
- *
- * @returns {JSX.Element} The rendered BreakoutRoomsModal component.
- *
+ * @param {BreakoutRoomsModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered breakout rooms modal
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage with manual assignment
+ * import React, { useState } from 'react';
  * import { BreakoutRoomsModal } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   const [modalVisible, setModalVisible] = useState(true);
- *
- *   return (
- *     <BreakoutRoomsModal
- *       isVisible={modalVisible}
- *       onBreakoutRoomsClose={() => setModalVisible(false)}
- *       parameters={breakoutParameters}
- *       position="topRight"
- *       backgroundColor="#83c0e9"
- *     />
- *   );
- * }
- *
- * export default App;
+ * import { io } from 'socket.io-client';
+ * 
+ * const socket = io('https://your-server.com');
+ * const [showBreakout, setShowBreakout] = useState(false);
+ * 
+ * const breakoutParams = {
+ *   participants: [
+ *     { name: 'John', id: '1', islevel: '0' },
+ *     { name: 'Jane', id: '2', islevel: '0' },
+ *     { name: 'Bob', id: '3', islevel: '0' },
+ *   ],
+ *   breakoutRooms: [[], []], // 2 empty rooms
+ *   breakOutRoomStarted: false,
+ *   breakOutRoomEnded: false,
+ *   currentRoomIndex: null,
+ *   canStartBreakout: false,
+ *   roomName: 'main-meeting',
+ *   socket: socket,
+ *   updateBreakoutRooms: (rooms) => console.log('Updated:', rooms),
+ *   updateBreakOutRoomStarted: (started) => console.log('Started:', started),
+ *   // ... other required parameters
+ * };
+ * 
+ * return (
+ *   <BreakoutRoomsModal
+ *     isVisible={showBreakout}
+ *     onBreakoutRoomsClose={() => setShowBreakout(false)}
+ *     parameters={breakoutParams}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With random assignment and custom positioning
+ * return (
+ *   <BreakoutRoomsModal
+ *     isVisible={isVisible}
+ *     onBreakoutRoomsClose={handleClose}
+ *     parameters={breakoutParameters}
+ *     position="center"
+ *     backgroundColor="#2c3e50"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     breakoutRoomsModal: {
+ *       component: MyCustomBreakoutManager,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         allowAutoAssign: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({

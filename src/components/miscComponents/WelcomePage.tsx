@@ -24,7 +24,28 @@ const MAX_ATTEMPTS = 10; // Maximum number of unsuccessful attempts before rate 
 const RATE_LIMIT_DURATION = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
 
 /**
- * Interface defining the parameters for the WelcomePage component.
+ * Configuration parameters for WelcomePage component.
+ * 
+ * @interface WelcomePageParameters
+ * 
+ * **Branding:**
+ * @property {string} [imgSrc='https://mediasfu.com/images/logo192.png'] - Logo image URL
+ * 
+ * **Connection Management:**
+ * @property {ConnectSocketType} connectSocket - Function to establish Socket.io connection
+ * @property {(socket: Socket) => void} updateSocket - Updates socket instance in parent state
+ * 
+ * **State Updates:**
+ * @property {(visible: boolean) => void} updateIsLoadingModalVisible - Controls loading modal visibility
+ * @property {(validated: boolean) => void} updateValidated - Updates validation state after successful connection
+ * @property {(apiUserName: string) => void} updateApiUserName - Updates API username (event ID)
+ * @property {(apiToken: string) => void} updateApiToken - Updates API token (secret key)
+ * @property {(link: string) => void} updateLink - Updates event link/URL
+ * @property {(roomName: string) => void} updateRoomName - Updates room name
+ * @property {(userName: string) => void} updateMember - Updates participant name
+ * 
+ * **User Feedback:**
+ * @property {ShowAlert} [showAlert] - Alert display function for validation errors and feedback
  */
 export interface WelcomePageParameters {
   /**
@@ -85,7 +106,12 @@ export interface WelcomePageParameters {
 }
 
 /**
- * Interface defining the props for the WelcomePage component.
+ * Configuration options for the WelcomePage component.
+ * 
+ * @interface WelcomePageOptions
+ * 
+ * **State Parameters:**
+ * @property {WelcomePageParameters} parameters - Welcome page configuration and state handlers
  */
 export interface WelcomePageOptions {
   /**
@@ -97,39 +123,79 @@ export interface WelcomePageOptions {
 export type WelcomePageType = (options: WelcomePageOptions) => JSX.Element;
 
 /**
- * WelcomePage component allows users to enter event details manually or by scanning a QR code.
- * It validates the input and attempts to connect to a socket with the provided credentials.
- *
+ * WelcomePage - Event credentials entry and validation screen
+ * 
+ * WelcomePage is a React Native component that provides the initial entry point for
+ * joining MediaSFU events. Users can enter credentials manually (event ID, secret, name)
+ * or scan a QR code to auto-fill. It validates credentials, handles rate limiting,
+ * and establishes the Socket.io connection before proceeding to the meeting.
+ * 
+ * **Key Features:**
+ * - Manual credential entry (Event ID, Secret, Name, optional Link)
+ * - QR code scanning for auto-fill
+ * - Camera permission handling
+ * - Rate limiting (10 attempts per 3 hours)
+ * - Socket.io connection establishment
+ * - Persistent storage of attempt counts
+ * - Loading state management
+ * - Input validation and error feedback
+ * - Support for custom event links
+ * 
+ * **UI Customization:**
+ * The WelcomePage layout and styling are fixed but can be customized by creating
+ * a custom welcome page component and using it instead of this default one.
+ * 
  * @component
- * @param {WelcomePageOptions} props - The properties for the WelcomePage component.
- * @returns {JSX.Element} The rendered WelcomePage component.
- *
+ * @param {WelcomePageOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered welcome page
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage in main app component
+ * import React, { useState } from 'react';
  * import { WelcomePage } from 'mediasfu-reactnative-expo';
+ * import { connectSocket } from './sockets/SocketManager';
  * 
  * function App() {
+ *   const [socket, setSocket] = useState(null);
+ *   const [validated, setValidated] = useState(false);
+ *   const [credentials, setCredentials] = useState({});
+ * 
  *   const parameters = {
  *     imgSrc: 'https://example.com/logo.png',
- *     showAlert: alertFunction,
- *     updateIsLoadingModalVisible: toggleLoadingModal,
- *     connectSocket: connectToSocket,
+ *     showAlert: ({ message, type }) => alert(message),
+ *     updateIsLoadingModalVisible: setLoading,
+ *     connectSocket: connectSocket,
  *     updateSocket: setSocket,
  *     updateValidated: setValidated,
- *     updateApiUserName: setApiUserName,
- *     updateApiToken: setApiToken,
- *     updateLink: setEventLink,
- *     updateRoomName: setRoomName,
- *     updateMember: setUserName,
+ *     updateApiUserName: (name) => setCredentials(prev => ({ ...prev, apiUserName: name })),
+ *     updateApiToken: (token) => setCredentials(prev => ({ ...prev, apiToken: token })),
+ *     updateLink: (link) => setCredentials(prev => ({ ...prev, link })),
+ *     updateRoomName: (room) => setCredentials(prev => ({ ...prev, roomName: room })),
+ *     updateMember: (member) => setCredentials(prev => ({ ...prev, member })),
  *   };
  * 
- *   return (
- *     <WelcomePage parameters={parameters} />
- *   );
- * }
+ *   if (validated) {
+ *     return <MeetingRoom socket={socket} credentials={credentials} />;
+ *   }
  * 
- * export default App;
+ *   return <WelcomePage parameters={parameters} />;
+ * }
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom branding and alert handler
+ * const customParameters = {
+ *   imgSrc: 'https://mybrand.com/logo.png',
+ *   showAlert: ({ message, type, duration }) => {
+ *     Toast.show({ text: message, type, duration });
+ *   },
+ *   // ... other handlers
+ * };
+ * 
+ * return <WelcomePage parameters={customParameters} />;
  * ```
  */
 

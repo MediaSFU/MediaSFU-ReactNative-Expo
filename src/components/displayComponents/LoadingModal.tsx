@@ -12,7 +12,21 @@ import {
 } from 'react-native';
 
 /**
- * Interface defining the props for the LoadingModal component.
+ * Configuration options for the LoadingModal component.
+ * 
+ * @interface LoadingModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isVisible - Controls modal visibility
+ * 
+ * **Styling:**
+ * @property {string} [backgroundColor='rgba(0, 0, 0, 0.5)'] - Background color of the modal overlay
+ * @property {string} [displayColor='black'] - Color of the loading spinner and "Loading..." text
+ * @property {object} [style] - Additional custom styles for the container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
  */
 export interface LoadingModalOptions {
   /**
@@ -57,34 +71,93 @@ export interface LoadingModalOptions {
 export type LoadingModalType = (options: LoadingModalOptions) => JSX.Element;
 
 /**
- * LoadingModal component displays a centered loading spinner with text in a modal overlay.
- *
- * This component is useful for indicating loading states with a customizable background and display color.
- *
+ * LoadingModal - Fullscreen loading indicator overlay
+ * 
+ * LoadingModal is a React Native component that displays a centered loading spinner
+ * with "Loading..." text in a fullscreen modal overlay. Used to indicate ongoing
+ * operations like joining meetings, processing media, or waiting for server responses.
+ * 
+ * **Key Features:**
+ * - Fullscreen modal overlay
+ * - Centered loading spinner
+ * - "Loading..." text label
+ * - Customizable background and spinner colors
+ * - Transparent overlay support
+ * - Blocks interaction while visible
+ * - Simple visibility toggle
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.loadingModal` to
+ * provide a completely custom loading indicator.
+ * 
  * @component
- * @param {LoadingModalOptions} props - Configuration options for the LoadingModal component.
- * @param {boolean} props.isVisible - Controls the visibility of the modal.
- * @param {string} [props.backgroundColor='rgba(0, 0, 0, 0.5)'] - Background color of the modal overlay.
- * @param {string} [props.displayColor='black'] - Color for the loading spinner and text.
- *
- * @returns {JSX.Element} The rendered LoadingModal component.
- *
+ * @param {LoadingModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered loading modal
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage with default styling
+ * import React, { useState } from 'react';
  * import { LoadingModal } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   return (
- *     <LoadingModal
- *       isVisible={true}
- *       backgroundColor="rgba(0, 0, 0, 0.7)"
- *       displayColor="white"
- *     />
- *   );
- * }
- *
- * export default App;
+ * 
+ * const [isLoading, setIsLoading] = useState(true);
+ * 
+ * return (
+ *   <LoadingModal isVisible={isLoading} />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom styling
+ * const [loading, setLoading] = useState(false);
+ * 
+ * return (
+ *   <LoadingModal
+ *     isVisible={loading}
+ *     backgroundColor="rgba(0, 0, 0, 0.8)"
+ *     displayColor="white"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // During async operation
+ * const handleJoinMeeting = async () => {
+ *   setLoading(true);
+ *   try {
+ *     await joinRoom({ roomName, userName });
+ *   } finally {
+ *     setLoading(false);
+ *   }
+ * };
+ * 
+ * return (
+ *   <>
+ *     <LoadingModal isVisible={loading} displayColor="#007bff" />
+ *     <Button title="Join" onPress={handleJoinMeeting} />
+ *   </>
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     loadingModal: {
+ *       component: MyCustomLoadingSpinner,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         showProgressBar: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

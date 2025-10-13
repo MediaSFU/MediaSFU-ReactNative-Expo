@@ -8,67 +8,47 @@ import {
 import MeetingProgressTimer from './MeetingProgressTimer';
 
 /**
- * Interface defining the props for the MainGridComponent.
+ * Configuration options for the MainGridComponent.
+ * 
+ * @interface MainGridComponentOptions
+ * 
+ * **Content:**
+ * @property {React.ReactNode} children - Child components to render inside the main grid (typically video/audio participant cards)
+ * 
+ * **Dimensions:**
+ * @property {number} width - Width of the grid container in pixels
+ * @property {number} height - Height of the grid container in pixels
+ * 
+ * **Display Control:**
+ * @property {boolean} [showAspect=true] - Whether to show the grid container (false hides the entire grid)
+ * 
+ * **Meeting Progress Timer:**
+ * @property {boolean} [showTimer=true] - Whether to display the meeting progress timer overlay
+ * @property {string} meetingProgressTime - Time string to display on the timer (e.g., "12:34", "01:05:23")
+ * @property {string} [timeBackgroundColor='transparent'] - Background color for the timer overlay
+ * 
+ * **Styling:**
+ * @property {string} backgroundColor - Background color for the grid container
+ * @property {object} [style] - Additional custom styles to apply to the container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for grid content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for outer container (receives defaultContainer and dimensions)
  */
 export interface MainGridComponentOptions {
-  /**
-   * The child components to be rendered inside the main grid.
-   */
   children: React.ReactNode;
-
-  /**
-   * The background color of the main grid container.
-   */
   backgroundColor: string;
-
-  /**
-   * The height of the main grid container.
-   */
   height: number;
-
-  /**
-   * The width of the main grid container.
-   */
   width: number;
-
-  /**
-   * Flag to determine if the aspect ratio should be shown.
-   * @default true
-   */
   showAspect?: boolean;
-
-  /**
-   * The background color of the meeting progress timer.
-   */
   timeBackgroundColor?: string;
-
-  /**
-   * Flag to determine if the meeting progress timer should be shown.
-   * @default true
-   */
   showTimer?: boolean;
-
-  /**
-   * The time to display on the meeting progress timer.
-   */
   meetingProgressTime: string;
-
-  /**
-   * Optional custom style to apply to the container.
-   */
   style?: object;
-
-  /**
-   * Optional function to render custom content, receiving the default content and dimensions.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Optional function to render a custom container, receiving the default container and dimensions.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -78,45 +58,125 @@ export interface MainGridComponentOptions {
 export type MainGridComponentType = (options: MainGridComponentOptions) => JSX.Element;
 
 /**
- * MainGridComponent renders a main grid container with customizable dimensions, background color, and optional components.
- * This component includes an optional meeting progress timer and allows the display of child components in a centered layout.
- *
+ * MainGridComponent - Primary video grid container with meeting timer
+ * 
+ * MainGridComponent is a React Native component that provides the main layout
+ * container for video participant grids. It includes an optional meeting progress
+ * timer overlay and centers child content within a defined area.
+ * 
+ * **Key Features:**
+ * - Fixed-dimension grid container
+ * - Centered content layout
+ * - Meeting progress timer overlay
+ * - Visibility controls for grid and timer
+ * - Custom background colors
+ * - Advanced render override hooks
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.mainGridComponent` to
+ * provide a completely custom main grid layout.
+ * 
  * @component
- * @param {MainGridComponentOptions} props - Configuration options for MainGridComponent.
- * @param {React.ReactNode} props.children - Components or elements to display inside the grid.
- * @param {string} props.backgroundColor - Background color of the grid container.
- * @param {number} props.height - Height of the grid container.
- * @param {number} props.width - Width of the grid container.
- * @param {boolean} [props.showAspect=true] - Controls whether the grid container is visible.
- * @param {string} [props.timeBackgroundColor='transparent'] - Background color of the meeting progress timer.
- * @param {boolean} [props.showTimer=true] - Controls visibility of the meeting progress timer.
- * @param {string} props.meetingProgressTime - Time to display on the meeting progress timer.
- *
- * @returns {JSX.Element} The MainGridComponent with configurable dimensions, background color, and optional timer.
- *
+ * @param {MainGridComponentOptions} props - Configuration options for the main grid
+ * 
+ * @returns {JSX.Element} Rendered main grid with optional timer overlay
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Video grid with timer
  * import React from 'react';
  * import { MainGridComponent } from 'mediasfu-reactnative-expo';
- *
- * function App() {
+ * 
+ * function VideoMeetingGrid() {
  *   return (
  *     <MainGridComponent
- *       backgroundColor="lightgray"
- *       height={500}
- *       width={300}
+ *       backgroundColor="#1a1a1a"
+ *       height={600}
+ *       width={800}
  *       showAspect={true}
- *       timeBackgroundColor="blue"
  *       showTimer={true}
- *       meetingProgressTime="12:34"
+ *       meetingProgressTime="00:15:32"
+ *       timeBackgroundColor="rgba(0, 0, 0, 0.5)"
  *     >
- *       <Text>Grid Content</Text>
+ *       <FlexibleGrid componentsToRender={participantVideos} />
  *     </MainGridComponent>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Without timer overlay
+ * <MainGridComponent
+ *   backgroundColor="black"
+ *   height={500}
+ *   width={700}
+ *   showTimer={false}
+ *   meetingProgressTime=""
+ * >
+ *   <GridContent />
+ * </MainGridComponent>
+ * 
+ * @example
+ * // With custom content renderer (add overlay watermark)
+ * <MainGridComponent
+ *   backgroundColor="#000"
+ *   height={720}
+ *   width={1280}
+ *   showTimer={true}
+ *   meetingProgressTime="01:23:45"
+ *   renderContent={({ defaultContent, dimensions }) => (
+ *     <>
+ *       {defaultContent}
+ *       <View style={{ 
+ *         position: 'absolute', 
+ *         bottom: 20, 
+ *         right: 20,
+ *         opacity: 0.5,
+ *       }}>
+ *         <Text style={{ color: 'white' }}>Company Watermark</Text>
+ *       </View>
+ *     </>
+ *   )}
+ * >
+ *   <VideoGrid />
+ * </MainGridComponent>
+ * 
+ * @example
+ * // Using uiOverrides for complete grid replacement
+ * import { MyCustomMainGrid } from './MyCustomMainGrid';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     mainGridComponent: {
+ *       component: MyCustomMainGrid,
+ *       injectedProps: {
+ *         showBorder: true,
+ *         borderColor: '#007bff',
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomMainGrid.tsx
+ * export const MyCustomMainGrid = (props: MainGridComponentOptions & { showBorder: boolean; borderColor: string }) => {
+ *   return (
+ *     <View style={{ 
+ *       width: props.width, 
+ *       height: props.height,
+ *       backgroundColor: props.backgroundColor,
+ *       borderWidth: props.showBorder ? 2 : 0,
+ *       borderColor: props.borderColor,
+ *       justifyContent: 'center',
+ *       alignItems: 'center',
+ *     }}>
+ *       {props.children}
+ *       {props.showTimer && (
+ *         <View style={{ position: 'absolute', top: 10, left: 10 }}>
+ *           <Text style={{ color: 'white' }}>{props.meetingProgressTime}</Text>
+ *         </View>
+ *       )}
+ *     </View>
+ *   );
+ * };
  */
 
 const MainGridComponent: React.FC<MainGridComponentOptions> = ({

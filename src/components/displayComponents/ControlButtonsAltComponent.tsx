@@ -10,10 +10,28 @@ import {
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons'; 
 
+/**
+ * Configuration for a single alternate control button.
+ * 
+ * @interface AltButton
+ * 
+ * @property {string} [name] - Button label/name
+ * @property {string} [icon] - Icon name (FontAwesome5)
+ * @property {string} [alternateIcon] - Alternate icon name (shown when active)
+ * @property {function} [onPress] - Click handler
+ * @property {object} [backgroundColor] - Background colors with default and pressed states
+ * @property {boolean} [active] - Whether button is in active state
+ * @property {JSX.Element} [alternateIconComponent] - Custom alternate icon component
+ * @property {JSX.Element} [iconComponent] - Custom icon component
+ * @property {JSX.Element} [customComponent] - Completely custom button component
+ * @property {string} [color] - Icon color
+ * @property {string} [inActiveColor] - Icon color when inactive
+ * @property {boolean} [show] - Whether to show the button
+ */
 export interface AltButton {
   name?: string;
-  icon?: string; // FontAwesome5 icon name
-  alternateIcon?: string; // FontAwesome5 alternate icon name
+  icon?: string;
+  alternateIcon?: string;
   onPress?: () => void;
   backgroundColor?: {
     default?: string;
@@ -28,6 +46,34 @@ export interface AltButton {
   show?: boolean;
 }
 
+/**
+ * Configuration options for the ControlButtonsAltComponent.
+ * 
+ * @interface ControlButtonsAltComponentOptions
+ * 
+ * **Button Configuration:**
+ * @property {AltButton[]} buttons - Array of button configurations
+ * 
+ * **Absolute Positioning:**
+ * @property {'left' | 'right' | 'middle'} [position='left'] - Horizontal screen position
+ * @property {'top' | 'bottom' | 'center'} [location='top'] - Vertical screen position
+ * @property {'horizontal' | 'vertical'} [direction='horizontal'] - Button arrangement direction
+ * 
+ * **Display Control:**
+ * @property {boolean} [showAspect=false] - Whether to show the button group overlay
+ * 
+ * **Styling:**
+ * @property {StyleProp<ViewStyle>} [buttonsContainerStyle] - Custom styles for buttons container
+ * @property {object} [style] - Additional custom styles for outer container
+ * 
+ * **Custom Icons:**
+ * @property {JSX.Element} [alternateIconComponent] - Global alternate icon component
+ * @property {JSX.Element} [iconComponent] - Global icon component
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for button content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for outer container (receives defaultContainer and dimensions)
+ */
 export interface ControlButtonsAltComponentOptions {
   buttons: AltButton[];
   position?: 'left' | 'right' | 'middle';
@@ -37,23 +83,11 @@ export interface ControlButtonsAltComponentOptions {
   alternateIconComponent?: JSX.Element;
   iconComponent?: JSX.Element;
   showAspect?: boolean;
-
-  /**
-   * Optional custom style to apply to the container.
-   */
   style?: object;
-
-  /**
-   * Optional function to render custom content, receiving the default content and dimensions.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Optional function to render a custom container, receiving the default container and dimensions.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -65,46 +99,142 @@ export type ControlButtonsAltComponentType = (
 ) => React.ReactNode;
 
 /**
- * ControlButtonsAltComponent renders a set of customizable control buttons with adjustable layout, styling, and alignment options.
- *
- * This component displays a collection of control buttons that can be horizontally or vertically aligned, with additional options
- * to define icon behavior, active states, and color schemes. Each button can have an icon, alternate icon, or custom component.
- *
+ * ControlButtonsAltComponent - Absolutely positioned overlay control buttons
+ * 
+ * ControlButtonsAltComponent is a React Native component that renders control buttons
+ * in an absolute positioned overlay (typically for video controls, settings, etc.).
+ * It supports flexible positioning (9 positions: corners, edges, center) and can be
+ * shown/hidden dynamically.
+ * 
+ * **Key Features:**
+ * - Absolute positioning with 9 screen positions
+ * - Horizontal or vertical button arrangement
+ * - Active/inactive state visual feedback
+ * - Show/hide visibility control
+ * - Custom icon support
+ * - Overlay z-index management
+ * - Press feedback animations
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.controlButtonsAltComponent` to
+ * provide a completely custom positioned control overlay.
+ * 
  * @component
- * @param {ControlButtonsAltComponentOptions} props - Configuration options for the control buttons.
- * @param {AltButton[]} props.buttons - Array of button options, each with properties for icon, label, and behavior.
- * @param {'left' | 'right' | 'middle'} [props.position='left'] - Horizontal alignment of the button group.
- * @param {'top' | 'bottom' | 'center'} [props.location='top'] - Vertical alignment of the button group.
- * @param {'horizontal' | 'vertical'} [props.direction='horizontal'] - Layout direction for the buttons.
- * @param {StyleProp<ViewStyle>} [props.buttonsContainerStyle] - Custom styles for the container.
- * @param {boolean} [props.showAspect=false] - Controls the visibility of the button group.
- *
- * @returns {JSX.Element} The rendered ControlButtonsAltComponent.
- *
+ * @param {ControlButtonsAltComponentOptions} props - Configuration options for the overlay buttons
+ * 
+ * @returns {React.ReactNode} Rendered positioned control button overlay
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Top-right overlay buttons
  * import React from 'react';
- * import { ControlButtonsAltComponent } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   const buttons = [
- *     { name: 'Play', icon: 'play', onPress: () => console.log('Play pressed'), active: true },
- *     { name: 'Stop', icon: 'stop', onPress: () => console.log('Stop pressed') }
+ * import { ControlButtonsAltComponent, AltButton } from 'mediasfu-reactnative-expo';
+ * 
+ * function VideoOverlayControls() {
+ *   const [showSettings, setShowSettings] = React.useState(false);
+ * 
+ *   const overlayButtons: AltButton[] = [
+ *     {
+ *       name: 'Settings',
+ *       icon: 'cog',
+ *       onPress: () => setShowSettings(!showSettings),
+ *       active: showSettings,
+ *       color: '#FFFFFF',
+ *       show: true,
+ *     },
+ *     {
+ *       name: 'Fullscreen',
+ *       icon: 'expand',
+ *       onPress: () => console.log('Toggle fullscreen'),
+ *       color: '#FFFFFF',
+ *       show: true,
+ *     },
  *   ];
- *
+ * 
  *   return (
  *     <ControlButtonsAltComponent
- *       buttons={buttons}
- *       position="middle"
- *       location="bottom"
- *       direction="horizontal"
+ *       buttons={overlayButtons}
+ *       position="right"
+ *       location="top"
+ *       direction="vertical"
  *       showAspect={true}
  *     />
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Bottom-center horizontal buttons
+ * <ControlButtonsAltComponent
+ *   buttons={bottomControls}
+ *   position="middle"
+ *   location="bottom"
+ *   direction="horizontal"
+ *   showAspect={true}
+ *   buttonsContainerStyle={{
+ *     backgroundColor: 'rgba(0,0,0,0.7)',
+ *     padding: 8,
+ *     borderRadius: 8,
+ *   }}
+ * />
+ * 
+ * @example
+ * // Conditional visibility with custom styling
+ * <ControlButtonsAltComponent
+ *   buttons={menuButtons}
+ *   position="right"
+ *   location="center"
+ *   direction="vertical"
+ *   showAspect={isMenuVisible}
+ *   buttonsContainerStyle={{
+ *     gap: 12,
+ *     padding: 10,
+ *     backgroundColor: 'rgba(0,0,0,0.8)',
+ *     borderRadius: 12,
+ *   }}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete overlay replacement
+ * import { MyCustomOverlayButtons } from './MyCustomOverlayButtons';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     controlButtonsAltComponent: {
+ *       component: MyCustomOverlayButtons,
+ *       injectedProps: {
+ *         fadeInOut: true,
+ *         autoHideDelay: 3000,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomOverlayButtons.tsx
+ * export const MyCustomOverlayButtons = (props: ControlButtonsAltComponentOptions & { fadeInOut: boolean; autoHideDelay: number }) => {
+ *   const [opacity, setOpacity] = React.useState(props.showAspect ? 1 : 0);
+ * 
+ *   React.useEffect(() => {
+ *     if (props.fadeInOut) {
+ *       setOpacity(props.showAspect ? 1 : 0);
+ *     }
+ *   }, [props.showAspect]);
+ * 
+ *   const positionStyle = {
+ *     position: 'absolute' as const,
+ *     [props.location === 'top' ? 'top' : props.location === 'bottom' ? 'bottom' : 'top']: props.location === 'center' ? '50%' : 10,
+ *     [props.position === 'left' ? 'left' : props.position === 'right' ? 'right' : 'left']: props.position === 'middle' ? '50%' : 10,
+ *   };
+ * 
+ *   return (
+ *     <View style={{ ...positionStyle, opacity, flexDirection: props.direction === 'vertical' ? 'column' : 'row' }}>
+ *       {props.buttons.filter(btn => btn.show !== false).map((button, index) => (
+ *         <Pressable key={index} onPress={button.onPress}>
+ *           <FontAwesome5 name={button.active ? button.alternateIcon : button.icon} size={24} color={button.color} />
+ *         </Pressable>
+ *       ))}
+ *     </View>
+ *   );
+ * };
  */
 
 const ControlButtonsAltComponent: React.FC<ControlButtonsAltComponentOptions> = ({

@@ -5,6 +5,33 @@ import { View, StyleSheet } from 'react-native';
 
 /**
  * Interface defining the props for the FlexibleGrid component.
+ * 
+ * FlexibleGrid provides a dynamic grid layout for displaying multiple components
+ * with customizable dimensions and aspect ratios.
+ * 
+ * @interface FlexibleGridOptions
+ * 
+ * **Grid Configuration:**
+ * @property {number} rows - Number of rows in the grid layout
+ * @property {number} columns - Number of columns in the grid layout
+ * @property {React.ReactNode[]} componentsToRender - Array of components to display in grid cells
+ * 
+ * **Cell Dimensions:**
+ * @property {number} customWidth - Width for each grid cell (in pixels)
+ * @property {number} customHeight - Height for each grid cell (in pixels)
+ * 
+ * **Display Options:**
+ * @property {boolean} [showAspect] - Whether to maintain aspect ratio for grid cells
+ * @property {string} [backgroundColor="transparent"] - Background color for each grid cell
+ * 
+ * **Styling:**
+ * @property {object} [style] - Custom styles for the grid container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContent]
+ *   Function to wrap or replace the default grid content
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire grid container
  */
 export interface FlexibleGridOptions {
   /**
@@ -68,16 +95,101 @@ export interface FlexibleGridOptions {
 export type FlexibleGridType = (options: FlexibleGridOptions) => JSX.Element;
 
 /**
- * FlexibleGrid is a React Native component that renders a customizable grid layout.
- *
- * This component arranges an array of components or elements in a grid defined by specified rows and columns.
- * Each grid item can have custom dimensions and background color, with optional aspect ratio settings.
- *
+ * FlexibleGrid - Dynamic grid layout for displaying multiple components
+ * 
+ * FlexibleGrid is a responsive React Native component that arranges an array of
+ * components in a customizable grid layout. It supports dynamic rows/columns,
+ * custom cell dimensions, and aspect ratio preservation.
+ * 
+ * **Key Features:**
+ * - Dynamic row and column configuration
+ * - Custom cell dimensions
+ * - Aspect ratio preservation option
+ * - Background color customization per cell
+ * - Responsive layout adjustments
+ * - Efficient component rendering
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.flexibleGridComponent` to
+ * provide a completely custom grid layout implementation.
+ * 
  * @component
- * @param {FlexibleGridOptions} props - Properties for configuring the FlexibleGrid component.
- * @param {number} props.customWidth - Custom width for each grid item.
- * @param {number} props.customHeight - Custom height for each grid item.
- * @param {number} props.rows - Number of rows in the grid.
+ * @param {FlexibleGridOptions} props - Configuration options for the FlexibleGrid component
+ * 
+ * @returns {JSX.Element} Rendered grid layout with components
+ * 
+ * @example
+ * // Basic usage - 2x2 grid of video cards
+ * import React from 'react';
+ * import { FlexibleGrid, VideoCard } from 'mediasfu-reactnative-expo';
+ * 
+ * function ParticipantGrid() {
+ *   const participants = [participant1, participant2, participant3, participant4];
+ *   
+ *   const gridComponents = participants.map((p, idx) => (
+ *     <VideoCard
+ *       key={idx}
+ *       name={p.name}
+ *       participant={p}
+ *       videoStream={p.stream}
+ *       parameters={sessionParams}
+ *     />
+ *   ));
+ * 
+ *   return (
+ *     <FlexibleGrid
+ *       customWidth={200}
+ *       customHeight={150}
+ *       rows={2}
+ *       columns={2}
+ *       componentsToRender={gridComponents}
+ *       backgroundColor="#000"
+ *     />
+ *   );
+ * }
+ * 
+ * @example
+ * // With aspect ratio and custom styling
+ * <FlexibleGrid
+ *   customWidth={300}
+ *   customHeight={225}
+ *   rows={3}
+ *   columns={3}
+ *   componentsToRender={audioCards}
+ *   showAspect={true}
+ *   backgroundColor="#1a1a2e"
+ *   style={{ padding: 10, borderRadius: 8 }}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete grid replacement
+ * import { MyCustomGrid } from './MyCustomGrid';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     flexibleGridComponent: {
+ *       component: MyCustomGrid,
+ *       injectedProps: {
+ *         gap: 10,
+ *         animateTransitions: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomGrid.tsx
+ * export const MyCustomGrid = (props: FlexibleGridOptions & { gap: number; animateTransitions: boolean }) => {
+ *   return (
+ *     <View style={{ gap: props.gap }}>
+ *       {props.componentsToRender.map((component, idx) => (
+ *         <View key={idx} style={{ width: props.customWidth, height: props.customHeight }}>
+ *           {component}
+ *         </View>
+ *       ))}
+ *     </View>
+ *   );
+ * };
  * @param {number} props.columns - Number of columns in the grid.
  * @param {React.ReactNode[]} props.componentsToRender - Array of components or elements to render in the grid.
  * @param {boolean} [props.showAspect=false] - Flag to enable aspect ratio for the grid.

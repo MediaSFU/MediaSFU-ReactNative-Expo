@@ -87,7 +87,30 @@ export interface CreateJoinLocalRoomResponse {
 }
 
 /**
- * Interface defining the parameters for the PreJoinPage component.
+ * Configuration parameters for PreJoinPage component.
+ * 
+ * @interface PreJoinPageParameters
+ * 
+ * **Branding:**
+ * @property {string} [imgSrc='https://mediasfu.com/images/logo192.png'] - Logo image URL
+ * 
+ * **Connection Management:**
+ * @property {ConnectSocketType} connectSocket - Function to establish MediaSFU Socket.io connection
+ * @property {ConnectLocalSocketType} [connectLocalSocket] - Function to establish local server Socket.io connection (Community Edition)
+ * @property {(socket: Socket) => void} updateSocket - Updates MediaSFU socket instance
+ * @property {(socket: Socket) => void} [updateLocalSocket] - Updates local socket instance
+ * 
+ * **State Updates:**
+ * @property {(visible: boolean) => void} updateIsLoadingModalVisible - Controls loading modal visibility
+ * @property {(validated: boolean) => void} updateValidated - Updates validation state after successful connection
+ * @property {(apiUserName: string) => void} updateApiUserName - Updates API username
+ * @property {(apiToken: string) => void} updateApiToken - Updates API token
+ * @property {(link: string) => void} updateLink - Updates event link
+ * @property {(roomName: string) => void} updateRoomName - Updates room name
+ * @property {(member: string) => void} updateMember - Updates participant name
+ * 
+ * **User Feedback:**
+ * @property {ShowAlert} [showAlert] - Alert display function for validation errors
  */
 export interface PreJoinPageParameters {
   /**
@@ -166,7 +189,25 @@ export interface Credentials {
 }
 
 /**
- * Interface defining the options for the PreJoinPage component.
+ * Configuration options for the PreJoinPage component.
+ * 
+ * @interface PreJoinPageOptions
+ * 
+ * **Server Configuration:**
+ * @property {string} [localLink] - Local server URL for Community Edition deployment
+ * @property {boolean} [connectMediaSFU=true] - Whether to allow connection to MediaSFU cloud servers
+ * 
+ * **Authentication:**
+ * @property {Credentials} [credentials] - User API credentials (apiUserName, apiKey) for MediaSFU
+ * 
+ * **State Parameters:**
+ * @property {PreJoinPageParameters} parameters - Pre-join page configuration and state handlers
+ * 
+ * **Programmatic Mode (No UI):**
+ * @property {boolean} [returnUI=false] - Whether to render UI (false = headless mode)
+ * @property {CreateMediaSFURoomOptions | JoinMediaSFURoomOptions} [noUIPreJoinOptions] - Options for headless room creation/join
+ * @property {CreateRoomOnMediaSFUType} [createMediaSFURoom] - Custom room creation function
+ * @property {JoinRoomOnMediaSFUType} [joinMediaSFURoom] - Custom room join function
  */
 export interface PreJoinPageOptions {
   /**
@@ -213,79 +254,120 @@ export interface PreJoinPageOptions {
 export type PreJoinPageType = (options: PreJoinPageOptions) => JSX.Element;
 
 /**
- * PreJoinPage component allows users to either create a new room or join an existing one.
- *
+ * PreJoinPage - Room creation/join interface with media preview
+ * 
+ * PreJoinPage is a React Native component that provides the entry point for creating
+ * new meeting rooms or joining existing ones. It offers two modes:
+ * 1. **UI Mode**: Full interface with room configuration options
+ * 2. **Headless Mode**: Programmatic room creation/join without UI
+ * 
+ * **Key Features:**
+ * - Create new rooms with custom settings (duration, capacity, event type)
+ * - Join existing rooms by event ID
+ * - Media device preview (camera/microphone)
+ * - Recording configuration options
+ * - Waiting room and secure code settings
+ * - Local (Community Edition) and cloud (MediaSFU) server support
+ * - Headless/programmatic mode for automated workflows
+ * - Input validation and error feedback
+ * - Persistent storage of preferences
+ * 
+ * **Room Configuration Options:**
+ * - Event type (chat, broadcast, webinar, conference)
+ * - Duration (up to 24 hours)
+ * - Participant capacity
+ * - Recording parameters (videoParticipants, videoOptions, etc.)
+ * - Waiting room enable/disable
+ * - Secure access codes
+ * 
+ * **UI Customization:**
+ * The PreJoinPage layout and styling are fixed but can be customized by creating
+ * a custom pre-join component and using it instead of this default one.
+ * 
  * @component
- * @param {PreJoinPageOptions} props - The properties for the PreJoinPage component.
- * @param {PreJoinPageParameters} props.parameters - Various parameters required for the component.
- * @param {ShowAlert} [props.parameters.showAlert] - Function to show alert messages.
- * @param {() => void} props.parameters.updateIsLoadingModalVisible - Function to update the loading modal visibility.
- * @param {ConnectSocketType} props.parameters.connectSocket - Function to connect to the socket.
- * @param {ConnectSocketType} props.parameters.connectLocalSocket - Function to connect to the local socket.
- * @param {Socket} props.parameters.updateSocket - Function to update the socket.
- * @param {Socket} props.parameters.updateLocalSocket - Function to update the local socket.
- * @param {() => void} props.parameters.updateValidated - Function to update the validation status.
- * @param {string} [props.parameters.imgSrc] - The source URL for the logo image.
- * @param {Credentials} [props.credentials=user_credentials] - The user credentials containing the API username and API key.
- * @param {boolean} [props.returnUI=false] - Flag to determine if the component should return the UI.
- * @param {CreateMediaSFURoomOptions | JoinMediaSFURoomOptions} [props.noUIPreJoinOptions] - The options for creating/joining a room without UI.
- * @param {string} [props.localLink=""] - The link to the local server.
- * @param {boolean} [props.connectMediaSFU=true] - Flag to determine if the component should connect to MediaSFU.
- * @param {CreateRoomOnMediaSFUType} [props.createMediaSFURoom] - Function to create a room on MediaSFU.
- * @param {JoinRoomOnMediaSFUType} [props.joinMediaSFURoom] - Function to join a room on MediaSFU.
- *
- * @returns {JSX.Element} The rendered PreJoinPage component.
- *
+ * @param {PreJoinPageOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered pre-join page or null (headless mode)
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage with UI
+ * import React, { useState } from 'react';
  * import { PreJoinPage } from 'mediasfu-reactnative-expo';
- * import { JoinLocalRoomOptions } from 'mediasfu-reactnative-expo';
- *
+ * import { connectSocket } from './sockets/SocketManager';
+ * 
  * function App() {
- *  *   const showAlertFunction = (message: string) => console.log(message);
- *   const updateLoadingFunction = (visible: boolean) => console.log(`Loading: ${visible}`);
- *   const connectSocketFunction = () => {}; // Connect socket function
- *   const updateSocketFunction = (socket: Socket) => {}; // Update socket function
- *   const updateValidatedFunction = (validated: boolean) => {}; // Update validated function
- *   const updateApiUserNameFunction = (userName: string) => {}; // Update API username function
- *   const updateApiTokenFunction = (token: string) => {}; // Update API token function
- *   const updateLinkFunction = (link: string) => {}; // Update link function
- *   const updateRoomNameFunction = (roomName: string) => {}; // Update room name function
- *   const updateMemberFunction = (member: string) => {}; // Update member function
- *
+ *   const [socket, setSocket] = useState(null);
+ *   const [validated, setValidated] = useState(false);
+ * 
+ *   const parameters = {
+ *     imgSrc: 'https://example.com/logo.png',
+ *     showAlert: ({ message, type }) => alert(message),
+ *     updateIsLoadingModalVisible: setLoading,
+ *     connectSocket: connectSocket,
+ *     updateSocket: setSocket,
+ *     updateValidated: setValidated,
+ *     updateApiUserName: setApiUserName,
+ *     updateApiToken: setApiToken,
+ *     updateLink: setLink,
+ *     updateRoomName: setRoomName,
+ *     updateMember: setMember,
+ *   };
+ * 
+ *   const credentials = {
+ *     apiUserName: 'your-api-username',
+ *     apiKey: 'your-api-key',
+ *   };
+ * 
+ *   if (validated) {
+ *     return <MeetingRoom socket={socket} />;
+ *   }
+ * 
  *   return (
  *     <PreJoinPage
- *       parameters={{
- *         showAlert: showAlertFunction,
- *         updateIsLoadingModalVisible: updateLoadingFunction,
- *         connectSocket: connectSocketFunction,
- *         updateSocket: updateSocketFunction,
- *         updateValidated: updateValidatedFunction,
- *         updateApiUserName: updateApiUserNameFunction,
- *         updateApiToken: updateApiTokenFunction,
- *         updateLink: updateLinkFunction,
- *         updateRoomName: updateRoomNameFunction,
- *         updateMember: updateMemberFunction,
- *         imgSrc: "https://example.com/logo.png"
- *       }}
- *       credentials={{
- *         apiUserName: "user123",
- *         apiKey: "apikey123"
- *       }}
- *      returnUI={true} 
- *      noUIPreJoinOptions={{
- *      action: "create",
- *      capacity: 10,
- *      duration: 15,
- *      eventType: "broadcast",
- *      userName: "Prince",
- *      }}
- *      connectMediaSFU={true}
- *      localLink="http://localhost:3000"
+ *       parameters={parameters}
+ *       credentials={credentials}
+ *       connectMediaSFU={true}
  *     />
  *   );
+ * }
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Headless mode - programmatic room creation
+ * const headlessOptions = {
+ *   action: 'create',
+ *   capacity: 50,
+ *   duration: 60, // minutes
+ *   eventType: 'webinar',
+ *   userName: 'Host Name',
+ *   recordingParams: {
+ *     recordingVideoParticipantsFullRoomSupport: true,
+ *     recordingAllParticipantsSupport: false,
+ *   },
  * };
+ * 
+ * return (
+ *   <PreJoinPage
+ *     parameters={parameters}
+ *     credentials={credentials}
+ *     returnUI={false}
+ *     noUIPreJoinOptions={headlessOptions}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Community Edition (local server)
+ * return (
+ *   <PreJoinPage
+ *     parameters={parameters}
+ *     localLink="http://localhost:3000"
+ *     connectMediaSFU={false}
+ *   />
+ * );
  *
  *
  * export default App;

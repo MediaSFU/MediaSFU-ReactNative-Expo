@@ -14,6 +14,44 @@ import { CustomMiniCardType } from '../../@types/types';
 
 /**
  * Interface defining the props for the MiniCard component.
+ * 
+ * MiniCard is a compact display component for showing participant avatars/initials
+ * with optional media status icons in grid layouts or sidebar views.
+ * 
+ * @interface MiniCardOptions
+ * 
+ * **Display Properties:**
+ * @property {string} [initials] - Participant initials to display when no image is available
+ *   (e.g., "AB" for "Alice Brown"). Used as fallback when imageSource is not provided.
+ * @property {number} [fontSize=14] - Font size for the initials text
+ * @property {string} [name] - Full name of the participant (may be used for accessibility or tooltips)
+ * 
+ * **Image Properties:**
+ * @property {string} [imageSource] - URI or URL of the participant's avatar image
+ * @property {boolean} [roundedImage=true] - Whether to display image with rounded corners
+ * @property {StyleProp<ImageStyle>} [imageStyle] - Custom React Native styles for the image element
+ * 
+ * **Status Icons:**
+ * @property {boolean} [showVideoIcon] - Whether to display video status icon overlay
+ * @property {boolean} [showAudioIcon] - Whether to display audio status icon overlay
+ * 
+ * **Styling Properties:**
+ * @property {StyleProp<ViewStyle>} [customStyle] - Custom React Native styles for the card container
+ * @property {object} [style] - Additional style object for the container
+ * 
+ * **Custom UI Override:**
+ * @property {CustomMiniCardType} [customMiniCard] - Custom render function for complete card replacement.
+ *   When provided, this function receives all MiniCardOptions and returns custom JSX.Element.
+ *   This allows full control over the mini card's appearance and behavior.
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContent]
+ *   Function to wrap or replace the default card content while preserving container
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire card container
+ * 
+ * **Additional Parameters:**
+ * @property {any} [parameters] - Additional parameters that can be passed to custom components
  */
 export interface MiniCardOptions {
   /**
@@ -98,42 +136,135 @@ export interface MiniCardOptions {
 export type MiniCardType = (options: MiniCardOptions) => JSX.Element;
 
 /**
- * MiniCard component displays a small card with either an image or initials, providing flexible styling options.
- *
- * This component renders either an image or initials based on the provided props, supporting customizable
- * font size, border radius, and additional styling for the card and image.
- *
+ * MiniCard - Compact participant card displaying avatar or initials with status icons
+ * 
+ * MiniCard is a lightweight React Native component designed for displaying participants
+ * in compact grid layouts, sidebars, or minimized views. It intelligently renders either
+ * a participant's avatar image or their initials, with optional status icons for audio/video.
+ * 
+ * **Key Features:**
+ * - Avatar image display with automatic fallback to initials
+ * - Optional audio/video status icon overlays
+ * - Rounded or square image corners
+ * - Compact design optimized for grid layouts
+ * - Fully customizable styling
+ * - Lightweight performance footprint
+ * 
+ * **UI Customization - Two-Tier Override System:**
+ * 
+ * 1. **Custom Render Function** (via `customMiniCard` prop):
+ *    Pass a function that receives all MiniCardOptions and returns custom JSX.
+ *    Provides complete control over rendering logic and appearance.
+ * 
+ * 2. **Component Override** (via `uiOverrides.miniCardComponent`):
+ *    Replace the entire MiniCard component while preserving MediaSFU's orchestration.
+ *    Useful when you want a different component implementation.
+ * 
+ * **Advanced Render Overrides:**
+ * - `renderContent`: Wrap/modify the card's inner content while keeping container
+ * - `renderContainer`: Wrap/modify the entire card container
+ * 
  * @component
- * @param {MiniCardOptions} props - Configuration options for the MiniCard component.
- * @param {string} [props.initials] - Initials to display if no image is provided.
- * @param {number} [props.fontSize=14] - Font size for the initials.
- * @param {StyleProp<ViewStyle>} [props.customStyle] - Custom styles for the card container.
- * @param {string} [props.imageSource] - URI of the image to display.
- * @param {boolean} [props.roundedImage=true] - Determines if the image should have rounded corners.
- * @param {StyleProp<ImageStyle>} [props.imageStyle] - Custom styles for the image.
- *
- * @returns {JSX.Element} The MiniCard component.
- *
+ * @param {MiniCardOptions} props - Configuration options for the MiniCard component
+ * 
+ * @returns {JSX.Element} Rendered mini card with avatar/initials and optional status icons
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Display with initials
  * import React from 'react';
  * import { MiniCard } from 'mediasfu-reactnative-expo';
  *
- * function App() {
+ * function ParticipantGrid() {
  *   return (
  *     <MiniCard
  *       initials="AB"
- *       fontSize={18}
- *       customStyle={{ backgroundColor: '#f0f0f0', borderRadius: 10 }}
- *       imageSource="https://example.com/image.jpg"
+ *       name="Alice Brown"
+ *       fontSize={14}
  *       roundedImage={true}
- *       imageStyle={{ width: 50, height: 50 }}
+ *       showVideoIcon={false}
+ *       showAudioIcon={true}
  *     />
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // With avatar image and custom styling
+ * <MiniCard
+ *   name="Charlie Davis"
+ *   imageSource="https://example.com/avatars/charlie.jpg"
+ *   roundedImage={true}
+ *   showVideoIcon={true}
+ *   showAudioIcon={false}
+ *   customStyle={{
+ *     backgroundColor: '#1a1a2e',
+ *     borderRadius: 10,
+ *     borderWidth: 2,
+ *     borderColor: '#16213e',
+ *     padding: 5,
+ *   }}
+ *   imageStyle={{ width: 50, height: 50 }}
+ *   fontSize={16}
+ * />
+ * 
+ * @example
+ * // Custom mini card with custom render function
+ * import { View, Text } from 'react-native';
+ * 
+ * const customMiniCard = (options: MiniCardOptions) => {
+ *   const { name, initials, showVideoIcon, showAudioIcon } = options;
+ *   
+ *   return (
+ *     <View style={{ backgroundColor: '#000', padding: 8, borderRadius: 8 }}>
+ *       <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+ *         {initials || name?.substring(0, 2).toUpperCase()}
+ *       </Text>
+ *       <View style={{ flexDirection: 'row', marginTop: 4 }}>
+ *         {showVideoIcon && <Text style={{ marginRight: 4 }}>📹</Text>}
+ *         {showAudioIcon && <Text>🔊</Text>}
+ *       </View>
+ *     </View>
+ *   );
+ * };
+ * 
+ * <MiniCard
+ *   name="Eve Foster"
+ *   initials="EF"
+ *   showVideoIcon={true}
+ *   showAudioIcon={false}
+ *   customMiniCard={customMiniCard}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for component-level customization
+ * import { MyCustomMiniCard } from './MyCustomMiniCard';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     miniCardComponent: {
+ *       component: MyCustomMiniCard,
+ *       injectedProps: {
+ *         theme: 'minimal',
+ *         size: 'small',
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomMiniCard.tsx
+ * export const MyCustomMiniCard = (props: MiniCardOptions & { theme: string; size: string }) => {
+ *   const cardSize = props.size === 'small' ? 40 : 60;
+ *   
+ *   return (
+ *     <View style={{ width: cardSize, height: cardSize, borderRadius: cardSize / 2 }}>
+ *       {props.imageSource ? (
+ *         <Image source={{ uri: props.imageSource }} style={{ width: cardSize, height: cardSize }} />
+ *       ) : (
+ *         <Text style={{ fontSize: props.fontSize }}>{props.initials}</Text>
+ *       )}
+ *     </View>
+ *   );
+ * };
  */
 
 const MiniCard: React.FC<MiniCardOptions> = ({

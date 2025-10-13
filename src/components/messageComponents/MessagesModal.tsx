@@ -22,6 +22,54 @@ import {
 
 /**
  * Interface defining the props for the MessagesModal component.
+ * 
+ * MessagesModal provides a tabbed interface for viewing and sending group messages
+ * and direct messages with real-time updates.
+ * 
+ * @interface MessagesModalOptions
+ * 
+ * **Display Control:**
+ * @property {boolean} isMessagesModalVisible - Whether the modal is currently visible
+ * @property {() => void} onMessagesClose - Callback when modal is closed
+ * @property {"topRight" | "topLeft" | "bottomRight" | "bottomLeft"} [position="topRight"]
+ *   Screen position where the modal should appear
+ * 
+ * **Styling:**
+ * @property {string} [backgroundColor="#f5f5f5"] - Background color of the modal
+ * @property {string} [activeTabBackgroundColor="#7AD2DCFF"] - Background color of the active tab
+ * @property {object} [style] - Additional custom styles for the modal container
+ * 
+ * **Messages Data:**
+ * @property {Message[]} messages - Array of message objects to display (group and direct messages)
+ * @property {string} chatSetting - Chat visibility settings ('allow', 'disallow', etc.)
+ * 
+ * **Message Handling:**
+ * @property {(options: SendMessageOptions) => Promise<void>} [onSendMessagePress]
+ *   Function to handle sending messages (default: sendMessage)
+ * 
+ * **Direct Messaging:**
+ * @property {boolean} startDirectMessage - Flag to initiate direct message mode
+ * @property {Participant | null} directMessageDetails - Target participant for direct message
+ * @property {(start: boolean) => void} updateStartDirectMessage - Update direct message mode flag
+ * @property {(participant: Participant | null) => void} updateDirectMessageDetails - Set DM recipient
+ * 
+ * **User Context:**
+ * @property {string} member - Current user's username/member ID
+ * @property {string} islevel - Current user's level/role ('0'=participant, '1'=moderator, '2'=host)
+ * @property {CoHostResponsibility[]} coHostResponsibility - Co-host permissions
+ * @property {string} coHost - Co-host user ID
+ * 
+ * **Session Info:**
+ * @property {EventType} eventType - Type of event ('conference', 'webinar', 'broadcast', 'chat')
+ * @property {string} roomName - Name/ID of the current room
+ * @property {Socket} socket - Socket.io client for real-time communication
+ * @property {ShowAlert} [showAlert] - Function to display alerts/notifications
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number }}) => JSX.Element} [renderContent]
+ *   Function to wrap or replace the default modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire modal container
  */
 export interface MessagesModalOptions {
   /**
@@ -154,64 +202,141 @@ export interface MessagesModalOptions {
 export type MessagesModalType = (options: MessagesModalOptions) => JSX.Element;
 
 /**
- * MessagesModal component displays a modal for direct and group messages.
- *
+ * MessagesModal - Chat interface with tabbed group and direct messaging
+ * 
+ * MessagesModal is a comprehensive React Native modal for real-time chat communication.
+ * It provides a tabbed interface with separate views for group messages and direct messages,
+ * message composition with input field, and automatic scrolling to new messages.
+ * 
+ * **Key Features:**
+ * - Tabbed interface (Group Chat / Direct Messages)
+ * - Real-time message display with timestamps
+ * - Message composition with send button
+ * - Auto-scroll to latest messages
+ * - Direct message targeting to specific participants
+ * - Permission-based chat visibility controls
+ * - Responsive design with flexible positioning
+ * - Message history with sender identification
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.messagesModalComponent` to
+ * provide a completely custom messages modal implementation.
+ * 
  * @component
- * @param {MessagesModalOptions} props - The properties for the MessagesModal component.
- * @returns {JSX.Element} The rendered MessagesModal component.
- *
+ * @param {MessagesModalOptions} props - Configuration options for the MessagesModal component
+ * 
+ * @returns {JSX.Element} Rendered messages modal with chat interface
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Display messages modal with group and direct messages
  * import React, { useState } from 'react';
  * import { MessagesModal } from 'mediasfu-reactnative-expo';
+ * import { Socket } from 'socket.io-client';
  * 
- * function App() {
- *   const [isVisible, setIsVisible] = useState(true);
- *   const messages = [
+ * function ChatControls() {
+ *   const [isVisible, setIsVisible] = useState(false);
+ *   const [messages, setMessages] = useState([
  *     { sender: 'Alice', message: 'Hello everyone!', timestamp: '10:01', group: true },
  *     { sender: 'Bob', message: 'Hey Alice!', timestamp: '10:02', receivers: ['Alice'], group: false },
- *   ];
-
- *   const handleSendMessage = async (options) => {
- *     // Logic for sending a message
- *     console.log('Message sent:', options);
- *   };
-
+ *   ]);
+ *   const [startDM, setStartDM] = useState(false);
+ *   const [dmDetails, setDmDetails] = useState(null);
+ * 
  *   return (
- *     <MessagesModal
- *       isMessagesModalVisible={isVisible}
- *       onMessagesClose={() => setIsVisible(false)}
- *       messages={messages}
- *       onSendMessagePress={handleSendMessage}
- *       eventType="conference"
- *       member="john_doe"
- *       islevel="1"
- *       coHostResponsibility={[{ name: 'chat', value: true }]}
- *       coHost="jane_doe"
- *       startDirectMessage={false}
- *       directMessageDetails={null}
- *       updateStartDirectMessage={(start) => console.log('Start Direct Message:', start)}
- *       updateDirectMessageDetails={(participant) => console.log('Direct Message Participant:', participant)}
- *       showAlert={(alert) => console.log('Alert:', alert)}
- *       roomName="MainRoom"
- *       socket={socketInstance}
- *       chatSetting="default"
- *       position="bottomRight"
- *       backgroundColor="#f5f5f5"
- *       activeTabBackgroundColor="#7AD2DCFF"
- *     />
+ *     <>
+ *       <Button title="Messages" onPress={() => setIsVisible(true)} />
+ *       <MessagesModal
+ *         isMessagesModalVisible={isVisible}
+ *         onMessagesClose={() => setIsVisible(false)}
+ *         messages={messages}
+ *         eventType="conference"
+ *         member="john_doe"
+ *         islevel="1"
+ *         coHostResponsibility={[{ name: 'chat', value: true }]}
+ *         coHost="jane_doe"
+ *         startDirectMessage={startDM}
+ *         directMessageDetails={dmDetails}
+ *         updateStartDirectMessage={setStartDM}
+ *         updateDirectMessageDetails={setDmDetails}
+ *         roomName="MainRoom"
+ *         socket={socketInstance}
+ *         chatSetting="allow"
+ *       />
+ *     </>
  *   );
  * }
-
- * export default App;
- * ```
+ * 
+ * @example
+ * // With custom styling and positioning
+ * <MessagesModal
+ *   isMessagesModalVisible={showMessages}
+ *   onMessagesClose={() => setShowMessages(false)}
+ *   messages={chatMessages}
+ *   position="bottomRight"
+ *   backgroundColor="#1a1a2e"
+ *   activeTabBackgroundColor="#0f3460"
+ *   onSendMessagePress={async (options) => {
+ *     console.log('Sending:', options.message);
+ *     await sendMessage(options);
+ *     setMessages([...messages, options.message]);
+ *   }}
+ *   eventType="webinar"
+ *   member="presenter_1"
+ *   islevel="2"
+ *   coHostResponsibility={[{ name: 'chat', value: true }]}
+ *   coHost="moderator_1"
+ *   startDirectMessage={false}
+ *   directMessageDetails={null}
+ *   updateStartDirectMessage={(start) => console.log('Start DM:', start)}
+ *   updateDirectMessageDetails={(participant) => console.log('DM to:', participant)}
+ *   roomName="WebinarRoom"
+ *   socket={socket}
+ *   chatSetting="allow"
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete modal replacement
+ * import { MyCustomMessagesModal } from './MyCustomMessagesModal';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     messagesModalComponent: {
+ *       component: MyCustomMessagesModal,
+ *       injectedProps: {
+ *         theme: 'minimal',
+ *         showEmojis: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomMessagesModal.tsx
+ * export const MyCustomMessagesModal = (props: MessagesModalOptions & { theme: string; showEmojis: boolean }) => {
+ *   return (
+ *     <Modal visible={props.isMessagesModalVisible} onRequestClose={props.onMessagesClose}>
+ *       <View style={{ backgroundColor: props.theme === 'minimal' ? '#fff' : '#000' }}>
+ *         <Text>Chat Messages</Text>
+ *         <ScrollView>
+ *           {props.messages.map((msg, idx) => (
+ *             <View key={idx}>
+ *               <Text>{msg.sender}: {msg.message}</Text>
+ *               <Text>{msg.timestamp}</Text>
+ *             </View>
+ *           ))}
+ *         </ScrollView>
+ *         {props.showEmojis && <Text>😀 😃 😄</Text>}
+ *       </View>
+ *     </Modal>
+ *   );
+ * };
  */
 
 const MessagesModal: React.FC<MessagesModalOptions> = ({
   isMessagesModalVisible,
   onMessagesClose,
-  onSendMessagePress = sendMessage,
   messages,
+  onSendMessagePress = sendMessage,
   position = 'topRight',
   backgroundColor = '#f5f5f5',
   activeTabBackgroundColor = '#7AD2DCFF',

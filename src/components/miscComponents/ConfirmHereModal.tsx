@@ -12,6 +12,32 @@ import {
 } from 'react-native';
 import { Socket } from 'socket.io-client';
 
+/**
+ * Configuration options for the ConfirmHereModal component.
+ * 
+ * @interface ConfirmHereModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isConfirmHereModalVisible - Controls modal visibility
+ * @property {() => void} onConfirmHereClose - Callback when modal is closed (after confirmation or timeout)
+ * 
+ * **Countdown Configuration:**
+ * @property {number} [countdownDuration=120] - Duration in seconds for user to confirm presence before auto-disconnect
+ * 
+ * **Session Context:**
+ * @property {Socket} socket - Primary Socket.io instance for disconnect event emission
+ * @property {Socket} [localSocket] - Optional local Socket.io instance for additional disconnect notification
+ * @property {string} roomName - Room identifier for disconnect event
+ * @property {string} member - Member name/ID to disconnect if no confirmation received
+ * 
+ * **Customization:**
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
+ */
 export interface ConfirmHereModalOptions {
   isConfirmHereModalVisible: boolean;
   onConfirmHereClose: () => void;
@@ -49,37 +75,87 @@ export type ConfirmHereModalType = (
 ) => JSX.Element;
 
 /**
- * ConfirmHereModal is a React Native functional component that displays a modal asking the user
- * to confirm their presence. If the user does not confirm within the countdown duration,
- * it emits a 'disconnectUser' event via Socket.io.
- *
+ * ConfirmHereModal - Inactivity detection and presence confirmation dialog
+ * 
+ * ConfirmHereModal is a React Native component that displays a fullscreen modal
+ * asking the user to confirm their presence. If no confirmation is received within
+ * the countdown duration, it emits a 'disconnectUser' event via Socket.io to remove
+ * the inactive user from the meeting.
+ * 
+ * **Key Features:**
+ * - Fullscreen presence confirmation prompt
+ * - Countdown timer with real-time updates
+ * - Auto-disconnect on timeout (emits 'disconnectUser' event)
+ * - Manual confirmation button ("Yes, I'm here")
+ * - Dual socket support (primary + local)
+ * - Loading spinner during countdown
+ * - Customizable countdown duration
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.confirmHereModal` to
+ * provide a completely custom presence confirmation interface.
+ * 
  * @component
- * @param {ConfirmHereModalOptions} props - The properties for the ConfirmHereModal component.
- * @returns {JSX.Element} The rendered ConfirmHereModal component.
- *
+ * @param {ConfirmHereModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered presence confirmation modal
+ * 
  * @example
  * ```tsx
+ * // Basic usage with default 120-second countdown
  * import React, { useState } from 'react';
  * import { ConfirmHereModal } from 'mediasfu-reactnative-expo';
+ * import { io } from 'socket.io-client';
  * 
- * function App() {
- *   const [isModalVisible, setModalVisible] = useState(true);
-
- *   return (
- *     <ConfirmHereModal
- *       isConfirmHereModalVisible={isModalVisible}
- *       onConfirmHereClose={() => setModalVisible(false)}
- *       countdownDuration={120}
- *       socket={socketInstance}
- *       localSocket={localSocketInstance}
- *       roomName="Main Room"
- *       member="User123"
- *       backgroundColor="#83c0e9"
- *     />
- *   );
- * }
-
- * export default App;
+ * const socket = io('https://your-server.com');
+ * const [showConfirmHere, setShowConfirmHere] = useState(false);
+ * 
+ * return (
+ *   <ConfirmHereModal
+ *     isConfirmHereModalVisible={showConfirmHere}
+ *     onConfirmHereClose={() => setShowConfirmHere(false)}
+ *     socket={socket}
+ *     roomName="meeting-room-123"
+ *     member="user-id-456"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom countdown duration and styling
+ * const localSocket = io('https://local-server.com');
+ * 
+ * return (
+ *   <ConfirmHereModal
+ *     isConfirmHereModalVisible={isInactive}
+ *     onConfirmHereClose={handleConfirmClose}
+ *     countdownDuration={60} // 60 seconds instead of default 120
+ *     socket={socketConnection}
+ *     localSocket={localSocket}
+ *     roomName={roomId}
+ *     member={userId}
+ *     backgroundColor="#ff6b6b"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     confirmHereModal: {
+ *       component: MyCustomPresenceCheck,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         warningSound: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

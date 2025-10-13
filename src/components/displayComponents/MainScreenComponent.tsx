@@ -11,7 +11,14 @@ import {
 } from 'react-native';
 
 /**
- * Interface defining the sizes of the main and other components.
+ * Calculated dimensions for main and secondary components in a split layout.
+ * 
+ * @interface ComponentSizes
+ * 
+ * @property {number} mainHeight - Height of the main component in pixels
+ * @property {number} otherHeight - Height of the secondary component in pixels
+ * @property {number} mainWidth - Width of the main component in pixels
+ * @property {number} otherWidth - Width of the secondary component in pixels
  */
 export interface ComponentSizes {
   mainHeight: number;
@@ -21,73 +28,51 @@ export interface ComponentSizes {
 }
 
 /**
- * Interface defining the props for the MainScreenComponent.
+ * Configuration options for the MainScreenComponent.
+ * 
+ * @interface MainScreenComponentOptions
+ * 
+ * **Content:**
+ * @property {React.ReactNode} children - Child components (typically two: main content and secondary content)
+ * 
+ * **Layout Configuration:**
+ * @property {number} mainSize - Percentage size of the main component when stacking (0-100, e.g., 70 means main takes 70% of space)
+ * @property {boolean} doStack - Whether to stack components (true = stack, false = side-by-side)
+ * 
+ * **Dimensions (Responsive):**
+ * @property {number} [containerWidthFraction=1] - Fraction of window width to use (0.0 to 1.0)
+ * @property {number} [containerHeightFraction=1] - Fraction of window height to use (0.0 to 1.0)
+ * @property {number} [defaultFraction=0.94] - Height adjustment fraction when controls are shown
+ * 
+ * **Control Bar Adjustment:**
+ * @property {boolean} showControls - Whether control bar is visible (affects available height)
+ * 
+ * **State Management:**
+ * @property {ComponentSizes} componentSizes - Current calculated sizes for main and secondary components
+ * @property {function} updateComponentSizes - Callback invoked when component sizes change (receives ComponentSizes)
+ * 
+ * **Styling:**
+ * @property {object} [style] - Additional custom styles to apply to the container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for outer container (receives defaultContainer and dimensions)
  */
 export interface MainScreenComponentOptions {
-  /**
-   * The child components to be rendered inside the main screen.
-   */
   children: React.ReactNode;
-
-  /**
-   * The percentage size of the main component when stacking is enabled.
-   */
   mainSize: number;
-
-  /**
-   * Flag indicating whether the components should be stacked.
-   */
   doStack: boolean;
-
-  /**
-   * Fraction of the window width to be used for the container's width.
-   * @default 1
-   */
   containerWidthFraction?: number;
-
-  /**
-   * Fraction of the window height to be used for the container's height.
-   * @default 1
-   */
   containerHeightFraction?: number;
-
-  /**
-   * Callback function to update the sizes of the components.
-   */
   updateComponentSizes: (sizes: ComponentSizes) => void;
-
-  /**
-   * Default fraction to adjust the height when controls are shown.
-   * @default 0.94
-   */
   defaultFraction?: number;
-
-  /**
-   * Flag indicating whether controls are shown, affecting the container height.
-   */
   showControls: boolean;
-
-  /**
-   * An object containing the current sizes of the components.
-   */
   componentSizes: ComponentSizes;
-
-  /**
-   * Additional style object to apply to the container.
-   */
   style?: object;
-
-  /**
-   * Custom render function to wrap the default content.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Custom render function to wrap the entire container.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -95,22 +80,17 @@ export interface MainScreenComponentOptions {
 }
 
 /**
- * Interface defining the additional props for resizable child components.
+ * Props for resizable child components within MainScreenComponent.
+ * 
+ * @interface ResizableChildOptions
+ * 
+ * @property {number} mainSize - Percentage size of the main component (0-100)
+ * @property {boolean} isWideScreen - Whether current screen width qualifies as wide (>= 768px)
+ * @property {StyleProp<ViewStyle>} [style] - Optional additional styles for the child component
  */
 export interface ResizableChildOptions {
-  /**
-   * The percentage size of the main component.
-   */
   mainSize: number;
-
-  /**
-   * Flag indicating if the screen is wide.
-   */
   isWideScreen: boolean;
-
-  /**
-   * Optional additional styles for the child component.
-   */
   style?: StyleProp<ViewStyle>;
 }
 
@@ -133,57 +113,147 @@ export type MainScreenComponentType = (
 ) => JSX.Element;
 
 /**
- * MainScreenComponent dynamically adjusts the layout and dimensions of its child components based on window size,
- * stacking mode, and specified width/height fractions, supporting flexible and responsive screen layouts.
- *
- * This component determines the appropriate dimensions for main and secondary components based on stacking mode, screen width,
- * and main component size, and can conditionally arrange child components in a column or row based on screen width.
- *
+ * MainScreenComponent - Responsive split-screen layout with dynamic sizing
+ * 
+ * MainScreenComponent is a React Native component that manages split-screen layouts
+ * with main and secondary content areas. It dynamically calculates component dimensions
+ * based on stacking mode, screen size, and percentage allocations, automatically adapting
+ * to window resizing and orientation changes.
+ * 
+ * **Key Features:**
+ * - Dynamic split-screen layout (stacked or side-by-side)
+ * - Percentage-based size allocation for main component
+ * - Automatic dimension calculation with responsive updates
+ * - Screen width-based layout switching (narrow screens force stacking)
+ * - Control bar height adjustment
+ * - Component size state management via callbacks
+ * - Window resize/rotation handling
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.mainScreenComponent` to
+ * provide a completely custom split-screen layout system.
+ * 
  * @component
- * @param {MainScreenComponentOptions} props - Configuration options for MainScreenComponent.
- * @param {React.ReactNode} props.children - Child components to render inside the screen container.
- * @param {number} props.mainSize - Percentage size of the main component when stacking.
- * @param {boolean} props.doStack - Flag indicating if components should be stacked vertically or horizontally.
- * @param {number} [props.containerWidthFraction=1] - Fraction of window width for container width.
- * @param {number} [props.containerHeightFraction=1] - Fraction of window height for container height.
- * @param {Function} props.updateComponentSizes - Callback to update sizes of main and secondary components.
- * @param {number} [props.defaultFraction=0.94] - Adjustment fraction for height when controls are visible.
- * @param {boolean} props.showControls - Flag indicating if controls are shown, affecting height calculation.
- * @param {ComponentSizes} props.componentSizes - Current sizes of the components (main and secondary).
- *
- * @returns {JSX.Element} The MainScreenComponent with dynamically calculated dimensions and layout.
- *
+ * @param {MainScreenComponentOptions} props - Configuration options for the split-screen layout
+ * 
+ * @returns {JSX.Element} Rendered split-screen container with calculated dimensions
+ * 
  * @example
- * ```tsx
+ * // Basic usage - 70/30 vertical split
  * import React, { useState } from 'react';
- * import { MainScreenComponent } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   const [componentSizes, setComponentSizes] = useState<ComponentSizes>({
+ * import { MainScreenComponent, ComponentSizes } from 'mediasfu-reactnative-expo';
+ * 
+ * function SplitScreenMeeting() {
+ *   const [sizes, setSizes] = useState<ComponentSizes>({
  *     mainHeight: 0,
  *     otherHeight: 0,
  *     mainWidth: 0,
  *     otherWidth: 0,
  *   });
- *
+ * 
  *   return (
  *     <MainScreenComponent
  *       mainSize={70}
  *       doStack={true}
  *       containerWidthFraction={1}
  *       containerHeightFraction={1}
- *       updateComponentSizes={setComponentSizes}
  *       showControls={true}
- *       componentSizes={componentSizes}
+ *       componentSizes={sizes}
+ *       updateComponentSizes={setSizes}
  *     >
- *       <MainContent />
- *       <SecondaryContent />
+ *       <MainVideoGrid />
+ *       <ParticipantsList />
  *     </MainScreenComponent>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Side-by-side layout (no stacking)
+ * <MainScreenComponent
+ *   mainSize={60}
+ *   doStack={false}
+ *   containerWidthFraction={0.95}
+ *   containerHeightFraction={0.9}
+ *   showControls={true}
+ *   componentSizes={sizes}
+ *   updateComponentSizes={setSizes}
+ * >
+ *   <VideoArea />
+ *   <ChatPanel />
+ * </MainScreenComponent>
+ * 
+ * @example
+ * // With custom content renderer (add divider)
+ * <MainScreenComponent
+ *   mainSize={75}
+ *   doStack={true}
+ *   showControls={true}
+ *   componentSizes={sizes}
+ *   updateComponentSizes={setSizes}
+ *   renderContent={({ defaultContent, dimensions }) => {
+ *     const children = React.Children.toArray(defaultContent);
+ *     return (
+ *       <>
+ *         {children[0]}
+ *         <View style={{ height: 2, backgroundColor: '#007bff', width: '100%' }} />
+ *         {children[1]}
+ *       </>
+ *     );
+ *   }}
+ * >
+ *   <MainContent />
+ *   <SecondaryContent />
+ * </MainScreenComponent>
+ * 
+ * @example
+ * // Using uiOverrides for complete layout replacement
+ * import { MyCustomSplitScreen } from './MyCustomSplitScreen';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     mainScreenComponent: {
+ *       component: MyCustomSplitScreen,
+ *       injectedProps: {
+ *         animateTransitions: true,
+ *         minMainSize: 50,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomSplitScreen.tsx
+ * export const MyCustomSplitScreen = (props: MainScreenComponentOptions & { animateTransitions: boolean; minMainSize: number }) => {
+ *   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
+ * 
+ *   React.useEffect(() => {
+ *     const calculateSizes = () => {
+ *       const { width, height } = Dimensions.get('window');
+ *       const actualMainSize = Math.max(props.mainSize, props.minMainSize);
+ *       const mainHeight = props.doStack ? (height * actualMainSize) / 100 : height;
+ *       const otherHeight = props.doStack ? height - mainHeight : height;
+ *       
+ *       props.updateComponentSizes({
+ *         mainHeight,
+ *         otherHeight,
+ *         mainWidth: width,
+ *         otherWidth: width,
+ *       });
+ *       setDimensions({ width, height });
+ *     };
+ *     
+ *     const subscription = Dimensions.addEventListener('change', calculateSizes);
+ *     calculateSizes();
+ *     return () => subscription?.remove();
+ *   }, [props.mainSize, props.doStack]);
+ * 
+ *   const children = React.Children.toArray(props.children);
+ *   return (
+ *     <View style={{ flex: 1, flexDirection: props.doStack ? 'column' : 'row' }}>
+ *       {children}
+ *     </View>
+ *   );
+ * };
  */
 
 const MainScreenComponent: React.FC<MainScreenComponentOptions> = ({

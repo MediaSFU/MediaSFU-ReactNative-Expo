@@ -26,6 +26,41 @@ import {
   ShowAlert,
 } from '../../@types/types';
 
+/**
+ * Interface defining the parameters for the ParticipantsModal component.
+ * 
+ * @interface ParticipantsModalParameters
+ * 
+ * **Display Settings:**
+ * @property {"topLeft" | "topRight" | "bottomLeft" | "bottomRight" | "center"} [position] - Modal position on screen
+ * @property {string} [backgroundColor] - Background color of the modal
+ * 
+ * **Participant Data:**
+ * @property {Participant[]} participants - Array of all participants in the session
+ * @property {Participant[]} filteredParticipants - Filtered list based on search/filter criteria
+ * @property {number} participantsCounter - Total count of participants
+ * 
+ * **User Context:**
+ * @property {CoHostResponsibility[]} coHostResponsibility - Co-host permissions and responsibilities
+ * @property {string} coHost - Co-host user ID
+ * @property {string} member - Current user's member ID
+ * @property {string} islevel - Current user's level/role ('0'=participant, '1'=moderator, '2'=host)
+ * 
+ * **Session Info:**
+ * @property {EventType} eventType - Type of event ('conference', 'webinar', 'broadcast', etc.)
+ * @property {Socket} socket - Socket.io client for real-time communication
+ * @property {string} roomName - Name/ID of the current room
+ * @property {ShowAlert} [showAlert] - Function to display alerts/notifications
+ * 
+ * **State Update Functions:**
+ * @property {(isVisible: boolean) => void} updateIsMessagesModalVisible - Toggle messages modal visibility
+ * @property {(participant: Participant | null) => void} updateDirectMessageDetails - Set direct message recipient
+ * @property {(start: boolean) => void} updateStartDirectMessage - Initiate direct message flow
+ * @property {(participants: Participant[]) => void} updateParticipants - Update participants list
+ * 
+ * **Utility:**
+ * @property {() => ParticipantsModalParameters} getUpdatedAllParams - Get latest parameter state
+ */
 export interface ParticipantsModalParameters {
   position?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center';
   backgroundColor?: string;
@@ -49,6 +84,40 @@ export interface ParticipantsModalParameters {
   [key: string]: any;
 }
 
+/**
+ * Interface defining the options for the ParticipantsModal component.
+ * 
+ * @interface ParticipantsModalOptions
+ * 
+ * **Display Control:**
+ * @property {boolean} isParticipantsModalVisible - Whether the modal is currently visible
+ * @property {() => void} onParticipantsClose - Callback when modal is closed
+ * @property {"topLeft" | "topRight" | "bottomLeft" | "bottomRight" | "center"} [position] - Modal position
+ * @property {string} [backgroundColor] - Modal background color
+ * 
+ * **Participant Management:**
+ * @property {(filter: string) => void} onParticipantsFilterChange - Callback for search/filter changes
+ * @property {number} participantsCounter - Total participant count for display
+ * 
+ * **Action Handlers:**
+ * @property {typeof muteParticipants} [onMuteParticipants] - Function to mute participants (default: muteParticipants)
+ * @property {typeof messageParticipants} [onMessageParticipants] - Function to message participants (default: messageParticipants)
+ * @property {typeof removeParticipants} [onRemoveParticipants] - Function to remove participants (default: removeParticipants)
+ * 
+ * **Custom Renderers:**
+ * @property {React.ComponentType<any>} [RenderParticipantList] - Custom component for main participant list
+ * @property {React.ComponentType<any>} [RenderParticipantListOthers] - Custom component for other participants list
+ * 
+ * **State Parameters:**
+ * @property {ParticipantsModalParameters} parameters - State and context parameters
+ * 
+ * **Advanced Render Overrides:**
+ * @property {object} [style] - Custom styles for modal container
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number }}) => JSX.Element} [renderContent]
+ *   Function to wrap or replace modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace modal container
+ */
 export interface ParticipantsModalOptions {
   isParticipantsModalVisible: boolean;
   onParticipantsClose: () => void;
@@ -90,19 +159,44 @@ export type ParticipantsModalType = (
 ) => JSX.Element;
 
 /**
- * ParticipantsModal displays a list of participants in a modal, with options for filtering, muting, messaging, or removing participants based on user permissions and event type.
- *
+ * ParticipantsModal - Participant list with search, filtering, and management actions
+ * 
+ * ParticipantsModal is a comprehensive React Native modal for viewing and managing
+ * session participants. It provides search/filter functionality, participant lists
+ * (segmented by role/type), and action buttons for muting, messaging, or removing
+ * participants based on user permissions.
+ * 
+ * **Key Features:**
+ * - Real-time participant list with count display
+ * - Search/filter functionality for finding participants
+ * - Segmented lists (main participants vs. others)
+ * - Permission-based actions (mute, message, remove)
+ * - Role-based visibility (host, co-host, participant)
+ * - Custom renderers for participant list items
+ * - Responsive design with flexible positioning
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.participantsModalComponent` to
+ * provide a completely custom participants modal implementation.
+ * 
  * @component
- * @param {ParticipantsModalOptions} props - The properties for the ParticipantsModal component.
- * @returns {JSX.Element} The rendered ParticipantsModal component.
- *
+ * @param {ParticipantsModalOptions} props - Configuration options for the ParticipantsModal component
+ * 
+ * @returns {JSX.Element} Rendered participants modal with list and management actions
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Display participants modal with default settings
  * import React, { useState } from 'react';
  * import { ParticipantsModal } from 'mediasfu-reactnative-expo';
+ * import { Socket } from 'socket.io-client';
  * 
- * function App() {
+ * function MeetingControls() {
  *   const [isModalVisible, setIsModalVisible] = useState(false);
+ *   const [participants, setParticipants] = useState([
+ *     { name: 'Alice', id: '1', islevel: '1', muted: false },
+ *     { name: 'Bob', id: '2', islevel: '1', muted: true },
+ *   ]);
+ *   
  *   const participantsParameters = {
  *     position: 'topRight',
  *     backgroundColor: '#83c0e9',
@@ -110,35 +204,94 @@ export type ParticipantsModalType = (
  *     coHost: 'JaneDoe',
  *     member: 'JohnDoe',
  *     islevel: '2',
- *     participants: [
- *       { name: 'Alice', id: '1', islevel: '1', muted: false },
- *       { name: 'Bob', id: '2', islevel: '1', muted: true },
- *     ],
- *     eventType: 'webinar',
- *     filteredParticipants: [],
+ *     participants,
+ *     eventType: 'conference',
+ *     filteredParticipants: participants,
  *     socket: socketInstance,
- *     showAlert: showAlertFunction,
  *     roomName: 'MainRoom',
- *     updateIsMessagesModalVisible: setIsMessagesModalVisible,
- *     updateDirectMessageDetails: setDirectMessageDetails,
- *     updateStartDirectMessage: setStartDirectMessage,
+ *     updateIsMessagesModalVisible: (visible) => console.log('Messages:', visible),
+ *     updateDirectMessageDetails: (participant) => console.log('DM:', participant),
+ *     updateStartDirectMessage: (start) => console.log('Start DM:', start),
  *     updateParticipants: setParticipants,
  *     getUpdatedAllParams: () => participantsParameters,
  *   };
  * 
  *   return (
- *     <ParticipantsModal
- *       isParticipantsModalVisible={isModalVisible}
- *       onParticipantsClose={() => setIsModalVisible(false)}
- *       onParticipantsFilterChange={(filter) => handleFilterChange(filter)}
- *       participantsCounter={participantsParameters.participants.length}
- *       parameters={participantsParameters}
- *     />
+ *     <>
+ *       <Button title="Participants" onPress={() => setIsModalVisible(true)} />
+ *       <ParticipantsModal
+ *         isParticipantsModalVisible={isModalVisible}
+ *         onParticipantsClose={() => setIsModalVisible(false)}
+ *         onParticipantsFilterChange={(filter) => console.log('Filter:', filter)}
+ *         participantsCounter={participants.length}
+ *         parameters={participantsParameters}
+ *       />
+ *     </>
  *   );
  * }
  * 
- * export default App;
- * ```
+ * @example
+ * // With custom action handlers and positioning
+ * <ParticipantsModal
+ *   isParticipantsModalVisible={showParticipants}
+ *   onParticipantsClose={() => setShowParticipants(false)}
+ *   onParticipantsFilterChange={(filter) => handleFilterChange(filter)}
+ *   participantsCounter={filteredParticipants.length}
+ *   onMuteParticipants={async (options) => {
+ *     console.log('Custom mute logic');
+ *     await muteParticipants(options);
+ *   }}
+ *   onMessageParticipants={(options) => {
+ *     console.log('Messaging participant:', options.participant.name);
+ *     messageParticipants(options);
+ *   }}
+ *   onRemoveParticipants={async (options) => {
+ *     if (confirm('Remove participant?')) {
+ *       await removeParticipants(options);
+ *     }
+ *   }}
+ *   parameters={{
+ *     ...participantsParameters,
+ *     position: 'center',
+ *     backgroundColor: '#1a1a2e',
+ *   }}
+ *   backgroundColor="#1a1a2e"
+ *   position="center"
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete modal replacement
+ * import { MyCustomParticipantsModal } from './MyCustomParticipantsModal';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     participantsModalComponent: {
+ *       component: MyCustomParticipantsModal,
+ *       injectedProps: {
+ *         theme: 'compact',
+ *         showAvatars: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomParticipantsModal.tsx
+ * export const MyCustomParticipantsModal = (props: ParticipantsModalOptions & { theme: string; showAvatars: boolean }) => {
+ *   return (
+ *     <Modal visible={props.isParticipantsModalVisible} onRequestClose={props.onParticipantsClose}>
+ *       <View>
+ *         <Text>Participants ({props.participantsCounter})</Text>
+ *         {props.parameters.participants.map(p => (
+ *           <View key={p.id}>
+ *             {props.showAvatars && <Image source={{ uri: p.avatar }} />}
+ *             <Text>{p.name}</Text>
+ *           </View>
+ *         ))}
+ *       </View>
+ *     </Modal>
+ *   );
+ * };
  */
 
 const ParticipantsModal: React.FC<ParticipantsModalOptions> = ({

@@ -104,50 +104,167 @@ export type ConsumerResumeType = (
 ) => Promise<void>;
 
 /**
- * Resumes the consumer by handling the provided track and updating the relevant parameters.
+ * Resumes a consumer transport by handling the provided track and updating the application state.
+ * 
+ * This function manages the resumption of media consumer transports (audio/video/screen) and updates
+ * the UI accordingly. It supports custom UI components through both custom render functions and
+ * component overrides, particularly for the MiniAudioPlayer component.
  *
+ * Key responsibilities:
+ * - Creates MediaStream from received track
+ * - Updates stream arrays (audio, video, screen)
+ * - Triggers UI updates through reorderStreams and prepopulateUserMedia
+ * - Handles MiniAudioPlayer rendering for off-screen audio participants
+ * - Manages consumer transport state
+ *
+ * @function
+ * @async
  * @param {ConsumerResumeOptions} options - The options for resuming the consumer.
- * @param {MediaStreamTrack} options.track - The media stream track to resume.
+ * @param {MediaStreamTrack} options.track - The media stream track to resume (audio or video).
  * @param {string} options.remoteProducerId - The ID of the remote producer.
  * @param {ResumeParams} options.params - The parameters required for resuming the consumer.
+ * @param {string} options.params.id - Consumer ID.
+ * @param {string} options.params.producerId - Producer ID.
+ * @param {string} options.params.kind - Media kind ('audio' or 'video').
+ * @param {Object} options.params.rtpParameters - RTP parameters for the consumer.
  * @param {ConsumerResumeParameters} options.parameters - The parameters for updating the state.
  * @param {Socket} options.nsock - The socket instance for communication.
  * @param {Consumer} options.consumer - The consumer instance to resume.
+ * 
+ * **State Parameters:**
+ * @param {MediaStream|null} options.parameters.nStream - New stream being processed.
+ * @param {Array<Stream|Participant>} options.parameters.allAudioStreams - All audio streams in the session.
+ * @param {Array<Stream|Participant>} options.parameters.allVideoStreams - All video streams in the session.
+ * @param {Array<Stream>} options.parameters.streamNames - Named video streams.
+ * @param {Array<Stream>} options.parameters.audStreamNames - Named audio streams.
+ * @param {boolean} options.parameters.updateMainWindow - Whether to update main window.
+ * @param {boolean} options.parameters.shared - Whether screen sharing is active.
+ * @param {boolean} options.parameters.shareScreenStarted - Whether screen share has started.
+ * @param {string} [options.parameters.screenId] - ID of screen sharing participant.
+ * @param {Array<Participant>} options.parameters.participants - All session participants.
+ * @param {EventType} options.parameters.eventType - Event type ('chat', 'broadcast', 'conference', 'webinar').
+ * @param {string} options.parameters.meetingDisplayType - Display type ('video', 'media', 'all').
+ * @param {boolean} options.parameters.mainScreenFilled - Whether main screen is occupied.
+ * @param {boolean} options.parameters.first_round - Whether this is the first round of streaming.
+ * @param {boolean} options.parameters.lock_screen - Whether screen is locked.
+ * @param {Array<Stream|Participant>} options.parameters.oldAllStreams - Previous stream state.
+ * @param {string} [options.parameters.adminVidID] - Admin's video ID.
+ * @param {number} options.parameters.mainHeightWidth - Main screen dimensions.
+ * @param {string} options.parameters.member - Current user's name.
+ * @param {Array<JSX.Element>} options.parameters.audioOnlyStreams - Audio-only stream components.
+ * @param {boolean} options.parameters.gotAllVids - Whether all videos have been received.
+ * @param {boolean} options.parameters.defer_receive - Whether to defer receiving streams.
+ * @param {boolean} options.parameters.firstAll - Whether this is first all-streams update.
+ * @param {Array<Stream>} options.parameters.remoteScreenStream - Remote screen share streams.
+ * @param {boolean} options.parameters.hostLabel - Host label visibility.
+ * @param {boolean} options.parameters.whiteboardStarted - Whether whiteboard is active.
+ * @param {boolean} options.parameters.whiteboardEnded - Whether whiteboard has ended.
+ * @param {string} [options.parameters.recordingDisplayType] - Recording display type.
+ * @param {string} options.parameters.recordingVideoOptimized - Recording optimization setting.
+ * @param {Array<Object>} options.parameters.consumerTransports - Consumer transport array.
+ * @param {string} options.parameters.islevel - User's participation level.
+ * @param {MediaStream|null} options.parameters.localStreamVideo - Local video stream.
+ * 
+ * **Custom UI & Component Overrides:**
+ * @param {React.ComponentType} [options.parameters.miniAudioComponent] - Component override for MiniAudio.
+ *   This component is rendered within MiniAudioPlayer when an audio-only participant is not visible
+ *   on the main grid. Use this to customize the mini audio player's waveform visualization.
+ *   @example
+ *   const CustomMiniAudio = ({ stream, name }) => (
+ *     <View><Text>🎵 {name}</Text></View>
+ *   );
+ * 
+ * @param {React.ComponentType} [options.parameters.videoCardComponent] - Component override for VideoCard.
+ * @param {React.ComponentType} [options.parameters.audioCardComponent] - Component override for AudioCard.
+ * @param {React.ComponentType} [options.parameters.miniCardComponent] - Component override for MiniCard.
+ * @param {CustomVideoCardType} [options.parameters.customVideoCard] - Custom render function for video cards.
+ * @param {CustomAudioCardType} [options.parameters.customAudioCard] - Custom render function for audio cards.
+ * @param {CustomMiniCardType} [options.parameters.customMiniCard] - Custom render function for mini cards.
+ *
+ * **Callback Functions:**
+ * @param {Function} options.parameters.updateNStream - Update new stream state.
+ * @param {Function} options.parameters.updateAllAudioStreams - Update all audio streams.
+ * @param {Function} options.parameters.updateAllVideoStreams - Update all video streams.
+ * @param {Function} options.parameters.updateStreamNames - Update named video streams.
+ * @param {Function} options.parameters.updateAudStreamNames - Update named audio streams.
+ * @param {Function} options.parameters.updateUpdateMainWindow - Update main window state.
+ * @param {Function} options.parameters.updateAudioOnlyStreams - Update audio-only components.
+ * @param {Function} options.parameters.updateGotAllVids - Update all videos received state.
+ * @param {Function} options.parameters.updateDefer_receive - Update defer receive state.
+ * @param {Function} options.parameters.updateFirstAll - Update first all state.
+ * @param {Function} options.parameters.updateRemoteScreenStream - Update remote screen streams.
+ * @param {Function} options.parameters.updateOldAllStreams - Update previous streams state.
+ * @param {Function} options.parameters.updateConsumerTransports - Update consumer transports.
+ * @param {Function} options.parameters.reorderStreams - Function to reorder stream display.
+ * @param {Function} options.parameters.prepopulateUserMedia - Function to populate user media grid.
+ * @param {Function} options.parameters.getUpdatedAllParams - Get updated parameters.
  *
  * @returns {Promise<void>} A promise that resolves when the consumer is successfully resumed.
  *
- * @throws Will throw an error if the resumption fails or if there is an issue with the parameters.
+ * @throws {Error} Throws an error if the resumption fails or if there is an issue with the parameters.
  *
  * @example
- * const options = {
- *   track: mediaStreamTrack,
- *   remoteProducerId: 'producer-id',
+ * // Basic usage
+ * import { consumerResume } from 'mediasfu-reactnative-expo';
+ *
+ * await consumerResume({
+ *   track: audioTrack,
+ *   remoteProducerId: 'producer-123',
  *   params: {
- *     id: 'consumer-id',
- *     producerId: 'producer-id',
- *     kind: 'audio', // or 'video'
- *     rtpParameters: {}, // RTP parameters
+ *     id: 'consumer-456',
+ *     producerId: 'producer-123',
+ *     kind: 'audio',
+ *     rtpParameters: rtpParams,
  *   },
  *   consumer: consumerInstance,
+ *   nsock: socketInstance,
  *   parameters: {
- *     nStream: null,
- *     allAudioStreams: [],
- *     allVideoStreams: [],
- *     streamNames: [],
- *     audStreamNames: [],
- *     updateMainWindow: false,
- *     shared: false,
- *     shareScreenStarted: false,
- *     participants: [],
  *     eventType: 'conference',
- *     meetingDisplayType: 'video',
- *     mainScreenFilled: false,
- *     first_round: false,
- *     lock_screen: false,
- *     oldAllStreams: [],
- *     adminVidID: null,
- *     mainHeightWidth: 0,
- *     member: 'John Doe',
+ *     participants: allParticipants,
+ *     // ... other required parameters
+ *   },
+ * });
+ *
+ * @example
+ * // With custom MiniAudio component for off-screen audio visualization
+ * import { consumerResume } from 'mediasfu-reactnative-expo';
+ * import { CustomMiniAudio } from './components/CustomMiniAudio';
+ *
+ * await consumerResume({
+ *   track: audioTrack,
+ *   remoteProducerId: 'producer-123',
+ *   params: {
+ *     id: 'consumer-456',
+ *     producerId: 'producer-123',
+ *     kind: 'audio',
+ *     rtpParameters: rtpParams,
+ *   },
+ *   consumer: consumerInstance,
+ *   nsock: socketInstance,
+ *   parameters: {
+ *     miniAudioComponent: CustomMiniAudio, // Custom audio waveform component
+ *     eventType: 'conference',
+ *     participants: allParticipants,
+ *     // ... other parameters
+ *   },
+ * });
+ *
+ * @example
+ * // With full component override suite
+ * import { consumerResume } from 'mediasfu-reactnative-expo';
+ *
+ * await consumerResume({
+ *   track: videoTrack,
+ *   remoteProducerId: 'producer-789',
+ *   params: {
+ *     id: 'consumer-101',
+ *     producerId: 'producer-789',
+ *     kind: 'video',
+ *     rtpParameters: rtpParams,
+ *   },
+ *   consumer: consumerInstance,
+ *   nsock: socketInstance,
+ *   parameters: {
  *     audioOnlyStreams: [],
  *     gotAllVids: false,
  *     defer_receive: false,

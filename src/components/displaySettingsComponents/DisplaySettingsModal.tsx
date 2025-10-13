@@ -19,6 +19,19 @@ import {
   ModifyDisplaySettingsParameters,
 } from '../../methods/displaySettingsMethods/modifyDisplaySettings';
 
+/**
+ * Configuration parameters for display settings modal.
+ * Extends ModifyDisplaySettingsParameters with current display state.
+ * 
+ * @interface DisplaySettingsModalParameters
+ * @extends ModifyDisplaySettingsParameters
+ * 
+ * **Display Configuration:**
+ * @property {string} meetingDisplayType - Current display mode ('video', 'media', 'all')
+ * @property {boolean} autoWave - Whether automatic waving animation is enabled for participants
+ * @property {boolean} forceFullDisplay - Whether to force full-screen display mode
+ * @property {boolean} meetingVideoOptimized - Whether video rendering is optimized for performance
+ */
 export interface DisplaySettingsModalParameters
   extends ModifyDisplaySettingsParameters {
   meetingDisplayType: string;
@@ -27,6 +40,30 @@ export interface DisplaySettingsModalParameters
   meetingVideoOptimized: boolean;
 }
 
+/**
+ * Configuration options for the DisplaySettingsModal component.
+ * 
+ * @interface DisplaySettingsModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isDisplaySettingsModalVisible - Controls modal visibility
+ * @property {() => void} onDisplaySettingsClose - Callback when modal is closed
+ * 
+ * **Settings Handler:**
+ * @property {(options: ModifyDisplaySettingsOptions) => Promise<void>} [onModifyDisplaySettings] - Custom handler for applying display settings (defaults to modifyDisplaySettings)
+ * 
+ * **State Parameters:**
+ * @property {DisplaySettingsModalParameters} parameters - Display settings state and configuration
+ * 
+ * **Customization:**
+ * @property {'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft'} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {StyleProp<ViewStyle>} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
+ */
 export interface DisplaySettingsModalOptions {
   isDisplaySettingsModalVisible: boolean;
   onDisplaySettingsClose: () => void;
@@ -54,39 +91,111 @@ export type DisplaySettingsModalType = (
 ) => JSX.Element;
 
 /**
- * DisplaySettingsModal provides an interface to manage and save various display settings in a modal.
+ * DisplaySettingsModal - Visual display and optimization settings interface
  * 
- * @param {DisplaySettingsModalOptions} props - The configuration options for the DisplaySettingsModal component.
+ * DisplaySettingsModal is a React Native component that provides controls for configuring
+ * how the meeting content is displayed and rendered. It offers settings for display mode,
+ * participant animations, full-screen forcing, and video performance optimization.
+ * 
+ * **Key Features:**
+ * - Display mode selection (video, media, all)
+ * - Auto-wave animation toggle for participants
+ * - Force full-screen display option
+ * - Video rendering optimization toggle
+ * - Position-configurable modal (4 corners)
+ * - Real-time settings persistence
+ * - Custom settings handler support
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.displaySettingsModal` to
+ * provide a completely custom display settings interface.
+ * 
+ * @component
+ * @param {DisplaySettingsModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered display settings modal
  * 
  * @example
  * ```tsx
+ * // Basic usage with default settings
  * import React, { useState } from 'react';
  * import { DisplaySettingsModal } from 'mediasfu-reactnative-expo';
  * 
- * function App() {
- *   const [isModalVisible, setModalVisible] = useState(false);
+ * const [showSettings, setShowSettings] = useState(false);
  * 
- *   return (
- *     <View>
- *       <Button title="Open Display Settings" onPress={() => setModalVisible(true)} />
- *       <DisplaySettingsModal
- *         isDisplaySettingsModalVisible={isModalVisible}
- *         onDisplaySettingsClose={() => setModalVisible(false)}
- *         parameters={{
- *           meetingDisplayType: 'video',
- *           autoWave: true,
- *           forceFullDisplay: false,
- *           meetingVideoOptimized: false,
- *           getUpdatedAllParams: () => ({}), // Function to fetch the latest parameters
- *         }}
- *         position="topRight"
- *         backgroundColor="#83c0e9"
- *       />
- *     </View>
- *   );
- * }
+ * const displayParams = {
+ *   meetingDisplayType: 'video',
+ *   autoWave: true,
+ *   forceFullDisplay: false,
+ *   meetingVideoOptimized: false,
+ *   getUpdatedAllParams: () => ({ ...displayParams }),
+ * };
  * 
- * export default App;
+ * return (
+ *   <DisplaySettingsModal
+ *     isDisplaySettingsModalVisible={showSettings}
+ *     onDisplaySettingsClose={() => setShowSettings(false)}
+ *     parameters={displayParams}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom position and styling
+ * const handleModifySettings = async (options: ModifyDisplaySettingsOptions) => {
+ *   await modifyDisplaySettings(options);
+ *   console.log('Display settings updated');
+ * };
+ * 
+ * return (
+ *   <DisplaySettingsModal
+ *     isDisplaySettingsModalVisible={showDisplaySettings}
+ *     onDisplaySettingsClose={() => setShowDisplaySettings(false)}
+ *     onModifyDisplaySettings={handleModifySettings}
+ *     parameters={displayParameters}
+ *     position="bottomRight"
+ *     backgroundColor="#2c3e50"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With performance optimization enabled
+ * const optimizedParams = {
+ *   meetingDisplayType: 'video',
+ *   autoWave: false, // Disable for better performance
+ *   forceFullDisplay: true,
+ *   meetingVideoOptimized: true, // Enable video optimization
+ *   getUpdatedAllParams: () => ({ ...optimizedParams }),
+ * };
+ * 
+ * return (
+ *   <DisplaySettingsModal
+ *     isDisplaySettingsModalVisible={isVisible}
+ *     onDisplaySettingsClose={handleClose}
+ *     parameters={optimizedParams}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     displaySettingsModal: {
+ *       component: MyCustomDisplaySettings,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         showAdvancedOptions: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

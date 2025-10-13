@@ -5,25 +5,28 @@ import {
   View,
 } from 'react-native';
 
+/**
+ * Configuration options for the AudioGrid component.
+ * 
+ * @interface AudioGridOptions
+ * 
+ * **Grid Content:**
+ * @property {React.ReactNode[]} componentsToRender - Array of React components (typically AudioCard instances) to display in the grid
+ * 
+ * **Styling:**
+ * @property {object} [style] - Optional custom styles for the grid container (merged with default styles)
+ * 
+ * **Advanced Render Overrides:**
+ * @property {function} [renderContent] - Optional custom renderer for grid content (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Optional custom renderer for the outer container (receives defaultContainer and dimensions)
+ */
 export interface AudioGridOptions {
-  componentsToRender: React.ReactNode[]; // Array of React components or elements
-
-  /**
-   * Optional custom style to apply to the container.
-   */
+  componentsToRender: React.ReactNode[];
   style?: object;
-
-  /**
-   * Optional function to render custom content, receiving the default content and dimensions.
-   */
   renderContent?: (options: {
     defaultContent: React.ReactNode;
     dimensions: { width: number; height: number };
   }) => React.ReactNode;
-
-  /**
-   * Optional function to render a custom container, receiving the default container and dimensions.
-   */
   renderContainer?: (options: {
     defaultContainer: React.ReactNode;
     dimensions: { width: number; height: number };
@@ -33,35 +36,113 @@ export interface AudioGridOptions {
 export type AudioGridType = (options: AudioGridOptions) => React.ReactNode;
 
 /**
- * AudioGrid component renders a grid layout of audio components or elements.
- *
- * This component organizes an array of audio components or elements into a flexible grid.
- *
+ * AudioGrid - Flexible layout container for audio-only participant displays
+ * 
+ * AudioGrid is a React Native component that organizes multiple audio participant
+ * cards into a vertical stacked layout. It's typically used to display participants
+ * who are not sharing video, showing their avatar, name, and audio waveform.
+ * 
+ * **Key Features:**
+ * - Vertical stacking of audio participant cards
+ * - Flexible z-index management for overlays
+ * - Custom styling support
+ * - Advanced render override hooks
+ * - Efficient rendering of large participant lists
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.audioGridComponent` to
+ * provide a completely custom audio participant grid layout.
+ * 
  * @component
- * @param {AudioGridOptions} props - Properties for the AudioGrid component.
- * @param {React.ReactNode[]} props.componentsToRender - Array of React components or elements to render in the grid.
- *
- * @returns {JSX.Element} The AudioGrid component rendering a grid of audio components.
- *
+ * @param {AudioGridOptions} props - Configuration options for the AudioGrid component
+ * 
+ * @returns {JSX.Element} Rendered audio grid with participant cards
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Display audio-only participants
  * import React from 'react';
  * import { AudioGrid, AudioCard } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   const components = [
- *     <AudioCard name="Participant 1" />,
- *     <AudioCard name="Participant 2" />,
- *     <AudioCard name="Participant 3" />
+ * 
+ * function AudioParticipantsList() {
+ *   const audioParticipants = [
+ *     { name: 'Alice', audioProducerId: 'audio1', muted: false },
+ *     { name: 'Bob', audioProducerId: 'audio2', muted: true },
+ *     { name: 'Charlie', audioProducerId: 'audio3', muted: false },
  *   ];
- *
- *   return (
- *     <AudioGrid componentsToRender={components} />
- *   );
+ * 
+ *   const audioCards = audioParticipants.map((participant, index) => (
+ *     <AudioCard
+ *       key={participant.audioProducerId}
+ *       name={participant.name}
+ *       barColor="red"
+ *       textColor="white"
+ *       imageSource={participant.avatar}
+ *       roundedImage={true}
+ *       imageStyle={{ width: 50, height: 50 }}
+ *     />
+ *   ));
+ * 
+ *   return <AudioGrid componentsToRender={audioCards} />;
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // With custom styling
+ * <AudioGrid
+ *   componentsToRender={audioCards}
+ *   style={{
+ *     backgroundColor: '#f0f0f0',
+ *     padding: 10,
+ *     borderRadius: 8,
+ *   }}
+ * />
+ * 
+ * @example
+ * // With custom content renderer (add separator lines)
+ * <AudioGrid
+ *   componentsToRender={audioCards}
+ *   renderContent={({ defaultContent }) => (
+ *     <>
+ *       {React.Children.map(defaultContent, (child, index) => (
+ *         <React.Fragment key={index}>
+ *           {child}
+ *           {index < audioCards.length - 1 && (
+ *             <View style={{ height: 1, backgroundColor: '#e0e0e0' }} />
+ *           )}
+ *         </React.Fragment>
+ *       ))}
+ *     </>
+ *   )}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete grid replacement
+ * import { MyCustomAudioGrid } from './MyCustomAudioGrid';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     audioGridComponent: {
+ *       component: MyCustomAudioGrid,
+ *       injectedProps: {
+ *         gridLayout: 'masonry',
+ *         itemSpacing: 12,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomAudioGrid.tsx
+ * export const MyCustomAudioGrid = (props: AudioGridOptions & { gridLayout: string; itemSpacing: number }) => {
+ *   return (
+ *     <View style={{ flexDirection: 'column', gap: props.itemSpacing }}>
+ *       {props.componentsToRender.map((component, index) => (
+ *         <View key={index} style={{ padding: props.itemSpacing }}>
+ *           {component}
+ *         </View>
+ *       ))}
+ *     </View>
+ *   );
+ * };
  */
 
 const AudioGrid: React.FC<AudioGridOptions> = ({ 

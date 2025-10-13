@@ -15,6 +15,29 @@ import { ShowAlert, BreakoutParticipant } from '../../@types/types';
 
 /**
  * Interface defining the parameters required by the Pagination component.
+ * Extends GeneratePageContentParameters for full page content generation functionality.
+ * 
+ * @interface PaginationParameters
+ * 
+ * **Room Context:**
+ * @property {number} mainRoomsLength - Total number of main rooms
+ * @property {number} memberRoom - Current room number of the member
+ * @property {number} hostNewRoom - Host's current room number
+ * @property {string} roomName - Name/ID of the current room
+ * @property {string} member - Current user's member ID/name
+ * 
+ * **Breakout Room State:**
+ * @property {boolean} breakOutRoomStarted - Whether breakout rooms have started
+ * @property {boolean} breakOutRoomEnded - Whether breakout rooms have ended
+ * @property {BreakoutParticipant[][]} breakoutRooms - Array of breakout room participant groups
+ * 
+ * **User Context:**
+ * @property {string} islevel - User's level/role ('0'=participant, '1'=moderator, '2'=host)
+ * @property {Socket} socket - Socket.io client for real-time communication
+ * @property {ShowAlert} [showAlert] - Function to display alerts/notifications
+ * 
+ * **Utility:**
+ * @property {() => PaginationParameters} getUpdatedAllParams - Get latest parameter state
  */
 export interface PaginationParameters extends GeneratePageContentParameters {
   mainRoomsLength: number;
@@ -36,6 +59,37 @@ export interface PaginationParameters extends GeneratePageContentParameters {
 
 /**
  * Interface defining the options for the Pagination component.
+ * 
+ * @interface PaginationOptions
+ * 
+ * **Pagination State:**
+ * @property {number} totalPages - Total number of pages available
+ * @property {number} currentUserPage - Current page number the user is viewing (1-indexed)
+ * @property {(options: GeneratePageContentOptions) => Promise<void>} [handlePageChange]
+ *   Function to handle page changes (default: generatePageContent)
+ * 
+ * **Layout & Positioning:**
+ * @property {"left" | "middle" | "right"} [position="middle"] - Horizontal alignment
+ * @property {"top" | "middle" | "bottom"} [location="middle"] - Vertical alignment
+ * @property {"horizontal" | "vertical"} [direction="horizontal"] - Pagination button layout direction
+ * @property {number} [paginationHeight=40] - Height of the pagination container in pixels
+ * @property {boolean} [showAspect=true] - Whether to display the pagination component
+ * 
+ * **Styling:**
+ * @property {string} [backgroundColor="#ffffff"] - Background color of pagination container
+ * @property {StyleProp<ViewStyle>} [buttonsContainerStyle] - Custom styles for buttons container
+ * @property {StyleProp<ViewStyle>} [activePageStyle] - Custom styles for active page button
+ * @property {StyleProp<ViewStyle>} [inactivePageStyle] - Custom styles for inactive page buttons
+ * @property {object} [style] - Additional custom styles for container
+ * 
+ * **State Parameters:**
+ * @property {PaginationParameters} parameters - Pagination context and breakout room parameters
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContent]
+ *   Function to wrap or replace pagination content
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace pagination container
  */
 export interface PaginationOptions {
   totalPages: number;
@@ -85,39 +139,119 @@ interface PageItem {
 export type PaginationType = (options: PaginationOptions) => JSX.Element;
 
 /**
- * Pagination Component
- *
- * The `Pagination` component enables page navigation with support for breakout room logic. It shows page numbers, controls access to breakout rooms based on the user level, and provides customizable layout and styling options.
- *
+ * Pagination - Multi-page navigation with breakout room support
+ * 
+ * Pagination is a React Native component for navigating between multiple pages
+ * of content (typically participant grids). It includes special logic for breakout
+ * room scenarios where access to certain pages is restricted based on user role.
+ * 
+ * **Key Features:**
+ * - Multi-page navigation with numbered buttons
+ * - Breakout room access control
+ * - Flexible layout positioning (top/middle/bottom, left/middle/right)
+ * - Horizontal or vertical button arrangement
+ * - Active page highlighting
+ * - Host-specific room switching capabilities
+ * - Customizable button styling
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.paginationComponent` to
+ * provide a completely custom pagination implementation.
+ * 
  * @component
- * @param {PaginationOptions} props - Properties to configure the `Pagination` component.
- * @param {number} props.totalPages - Total number of pages.
- * @param {number} props.currentUserPage - Current page number for the user.
- * @param {(options: GeneratePageContentOptions) => Promise<void>} [props.handlePageChange] - Function to handle page changes.
- * @param {'left' | 'middle' | 'right'} [props.position='middle'] - Horizontal alignment of pagination.
- * @param {'top' | 'middle' | 'bottom'} [props.location='middle'] - Vertical alignment of pagination.
- * @param {'horizontal' | 'vertical'} [props.direction='horizontal'] - Direction of pagination (horizontal or vertical).
- * @param {StyleProp<ViewStyle>} [props.buttonsContainerStyle] - Custom styles for the pagination container.
- * @param {StyleProp<ViewStyle>} [props.activePageStyle] - Custom styles for the active page.
- * @param {StyleProp<ViewStyle>} [props.inactivePageStyle] - Custom styles for inactive pages.
- * @param {string} [props.backgroundColor='#ffffff'] - Background color for the pagination container.
- * @param {number} [props.paginationHeight=40] - Height of the pagination container.
- * @param {boolean} [props.showAspect=true] - Flag to display the pagination aspect.
- * @param {PaginationParameters} props.parameters - Parameters necessary for pagination and breakout room logic.
- *
+ * @param {PaginationOptions} props - Configuration options for the Pagination component
+ * 
+ * @returns {JSX.Element} Rendered pagination controls
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Simple page navigation
  * import React from 'react';
  * import { Pagination } from 'mediasfu-reactnative-expo';
  *
- * function App() {
- *   const parameters = {
+ * function VideoGridWithPagination() {
+ *   const [currentPage, setCurrentPage] = React.useState(1);
+ *   
+ *   const paginationParams = {
  *     mainRoomsLength: 3,
  *     memberRoom: 1,
- *     breakOutRoomStarted: true,
+ *     breakOutRoomStarted: false,
  *     breakOutRoomEnded: false,
- *     member: 'John Doe',
- *     breakoutRooms: [/* array of breakout room participants * /],
+ *     member: 'user123',
+ *     breakoutRooms: [],
+ *     hostNewRoom: 0,
+ *     roomName: 'MainRoom',
+ *     islevel: '1',
+ *     socket: socketInstance,
+ *     getUpdatedAllParams: () => paginationParams,
+ *   };
+ *
+ *   return (
+ *     <Pagination
+ *       totalPages={5}
+ *       currentUserPage={currentPage}
+ *       position="middle"
+ *       location="bottom"
+ *       direction="horizontal"
+ *       backgroundColor="#ffffff"
+ *       paginationHeight={40}
+ *       parameters={paginationParams}
+ *     />
+ *   );
+ * }
+ * 
+ * @example
+ * // With custom styling and breakout rooms
+ * <Pagination
+ *   totalPages={10}
+ *   currentUserPage={3}
+ *   handlePageChange={async (options) => {
+ *     console.log('Changing to page:', options.page);
+ *     await generatePageContent(options);
+ *   }}
+ *   position="right"
+ *   location="top"
+ *   direction="vertical"
+ *   buttonsContainerStyle={{ gap: 8 }}
+ *   activePageStyle={{ backgroundColor: '#007bff', borderRadius: 8 }}
+ *   inactivePageStyle={{ backgroundColor: '#e0e0e0', borderRadius: 8 }}
+ *   backgroundColor="#f5f5f5"
+ *   paginationHeight={50}
+ *   showAspect={true}
+ *   parameters={{
+ *     ...paginationParams,
+ *     breakOutRoomStarted: true,
+ *     breakoutRooms: breakoutParticipantGroups,
+ *     islevel: '2', // Host level
+ *   }}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete pagination replacement
+ * import { MyCustomPagination } from './MyCustomPagination';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     paginationComponent: {
+ *       component: MyCustomPagination,
+ *       injectedProps: {
+ *         theme: 'minimal',
+ *         showPageNumbers: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomPagination.tsx
+ * export const MyCustomPagination = (props: PaginationOptions & { theme: string; showPageNumbers: boolean }) => {
+ *   return (
+ *     <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+ *       <Button title="Prev" onPress={() => props.handlePageChange?.({ page: props.currentUserPage - 1, parameters: props.parameters })} />
+ *       {props.showPageNumbers && <Text>{props.currentUserPage} / {props.totalPages}</Text>}
+ *       <Button title="Next" onPress={() => props.handlePageChange?.({ page: props.currentUserPage + 1, parameters: props.parameters })} />
+ *     </View>
+ *   );
+ * };
  *     hostNewRoom: 2,
  *     roomName: 'Room A',
  *     islevel: '2',

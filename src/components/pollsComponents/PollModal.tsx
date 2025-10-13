@@ -21,6 +21,41 @@ import {
   HandleVotePollType,
 } from '../../@types/types';
 
+/**
+ * Configuration options for the PollModal component.
+ * 
+ * @interface PollModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isPollModalVisible - Controls modal visibility
+ * @property {() => void} onClose - Callback when modal is closed
+ * @property {(isVisible: boolean) => void} updateIsPollModalVisible - Updates modal visibility state
+ * 
+ * **Poll Management:**
+ * @property {Poll[]} polls - Array of all polls in the room
+ * @property {Poll | null} poll - Currently active/selected poll
+ * @property {HandleCreatePollType} handleCreatePoll - Handler for creating new polls (host/co-host only)
+ * @property {HandleEndPollType} handleEndPoll - Handler for ending active polls (host/co-host only)
+ * @property {HandleVotePollType} handleVotePoll - Handler for voting in polls
+ * 
+ * **User Context:**
+ * @property {string} member - Current user's name/ID
+ * @property {string} islevel - User level ('0'=participant, '1'=co-host, '2'=host) - determines if create/end poll buttons are shown
+ * 
+ * **Session Context:**
+ * @property {Socket} socket - Socket.io instance for real-time poll synchronization
+ * @property {string} roomName - Room identifier for poll events
+ * @property {ShowAlert} [showAlert] - Alert display function for user feedback
+ * 
+ * **Customization:**
+ * @property {'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center'} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
+ */
 export interface PollModalOptions {
   isPollModalVisible: boolean;
   onClose: () => void;
@@ -64,45 +99,108 @@ export interface PollModalOptions {
 export type PollModalType = (options: PollModalOptions) => JSX.Element;
 
 /**
- * PollModal component allows users to create, manage, and vote in polls within an event.
- *
+ * PollModal - Interactive polling and voting interface
+ * 
+ * PollModal is a React Native component that provides a complete polling system
+ * for meetings. Hosts/co-hosts can create polls with multiple options, participants
+ * can vote, and results are displayed in real-time with vote counts and percentages.
+ * 
+ * **Key Features:**
+ * - Poll creation with custom question and multiple options (host/co-host only)
+ * - Real-time voting for participants
+ * - Live vote count and percentage display
+ * - Poll history view (all active and inactive polls)
+ * - End poll functionality (host/co-host only)
+ * - Single vote per participant enforcement
+ * - Socket.io synchronization for instant updates
+ * - Position-configurable modal (5 positions)
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.pollModal` to
+ * provide a completely custom polling interface.
+ * 
  * @component
- * @param {PollModalOptions} props - The properties for the PollModal component.
- * @returns {JSX.Element} The rendered PollModal component.
- *
+ * @param {PollModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered poll modal
+ * 
  * @example
  * ```tsx
+ * // Host creating and managing polls
  * import React, { useState } from 'react';
  * import { PollModal } from 'mediasfu-reactnative-expo';
+ * import { io } from 'socket.io-client';
  * 
- * function App() {
- *   const [isPollModalVisible, setPollModalVisible] = useState(false);
- *   
- *   const handleCreatePoll = (options) => { };
- *   const handleEndPoll = (options) => { };
- *   const handleVotePoll = (options) => { };
- *
- *   return (
- *     <PollModal
- *       isPollModalVisible={isPollModalVisible}
- *       onClose={() => setPollModalVisible(false)}
- *       position="topRight"
- *       member="john_doe"
- *       islevel="2"
- *       polls={[{ id: '1', question: 'Is React Native awesome?', options: ['Yes', 'No'], status: 'active', voters: {}, votes: [3, 1] }]}
- *       poll={{ id: '1', question: 'Is React Native awesome?', options: ['Yes', 'No'], status: 'active', voters: {}, votes: [3, 1] }}
- *       socket={socketInstance}
- *       roomName="MainRoom"
- *       handleCreatePoll={handleCreatePoll}
- *       handleEndPoll={handleEndPoll}
- *       handleVotePoll={handleVotePoll}
- *       showAlert={showAlertFunction}
- *       updateIsPollModalVisible={setPollModalVisible}
- *     />
- *   );
- * }
+ * const socket = io('https://your-server.com');
+ * const [showPolls, setShowPolls] = useState(false);
  * 
- * export default App;
+ * const activePoll = {
+ *   id: 'poll-1',
+ *   question: 'What time works best?',
+ *   options: ['Morning', 'Afternoon', 'Evening'],
+ *   status: 'active',
+ *   voters: { 'user1': 0, 'user2': 2 },
+ *   votes: [1, 0, 1],
+ * };
+ * 
+ * return (
+ *   <PollModal
+ *     isPollModalVisible={showPolls}
+ *     onClose={() => setShowPolls(false)}
+ *     member="host-user"
+ *     islevel="2" // Host - can create/end polls
+ *     polls={[activePoll]}
+ *     poll={activePoll}
+ *     socket={socket}
+ *     roomName="meeting-room-123"
+ *     handleCreatePoll={handleCreatePoll}
+ *     handleEndPoll={handleEndPoll}
+ *     handleVotePoll={handleVotePoll}
+ *     updateIsPollModalVisible={setShowPolls}
+ *     showAlert={showCustomAlert}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Participant voting in polls
+ * return (
+ *   <PollModal
+ *     isPollModalVisible={isVisible}
+ *     onClose={handleClose}
+ *     member="participant-user"
+ *     islevel="0" // Participant - can only vote
+ *     polls={allPolls}
+ *     poll={currentPoll}
+ *     socket={socketConnection}
+ *     roomName={roomId}
+ *     handleCreatePoll={handleCreatePoll}
+ *     handleEndPoll={handleEndPoll}
+ *     handleVotePoll={handleVotePoll}
+ *     updateIsPollModalVisible={setIsVisible}
+ *     position="center"
+ *     backgroundColor="#e8f5e9"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     pollModal: {
+ *       component: MyCustomPollInterface,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         allowAnonymousVoting: false,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

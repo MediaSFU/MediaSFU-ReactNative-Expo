@@ -22,6 +22,55 @@ import {
   StartRecordingParameters,
 } from '../../@types/types';
 
+/**
+ * Interface defining the parameters for the RecordingModal component.
+ * Extends ConfirmRecordingParameters and StartRecordingParameters for full recording functionality.
+ * 
+ * @interface RecordingModalParameters
+ * 
+ * **Recording State:**
+ * @property {boolean} recordPaused - Whether recording is currently paused
+ * @property {EventType} eventType - Type of event being recorded
+ * 
+ * **Video Settings:**
+ * @property {string} recordingVideoType - Video capture type ('fullDisplay', 'mainScreen', etc.)
+ * @property {'video' | 'media' | 'all'} recordingDisplayType - What to display in recording
+ * @property {string} recordingOrientationVideo - Video orientation ('landscape', 'portrait')
+ * @property {string} recordingVideoOptions - Video quality/codec options
+ * 
+ * **Visual Customization:**
+ * @property {string} recordingBackgroundColor - Background color for recording canvas
+ * @property {string} recordingNameTagsColor - Color for participant name tags
+ * @property {boolean} recordingNameTags - Whether to show participant name tags
+ * @property {boolean} recordingAddText - Whether to add custom text overlay
+ * @property {string} recordingCustomText - Custom text to overlay on recording
+ * @property {string} recordingCustomTextPosition - Position of custom text ('top', 'bottom', etc.)
+ * @property {string} recordingCustomTextColor - Color of custom text
+ * 
+ * **Media Options:**
+ * @property {string} recordingMediaOptions - General media recording options
+ * @property {string} recordingAudioOptions - Audio encoding/quality options
+ * @property {boolean} recordingAddHLS - Whether to enable HLS streaming
+ * 
+ * **State Update Functions:**
+ * @property {(value: string) => void} updateRecordingVideoType - Update video type setting
+ * @property {(value: 'video' | 'media' | 'all') => void} updateRecordingDisplayType - Update display type
+ * @property {(value: string) => void} updateRecordingBackgroundColor - Update background color
+ * @property {(value: string) => void} updateRecordingNameTagsColor - Update name tags color
+ * @property {(value: string) => void} updateRecordingOrientationVideo - Update video orientation
+ * @property {(value: boolean) => void} updateRecordingNameTags - Toggle name tags
+ * @property {(value: boolean) => void} updateRecordingAddText - Toggle custom text
+ * @property {(value: string) => void} updateRecordingCustomText - Update custom text content
+ * @property {(value: string) => void} updateRecordingCustomTextPosition - Update text position
+ * @property {(value: string) => void} updateRecordingCustomTextColor - Update text color
+ * @property {(value: string) => void} updateRecordingMediaOptions - Update media options
+ * @property {(value: string) => void} updateRecordingAudioOptions - Update audio options
+ * @property {(value: string) => void} updateRecordingVideoOptions - Update video options
+ * @property {(value: boolean) => void} updateRecordingAddHLS - Toggle HLS streaming
+ * 
+ * **Utility:**
+ * @property {() => RecordingModalParameters} getUpdatedAllParams - Get latest parameter state
+ */
 export interface RecordingModalParameters
   extends ConfirmRecordingParameters,
     StartRecordingParameters {
@@ -61,6 +110,32 @@ export interface RecordingModalParameters
   [key: string]: any;
 }
 
+/**
+ * Interface defining the options for the RecordingModal component.
+ * 
+ * @interface RecordingModalOptions
+ * 
+ * **Display Control:**
+ * @property {boolean} isRecordingModalVisible - Whether the modal is currently visible
+ * @property {() => void} onClose - Callback when modal is closed
+ * @property {string} [backgroundColor="#83c0e9"] - Background color of the modal content
+ * @property {"topLeft" | "topRight" | "bottomLeft" | "bottomRight" | "center"} [position="bottomRight"]
+ *   Screen position where the modal should appear
+ * 
+ * **Recording Actions:**
+ * @property {ConfirmRecordingType} confirmRecording - Function to confirm and apply recording settings
+ * @property {StartRecordingType} startRecording - Function to start the recording with configured settings
+ * 
+ * **Configuration:**
+ * @property {RecordingModalParameters} parameters - Recording configuration parameters and state
+ * 
+ * **Advanced Render Overrides:**
+ * @property {object} [style] - Custom styles for modal container
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number }}) => JSX.Element} [renderContent]
+ *   Function to wrap or replace the default modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire modal container
+ */
 export interface RecordingModalOptions {
   /**
    * Flag to control the visibility of the modal.
@@ -125,59 +200,133 @@ export interface RecordingModalOptions {
 export type RecordingModalType = (options: RecordingModalOptions) => JSX.Element;
 
 /**
- * RecordingModal component displays a modal with settings for configuring and managing recordings. It includes sections for both standard and advanced recording options, allowing users to specify video types, display options, background colors, custom text, and other recording parameters.
- *
- * @component
- * @param {RecordingModalOptions} props - The properties object.
- * @returns {JSX.Element} The rendered RecordingModal component.
- *
- * @example
- * ```tsx
- * import React from 'react';
- * import { RecordingModal } from 'mediasfu-reactnative-expo';
+ * RecordingModal - Comprehensive recording settings with standard and advanced options
  * 
- * const recordingParameters = {
- *   recordPaused: false,
- *   recordingVideoType: 'fullDisplay',
- *   recordingDisplayType: 'video',
- *   recordingBackgroundColor: '#ffffff',
- *   recordingNameTagsColor: '#000000',
- *   recordingOrientationVideo: 'landscape',
- *   recordingNameTags: true,
- *   recordingAddText: false,
- *   recordingCustomText: '',
- *   recordingCustomTextPosition: 'top',
- *   recordingCustomTextColor: '#000000',
- *   recordingMediaOptions: 'default',
- *   recordingAudioOptions: 'default',
- *   recordingVideoOptions: 'default',
- *   recordingAddHLS: false,
- *   eventType: 'conference',
- *   updateRecordingVideoType: (value) => {},
- *   updateRecordingDisplayType: (value) => {},
- *   updateRecordingBackgroundColor: (value) => {},
- *   updateRecordingNameTagsColor: (value) => {},
- *   updateRecordingOrientationVideo: (value) => {},
- *   updateRecordingNameTags: (value) => {},
- *   updateRecordingAddText: (value) => {},
- *   updateRecordingCustomText: (value) => {},
- *   updateRecordingCustomTextPosition: (value) => {},
- *   updateRecordingCustomTextColor: (value) => {},
- *   updateRecordingMediaOptions: (value) => {},
- *   updateRecordingAudioOptions: (value) => {},
- *   updateRecordingVideoOptions: (value) => {},
- *   updateRecordingAddHLS: (value) => {},
- * };
- *
- * function App() {
+ * RecordingModal is a feature-rich React Native modal for configuring and managing
+ * session recordings. It provides both standard (quick start) and advanced (detailed)
+ * panels for customizing video layout, background, text overlays, media options, and more.
+ * 
+ * **Key Features:**
+ * - Tabbed interface (Standard / Advanced settings)
+ * - Video type selection (fullDisplay, mainScreen, custom layouts)
+ * - Display type options (video, media, all)
+ * - Background color customization
+ * - Participant name tags with color options
+ * - Custom text overlays with positioning
+ * - Video orientation control
+ * - Media/audio/video encoding options
+ * - HLS streaming enablement
+ * - Real-time preview of settings
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.recordingModalComponent` to
+ * provide a completely custom recording modal implementation.
+ * 
+ * @component
+ * @param {RecordingModalOptions} props - Configuration options for the RecordingModal component
+ * 
+ * @returns {JSX.Element} Rendered recording modal with configuration panels
+ * 
+ * @example
+ * // Basic usage - Display recording modal with default settings
+ * import React, { useState } from 'react';
+ * import { RecordingModal, confirmRecording, startRecording } from 'mediasfu-reactnative-expo';
+ * 
+ * function RecordingControls() {
+ *   const [showModal, setShowModal] = useState(false);
+ *   const [recordingParams, setRecordingParams] = useState({
+ *     recordPaused: false,
+ *     recordingVideoType: 'fullDisplay',
+ *     recordingDisplayType: 'video' as const,
+ *     recordingBackgroundColor: '#ffffff',
+ *     recordingNameTagsColor: '#000000',
+ *     recordingOrientationVideo: 'landscape',
+ *     recordingNameTags: true,
+ *     recordingAddText: false,
+ *     recordingCustomText: '',
+ *     recordingCustomTextPosition: 'top',
+ *     recordingCustomTextColor: '#000000',
+ *     recordingMediaOptions: 'default',
+ *     recordingAudioOptions: 'default',
+ *     recordingVideoOptions: 'default',
+ *     recordingAddHLS: false,
+ *     eventType: 'conference' as const,
+ *     updateRecordingVideoType: (value: string) => setRecordingParams({...recordingParams, recordingVideoType: value}),
+ *     updateRecordingDisplayType: (value: 'video' | 'media' | 'all') => setRecordingParams({...recordingParams, recordingDisplayType: value}),
+ *     // ... other update functions
+ *     getUpdatedAllParams: () => recordingParams,
+ *   });
+ * 
  *   return (
- *     <RecordingModal
- *       isRecordingModalVisible={true}
- *       onClose={() => console.log('Modal closed')}
- *       confirmRecording={() => console.log('Confirm recording settings')}
- *       startRecording={() => console.log('Start recording')}
- *       parameters={recordingParameters}
- *     />
+ *     <>
+ *       <Button title="Recording Settings" onPress={() => setShowModal(true)} />
+ *       <RecordingModal
+ *         isRecordingModalVisible={showModal}
+ *         onClose={() => setShowModal(false)}
+ *         confirmRecording={confirmRecording}
+ *         startRecording={startRecording}
+ *         parameters={recordingParams}
+ *       />
+ *     </>
+ *   );
+ * }
+ * 
+ * @example
+ * // With custom styling and positioning
+ * <RecordingModal
+ *   isRecordingModalVisible={showRecordingModal}
+ *   onClose={() => setShowRecordingModal(false)}
+ *   backgroundColor="#1a1a2e"
+ *   position="center"
+ *   confirmRecording={async (options) => {
+ *     console.log('Confirming recording settings');
+ *     await confirmRecording(options);
+ *   }}
+ *   startRecording={async (options) => {
+ *     console.log('Starting recording with settings:', options.parameters);
+ *     await startRecording(options);
+ *   }}
+ *   parameters={{
+ *     ...recordingParams,
+ *     recordingBackgroundColor: '#0f3460',
+ *     recordingNameTagsColor: '#e94560',
+ *     recordingAddText: true,
+ *     recordingCustomText: 'Company Webinar',
+ *     recordingAddHLS: true,
+ *   }}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete modal replacement
+ * import { MyCustomRecordingModal } from './MyCustomRecordingModal';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     recordingModalComponent: {
+ *       component: MyCustomRecordingModal,
+ *       injectedProps: {
+ *         theme: 'professional',
+ *         presets: ['meeting', 'webinar', 'presentation'],
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomRecordingModal.tsx
+ * export const MyCustomRecordingModal = (props: RecordingModalOptions & { theme: string; presets: string[] }) => {
+ *   return (
+ *     <Modal visible={props.isRecordingModalVisible} onRequestClose={props.onClose}>
+ *       <View style={{ backgroundColor: props.theme === 'professional' ? '#2c3e50' : '#fff' }}>
+ *         <Text>Recording Settings</Text>
+ *         {props.presets.map(preset => (
+ *           <Button key={preset} title={preset} onPress={() => applyPreset(preset)} />
+ *         ))}
+ *         <Button title="Start" onPress={() => props.startRecording({ parameters: props.parameters })} />
+ *       </View>
+ *     </Modal>
+ *   );
+ * };
  *   );
  * }
  * 

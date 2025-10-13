@@ -17,113 +17,86 @@ import { modifySettings, ModifySettingsOptions } from '../../methods/settingsMet
 import { getModalPosition } from '../../methods/utils/getModalPosition';
 
 /**
- * Interface defining the parameters required by the EventSettingsModal component.
+ * Parameters for event settings state management.
+ * 
+ * @interface EventSettingsModalParameters
+ * 
+ * **Display Settings:**
+ * @property {string} meetingDisplayType - Current display type for meeting layout
+ * @property {boolean} autoWave - Whether auto-wave feature is enabled
+ * @property {boolean} forceFullDisplay - Whether to force full display mode
+ * @property {boolean} meetingVideoOptimized - Whether video optimization is enabled
+ * 
+ * **Session Context:**
+ * @property {string} roomName - Name of the meeting room
+ * @property {Socket} socket - Socket.io connection for real-time updates
+ * @property {ShowAlert} [showAlert] - Optional alert display function
  */
 export interface EventSettingsModalParameters {
   meetingDisplayType: string;
   autoWave: boolean;
   forceFullDisplay: boolean;
   meetingVideoOptimized: boolean;
-
-  // Additional parameters inherited from ModifySettingsParameters
   roomName: string;
   socket: Socket;
   showAlert?: ShowAlert;
 }
 
 /**
- * Interface defining the options (props) for the EventSettingsModal component.
+ * Configuration options for the EventSettingsModal component.
+ * 
+ * @interface EventSettingsModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isEventSettingsModalVisible - Whether the modal is currently visible
+ * @property {function} onEventSettingsClose - Callback to close the modal
+ * @property {function} updateIsSettingsModalVisible - Callback to update modal visibility state
+ * 
+ * **Permission Settings (Current State):**
+ * @property {string} audioSetting - Current audio permission ("allow" | "approval" | "disallow")
+ * @property {string} videoSetting - Current video permission ("allow" | "approval" | "disallow")
+ * @property {string} screenshareSetting - Current screenshare permission ("allow" | "approval" | "disallow")
+ * @property {string} chatSetting - Current chat permission ("allow" | "disallow")
+ * 
+ * **State Update Callbacks:**
+ * @property {function} updateAudioSetting - Callback to update audio permission setting
+ * @property {function} updateVideoSetting - Callback to update video permission setting
+ * @property {function} updateScreenshareSetting - Callback to update screenshare permission setting
+ * @property {function} updateChatSetting - Callback to update chat permission setting
+ * 
+ * **Session Context:**
+ * @property {string} roomName - Meeting room name for settings updates
+ * @property {Socket} socket - Socket connection for broadcasting changes
+ * @property {ShowAlert} [showAlert] - Optional alert function for user feedback
+ * 
+ * **Customization:**
+ * @property {function} [onModifyEventSettings=modifySettings] - Custom handler for settings modifications
+ * @property {'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'} [position='topRight'] - Modal screen position
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * 
+ * **Advanced Render Overrides:**
+ * @property {object} [style] - Additional custom styles
+ * @property {function} [renderContent] - Custom content renderer (receives defaultContent and dimensions)
+ * @property {function} [renderContainer] - Custom container renderer (receives defaultContainer and dimensions)
  */
 export interface EventSettingsModalOptions {
-  /**
-   * Determines if the modal is visible.
-   */
   isEventSettingsModalVisible: boolean;
-
-  /**
-   * Callback function to close the modal.
-   */
   onEventSettingsClose: () => void;
-
-  /**
-   * Callback function to modify event settings.
-   * @default modifySettings
-   */
   onModifyEventSettings?: (options: ModifySettingsOptions) => Promise<void>;
-
-  /**
-   * Position of the modal on the screen.
-   * @default "topRight"
-   */
   position?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-
-  /**
-   * Background color of the modal.
-   * @default "#83c0e9"
-   */
   backgroundColor?: string;
-
-  /**
-   * Initial audio setting.
-   */
   audioSetting: string;
-
-  /**
-   * Initial video setting.
-   */
   videoSetting: string;
-
-  /**
-   * Initial screenshare setting.
-   */
   screenshareSetting: string;
-
-  /**
-   * Initial chat setting.
-   */
   chatSetting: string;
-
-  /**
-   * Callback function to update audio setting.
-   */
   updateAudioSetting: (setting: string) => void;
-
-  /**
-   * Callback function to update video setting.
-   */
   updateVideoSetting: (setting: string) => void;
-
-  /**
-   * Callback function to update screenshare setting.
-   */
   updateScreenshareSetting: (setting: string) => void;
-
-  /**
-   * Callback function to update chat setting.
-   */
   updateChatSetting: (setting: string) => void;
-
-  /**
-   * Callback function to update modal visibility.
-   */
   updateIsSettingsModalVisible: (isVisible: boolean) => void;
-
-  /**
-   * Name of the room.
-   */
   roomName: string;
-
-  /**
-   * Socket object for communication.
-   */
   socket: Socket;
-
-  /**
-   * Callback function to show alerts.
-   */
   showAlert?: ShowAlert;
-
-  // Render props for enhanced customization
   style?: object;
   renderContent?: (options: {
     defaultContent: JSX.Element;
@@ -138,43 +111,141 @@ export interface EventSettingsModalOptions {
 export type EventSettingsModalType = (options: EventSettingsModalOptions) => JSX.Element;
 
 /**
- * EventSettingsModal provides an interface to configure event-related settings such as audio, video, screenshare, and chat permissions.
- *
+ * EventSettingsModal - Host controls for participant permissions
+ * 
+ * EventSettingsModal is a React Native component that provides host-level controls
+ * for managing participant permissions across audio, video, screenshare, and chat.
+ * Settings can be configured to allow, require approval, or disallow participant actions.
+ * 
+ * **Key Features:**
+ * - Granular permission controls (audio, video, screenshare, chat)
+ * - Three permission levels: allow, approval-required, disallow
+ * - Real-time permission broadcasting to all participants
+ * - Position-configurable modal (4 corners)
+ * - Immediate settings application
+ * - Socket.io-based synchronization
+ * 
+ * **Permission Options:**
+ * - **Allow**: Participants can use feature freely
+ * - **Approval**: Participants must request permission
+ * - **Disallow**: Feature is disabled for participants
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.eventSettingsModal` to
+ * provide a completely custom event settings interface.
+ * 
+ * @component
+ * @param {EventSettingsModalOptions} props - Configuration options for event settings
+ * 
+ * @returns {JSX.Element} Rendered event settings modal
+ * 
  * @example
- * ```tsx
+ * // Basic usage - Host permission controls
  * import React, { useState } from 'react';
  * import { EventSettingsModal } from 'mediasfu-reactnative-expo';
  * import { io } from 'socket.io-client';
- *
- * const socket = io('https://your-server-url.com');
- *
- * function App() {
+ * 
+ * function HostControls() {
  *   const [isModalVisible, setModalVisible] = useState(false);
- *
+ *   const [audioSetting, setAudioSetting] = useState('allow');
+ *   const [videoSetting, setVideoSetting] = useState('allow');
+ *   const [screenshareSetting, setScreenshareSetting] = useState('approval');
+ *   const [chatSetting, setChatSetting] = useState('allow');
+ *   
+ *   const socket = io('https://mediasfu.com');
+ * 
  *   return (
- *     <View>
- *       <Button title="Open Event Settings" onPress={() => setModalVisible(true)} />
+ *     <>
+ *       <Button title="Event Settings" onPress={() => setModalVisible(true)} />
  *       <EventSettingsModal
  *         isEventSettingsModalVisible={isModalVisible}
  *         onEventSettingsClose={() => setModalVisible(false)}
- *         audioSetting="allow"
- *         videoSetting="approval"
- *         screenshareSetting="disallow"
- *         chatSetting="allow"
- *         updateAudioSetting={(setting) => console.log('Audio setting updated:', setting)}
- *         updateVideoSetting={(setting) => console.log('Video setting updated:', setting)}
- *         updateScreenshareSetting={(setting) => console.log('Screenshare setting updated:', setting)}
- *         updateChatSetting={(setting) => console.log('Chat setting updated:', setting)}
- *         roomName="meeting-room"
+ *         audioSetting={audioSetting}
+ *         videoSetting={videoSetting}
+ *         screenshareSetting={screenshareSetting}
+ *         chatSetting={chatSetting}
+ *         updateAudioSetting={setAudioSetting}
+ *         updateVideoSetting={setVideoSetting}
+ *         updateScreenshareSetting={setScreenshareSetting}
+ *         updateChatSetting={setChatSetting}
+ *         updateIsSettingsModalVisible={setModalVisible}
+ *         roomName="meeting-room-123"
  *         socket={socket}
- *         showAlert={(alert) => console.log('Alert:', alert)}
+ *         showAlert={(alert) => console.log(alert.message)}
  *       />
- *     </View>
+ *     </>
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // Positioned at bottom-left with custom colors
+ * <EventSettingsModal
+ *   isEventSettingsModalVisible={true}
+ *   onEventSettingsClose={closeModal}
+ *   position="bottomLeft"
+ *   backgroundColor="#2c2c2c"
+ *   audioSetting="allow"
+ *   videoSetting="approval"
+ *   screenshareSetting="disallow"
+ *   chatSetting="allow"
+ *   updateAudioSetting={setAudioSetting}
+ *   updateVideoSetting={setVideoSetting}
+ *   updateScreenshareSetting={setScreenshareSetting}
+ *   updateChatSetting={setChatSetting}
+ *   updateIsSettingsModalVisible={setModalVisible}
+ *   roomName={roomName}
+ *   socket={socket}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete settings modal replacement
+ * import { MyCustomEventSettings } from './MyCustomEventSettings';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     eventSettingsModal: {
+ *       component: MyCustomEventSettings,
+ *       injectedProps: {
+ *         showAdvancedOptions: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomEventSettings.tsx
+ * export const MyCustomEventSettings = (props: EventSettingsModalOptions & { showAdvancedOptions: boolean }) => {
+ *   const handleSave = async () => {
+ *     await props.onModifyEventSettings?.({
+ *       parameters: {
+ *         audioSet: props.audioSetting,
+ *         videoSet: props.videoSetting,
+ *         screenshareSet: props.screenshareSetting,
+ *         chatSet: props.chatSetting,
+ *         ...props,
+ *       },
+ *     });
+ *     props.onEventSettingsClose();
+ *   };
+ * 
+ *   return (
+ *     <Modal visible={props.isEventSettingsModalVisible}>
+ *       <View style={{ padding: 20 }}>
+ *         <Text>Audio Permission:</Text>
+ *         <Picker
+ *           selectedValue={props.audioSetting}
+ *           onValueChange={props.updateAudioSetting}
+ *         >
+ *           <Picker.Item label="Allow" value="allow" />
+ *           <Picker.Item label="Approval Required" value="approval" />
+ *           <Picker.Item label="Disallow" value="disallow" />
+ *         </Picker>
+ *         {props.showAdvancedOptions && <AdvancedPermissionOptions />}
+ *         <Button title="Save Settings" onPress={handleSave} />
+ *       </View>
+ *     </Modal>
+ *   );
+ * };
  */
 
 const EventSettingsModal: React.FC<EventSettingsModalOptions> = ({

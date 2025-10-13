@@ -39,25 +39,25 @@ export type MiniAudioPlayerType = (
 ) => JSX.Element;
 
 /**
- * MiniAudioPlayer component is a React Native component for playing audio streams
- * and optionally a mini audio component for visualizing audio waveforms.
+ * MiniAudioPlayer component for Web - Renders audio streams with optional waveform visualization.
+ * 
+ * Platform-specific implementation optimized for web browsers. Supports component override
+ * for the MiniAudio visualization component, enabling custom audio waveform displays.
  *
  * @component
+ * @platform web
  * @param {MiniAudioPlayerOptions} props - The properties for the MiniAudioPlayer component.
  * @param {MediaStream | null} props.stream - The media stream to be played by the audio player.
  * @param {Consumer} props.consumer - The consumer object for consuming media.
  * @param {string} props.remoteProducerId - The ID of the remote producer.
  * @param {MiniAudioPlayerParameters} props.parameters - The parameters object containing various settings and methods.
- * @param {Function} props.parameters.getUpdatedAllParams - Function to get updated parameters.
- * @param {Function} props.parameters.reUpdateInter - Function to re-update interaction parameters.
- * @param {Function} props.parameters.updateParticipantAudioDecibels - Function to update participant audio decibels.
- * @param {boolean} props.parameters.breakOutRoomStarted - Flag indicating if the breakout room has started.
- * @param {boolean} props.parameters.breakOutRoomEnded - Flag indicating if the breakout room has ended.
- * @param {Array<BreakoutParticipant>} props.parameters.limitedBreakRoom - Array of limited breakout room participants.
- * @param {React.ComponentType} [props.MiniAudioComponent] - An optional component to render for audio visualization.
+ * @param {React.ComponentType} [props.MiniAudioComponent] - Optional component override for audio visualization.
+ *   Replaces the default MiniAudio component with your custom visualization component.
  * @param {Object} [props.miniAudioProps] - Additional properties to pass to the MiniAudioComponent.
  *
- * @returns {JSX.Element} The rendered MiniAudioPlayer component.
+ * @returns {JSX.Element} The rendered MiniAudioPlayer component optimized for web browsers.
+ * 
+ * @see {@link MiniAudioPlayer} for complete documentation and usage examples.
  *
  * @example
  * ```tsx

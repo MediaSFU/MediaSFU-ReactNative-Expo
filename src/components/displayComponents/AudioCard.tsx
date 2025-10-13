@@ -29,6 +29,25 @@ import {
   CustomAudioCardType,
 } from '../../@types/types';
 
+/**
+ * Interface defining the parameters required by the AudioCard component.
+ * 
+ * These parameters provide the context and state needed for audio display,
+ * participant management, and media controls.
+ * 
+ * @interface AudioCardParameters
+ * @property {AudioDecibels[]} audioDecibels - Array of audio level data for all participants (used for waveform visualization)
+ * @property {Participant[]} participants - Array of all participants in the session
+ * @property {Socket} socket - Socket.io client instance for real-time communication
+ * @property {CoHostResponsibility[]} coHostResponsibility - Array of responsibilities assigned to co-hosts
+ * @property {string} roomName - Name/ID of the current room session
+ * @property {ShowAlert} [showAlert] - Optional function to display alerts/notifications
+ * @property {string} coHost - User ID of the co-host
+ * @property {string} islevel - Current user's level/role (e.g., '0', '1', '2')
+ * @property {string} member - Current user's member ID
+ * @property {string} eventType - Type of event ('conference', 'webinar', 'broadcast', etc.)
+ * @property {() => AudioCardParameters} getUpdatedAllParams - Function to retrieve latest parameter state
+ */
 export interface AudioCardParameters {
   audioDecibels: AudioDecibels[];
   participants: Participant[];
@@ -45,6 +64,56 @@ export interface AudioCardParameters {
   getUpdatedAllParams(): AudioCardParameters;
 }
 
+/**
+ * Interface defining the options for the AudioCard component.
+ * 
+ * AudioCard displays a participant in audio-only mode with waveform visualization,
+ * participant info, and optional media controls.
+ * 
+ * @interface AudioCardOptions
+ * 
+ * **Core Display Properties:**
+ * @property {string} name - Participant's display name
+ * @property {Participant} participant - Complete participant object with metadata
+ * @property {AudioDecibels} [audioDecibels] - Audio level data for this participant's waveform
+ * 
+ * **Styling Properties:**
+ * @property {StyleProp<ViewStyle>} [customStyle] - Custom styles for the card container
+ * @property {object} [style] - Additional style object for the container
+ * @property {string} [backgroundColor] - Background color (default: '#2c678f')
+ * @property {string} [barColor] - Color of the audio waveform bars (default: 'red')
+ * @property {string} [textColor] - Color of text overlays (default: 'white')
+ * 
+ * **Image/Avatar Properties:**
+ * @property {string} [imageSource] - URI for participant's avatar image
+ * @property {boolean} [roundedImage] - Whether to display avatar with rounded corners (default: false)
+ * @property {StyleProp<ImageStyle>} [imageStyle] - Custom styles for the avatar image
+ * 
+ * **Controls & Info Properties:**
+ * @property {boolean} [showControls] - Whether to show media control buttons (default: true)
+ * @property {boolean} [showInfo] - Whether to show participant info overlay (default: true)
+ * @property {React.ReactNode} [videoInfoComponent] - Custom component for info overlay
+ * @property {React.ReactNode} [videoControlsComponent] - Custom component for controls
+ * @property {ControlsPosition} [controlsPosition] - Position of controls overlay (default: 'topLeft')
+ * @property {InfoPosition} [infoPosition] - Position of info overlay (default: 'bottomLeft')
+ * 
+ * **Media Control:**
+ * @property {(options: ControlMediaOptions) => Promise<void>} [controlUserMedia] - Function to control user media settings (default: controlMedia)
+ * 
+ * **State Parameters:**
+ * @property {AudioCardParameters} parameters - State and context parameters for the card
+ * 
+ * **Custom UI Override:**
+ * @property {CustomAudioCardType} [customAudioCard] - Custom render function for complete card replacement.
+ *   When provided, this function receives all AudioCardOptions and returns custom JSX.Element.
+ *   This allows full control over the audio card's appearance and behavior.
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContent]
+ *   Function to wrap or replace the default card content while preserving container
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire card container
+ */
 export interface AudioCardOptions {
   controlUserMedia?: (options: ControlMediaOptions) => Promise<void>;
   customStyle?: StyleProp<ViewStyle>;
@@ -91,33 +160,161 @@ export interface AudioCardOptions {
 export type AudioCardType = (options: AudioCardOptions) => JSX.Element;
 
 /**
- * AudioCard component displays participant information, audio waveform, and media control buttons.
- *
- * This component provides an animated waveform for audio activity, control buttons to toggle audio and video,
- * and options for customization of appearance, layout, and media controls. It leverages WebSocket for
- * real-time updates and accommodates custom styling and control component integrations.
- *
+ * AudioCard - Displays a participant in audio-only mode with waveform and controls
+ * 
+ * AudioCard is a specialized React Native component for displaying participants in
+ * audio-only scenarios. It renders an avatar/image with an animated audio waveform,
+ * participant info overlay, and optional media control buttons. The component is ideal
+ * for audio-focused events, participants with video off, or compact grid layouts.
+ * 
+ * **Key Features:**
+ * - Animated audio waveform visualization based on real-time decibel levels
+ * - Avatar/image display with optional rounded corners
+ * - Optional control buttons for muting/video toggling
+ * - Participant info overlay with customizable positioning
+ * - Fallback to MiniCard for compact display
+ * - Responsive layout with custom styling support
+ * 
+ * **UI Customization - Two-Tier Override System:**
+ * 
+ * 1. **Custom Render Function** (via `customAudioCard` prop):
+ *    Pass a function that receives all AudioCardOptions and returns custom JSX.
+ *    Provides complete control over rendering logic and appearance.
+ * 
+ * 2. **Component Override** (via `uiOverrides.audioCardComponent`):
+ *    Replace the entire AudioCard component while preserving MediaSFU's orchestration.
+ *    Useful when you want a different component implementation.
+ * 
+ * **Advanced Render Overrides:**
+ * - `renderContent`: Wrap/modify the card's inner content while keeping container
+ * - `renderContainer`: Wrap/modify the entire card container
+ * 
  * @component
- * @param {Function} [controlUserMedia=controlMedia] - Function to control user media settings.
- * @param {StyleProp<ViewStyle>} [customStyle] - Custom styles for the card container.
- * @param {string} name - Name of the participant displayed in the card.
- * @param {string} [barColor='red'] - Color for the waveform bars.
- * @param {string} [textColor='white'] - Color for participant name text.
- * @param {string} [imageSource] - URL for participant image.
- * @param {boolean} [roundedImage=false] - Flag to display the image with rounded corners.
- * @param {StyleProp<ImageStyle>} [imageStyle] - Custom styles for participant image.
- * @param {boolean} [showControls=true] - Flag to toggle the visibility of media control buttons.
- * @param {boolean} [showInfo=true] - Flag to toggle the visibility of participant info.
- * @param {React.ReactNode} [videoInfoComponent] - Custom component to replace default participant info.
- * @param {React.ReactNode} [videoControlsComponent] - Custom component to replace default control buttons.
- * @param {ControlsPosition} [controlsPosition='topLeft'] - Position for media control buttons overlay.
- * @param {InfoPosition} [infoPosition='bottomLeft'] - Position for participant info overlay.
- * @param {Participant} participant - Participant information.
- * @param {string} [backgroundColor='#2c678f'] - Background color for the card.
- * @param {AudioDecibels} [audioDecibels] - Audio decibels data for the waveform.
- * @param {AudioCardParameters} parameters - Parameters with media and event settings.
- *
- * @returns {JSX.Element} The AudioCard component.
+ * @param {AudioCardOptions} props - Configuration options for the AudioCard component
+ * 
+ * @returns {JSX.Element} Rendered audio card with waveform, avatar, and controls
+ * 
+ * @example
+ * // Basic usage - Display participant audio card with default styling
+ * import React from 'react';
+ * import { AudioCard } from 'mediasfu-reactnative-expo';
+ * import { Socket } from 'socket.io-client';
+ * 
+ * const socket = Socket('https://example.com');
+ * 
+ * function AudioParticipantGrid() {
+ *   return (
+ *     <AudioCard
+ *       name="Alice Johnson"
+ *       participant={{
+ *         name: 'Alice Johnson',
+ *         id: '456',
+ *         videoOn: false,
+ *         muted: false,
+ *         audioID: 'audio_123',
+ *       }}
+ *       audioDecibels={{ name: 'Alice Johnson', averageLoudness: 50 }}
+ *       parameters={{
+ *         audioDecibels: [{ name: 'Alice Johnson', averageLoudness: 50 }],
+ *         participants: [{ name: 'Alice Johnson', id: '456', videoOn: false, muted: false }],
+ *         socket,
+ *         coHostResponsibility: [],
+ *         roomName: 'room1',
+ *         coHost: 'coHostId',
+ *         islevel: '1',
+ *         member: '456',
+ *         eventType: 'conference',
+ *         getUpdatedAllParams: () => ({ ...params }),
+ *       }}
+ *       backgroundColor="#2c678f"
+ *       barColor="red"
+ *       textColor="white"
+ *       showControls={true}
+ *       showInfo={true}
+ *     />
+ *   );
+ * }
+ * 
+ * @example
+ * // Custom styled audio card with avatar and custom colors
+ * <AudioCard
+ *   name="Bob Wilson"
+ *   participant={currentParticipant}
+ *   audioDecibels={{ name: 'Bob Wilson', averageLoudness: 65 }}
+ *   parameters={sessionParams}
+ *   backgroundColor="#1a1a2e"
+ *   barColor="#0f3460"
+ *   textColor="#e94560"
+ *   imageSource="https://example.com/avatar/bob.jpg"
+ *   roundedImage={true}
+ *   showControls={true}
+ *   showInfo={true}
+ *   controlsPosition="bottomRight"
+ *   infoPosition="topLeft"
+ *   customStyle={{ borderRadius: 12, margin: 8, borderWidth: 2, borderColor: '#e94560' }}
+ * />
+ * 
+ * @example
+ * // Custom audio card with custom render function
+ * import { View, Text, Animated } from 'react-native';
+ * 
+ * const customAudioCard = (options: AudioCardOptions) => {
+ *   const { name, participant, audioDecibels } = options;
+ *   const volume = audioDecibels?.averageLoudness || 0;
+ *   
+ *   return (
+ *     <View style={{ backgroundColor: '#000', padding: 15, borderRadius: 10 }}>
+ *       <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{name}</Text>
+ *       <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
+ *         <Text style={{ color: '#888' }}>Volume: </Text>
+ *         <View style={{ width: volume * 2, height: 5, backgroundColor: volume > 50 ? 'green' : 'yellow' }} />
+ *       </View>
+ *       {participant.muted && (
+ *         <Text style={{ color: 'red', marginTop: 5 }}>🔇 Muted</Text>
+ *       )}
+ *     </View>
+ *   );
+ * };
+ * 
+ * <AudioCard
+ *   name="Custom Audio Participant"
+ *   participant={participant}
+ *   audioDecibels={audioData}
+ *   parameters={params}
+ *   customAudioCard={customAudioCard}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for component-level customization
+ * import { MyCustomAudioCard } from './MyCustomAudioCard';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     audioCardComponent: {
+ *       component: MyCustomAudioCard,
+ *       injectedProps: {
+ *         theme: 'neon',
+ *         showWaveform: true,
+ *         animationSpeed: 'fast',
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomAudioCard.tsx
+ * export const MyCustomAudioCard = (props: AudioCardOptions & { theme: string; showWaveform: boolean; animationSpeed: string }) => {
+ *   const waveformColor = props.theme === 'neon' ? '#00ff00' : '#ff0000';
+ *   
+ *   return (
+ *     <View style={{ padding: 10 }}>
+ *       <Text style={{ color: waveformColor }}>{props.name}</Text>
+ *       {props.showWaveform && (
+ *         <Text>Audio Level: {props.audioDecibels?.averageLoudness || 0}</Text>
+ *       )}
+ *     </View>
+ *   );
+ * };
  *
  * @example
  * ```tsx

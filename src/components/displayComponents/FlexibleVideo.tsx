@@ -6,6 +6,38 @@ import { MediaStream } from '../../@types/types';
 
 /**
  * Interface defining the props for the FlexibleVideo component.
+ * 
+ * FlexibleVideo provides a video grid layout with optional screen sharing
+ * overlay and annotation capabilities.
+ * 
+ * @interface FlexibleVideoOptions
+ * 
+ * **Grid Configuration:**
+ * @property {number} rows - Number of rows in the video grid
+ * @property {number} columns - Number of columns in the video grid
+ * @property {React.ReactNode[]} componentsToRender - Array of video components to display
+ * 
+ * **Cell Dimensions:**
+ * @property {number} customWidth - Width for each grid cell (in pixels)
+ * @property {number} customHeight - Height for each grid cell (in pixels)
+ * 
+ * **Display Options:**
+ * @property {boolean} showAspect - Whether to maintain aspect ratio for grid cells
+ * @property {string} [backgroundColor="transparent"] - Background color for each grid cell
+ * 
+ * **Screen Sharing & Annotation:**
+ * @property {React.ReactNode} [Screenboard] - Optional screenboard component to overlay on the grid
+ * @property {boolean} [annotateScreenStream=false] - Whether to enable screen stream annotation
+ * @property {MediaStream} [localStreamScreen] - Local screen MediaStream for annotation
+ * 
+ * **Styling:**
+ * @property {object} [style] - Custom styles for the video grid container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContent]
+ *   Function to wrap or replace the default video grid content
+ * @property {(options: { defaultContainer: React.ReactNode; dimensions: { width: number; height: number }}) => React.ReactNode} [renderContainer]
+ *   Function to wrap or replace the entire video grid container
  */
 export interface FlexibleVideoOptions {
   /**
@@ -85,56 +117,109 @@ export interface FlexibleVideoOptions {
 export type FlexibleVideoType = (options: FlexibleVideoOptions) => JSX.Element
 
 /**
- * FlexibleVideo is a React Native component that renders a flexible video grid with optional screenboard overlay
- * and annotation capabilities.
- *
- * This component arranges components in a grid layout with specified rows and columns. It supports custom item
- * dimensions, optional screenboard overlay, and video stream annotation.
- *
+ * FlexibleVideo - Video grid layout with screen sharing and annotation support
+ * 
+ * FlexibleVideo is a specialized React Native component for displaying video streams
+ * in a flexible grid layout. It extends FlexibleGrid with additional support for
+ * screen sharing overlays and real-time annotation capabilities.
+ * 
+ * **Key Features:**
+ * - Dynamic video grid with custom rows/columns
+ * - Aspect ratio preservation for video streams
+ * - Screen sharing overlay (Screenboard) support
+ * - Real-time screen annotation capabilities
+ * - Custom cell dimensions and background colors
+ * - Efficient video stream rendering
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.flexibleVideoComponent` to
+ * provide a completely custom video grid implementation.
+ * 
  * @component
- * @param {FlexibleVideoOptions} props - Options to configure the FlexibleVideo component.
- * @param {number} props.customWidth - Width of each grid item.
- * @param {number} props.customHeight - Height of each grid item.
- * @param {number} props.rows - Number of rows in the grid.
- * @param {number} props.columns - Number of columns in the grid.
- * @param {React.ReactNode[]} props.componentsToRender - Components or elements to display in the grid.
- * @param {boolean} [props.showAspect=false] - Controls whether the aspect ratio is enforced.
- * @param {string} [props.backgroundColor='transparent'] - Background color for each grid item.
- * @param {React.ReactNode} [props.Screenboard] - Overlay component for the video grid.
- * @param {boolean} [props.annotateScreenStream=false] - Enables screen stream annotation.
- * @param {MediaStream} [props.localStreamScreen] - Media stream for local screen annotation.
- *
- * @returns {JSX.Element} The rendered FlexibleVideo component.
- *
+ * @param {FlexibleVideoOptions} props - Configuration options for the FlexibleVideo component
+ * 
+ * @returns {JSX.Element} Rendered video grid with optional screen sharing overlay
+ * 
  * @example
- * ```tsx
+ * // Basic usage - 2x2 video grid
  * import React from 'react';
- * import { FlexibleVideo } from 'mediasfu-reactnative-expo';
+ * import { FlexibleVideo, VideoCard } from 'mediasfu-reactnative-expo';
  *
- * function App() {
- *   const videoComponents = [
- *     <RTCView streamURL="stream1" />,
- *     <RTCView streamURL="stream2" />,
- *   ];
+ * function VideoGrid() {
+ *   const participants = [p1, p2, p3, p4];
+ *   
+ *   const videoComponents = participants.map((p, idx) => (
+ *     <VideoCard
+ *       key={idx}
+ *       name={p.name}
+ *       participant={p}
+ *       videoStream={p.stream}
+ *       parameters={sessionParams}
+ *     />
+ *   ));
  *
  *   return (
  *     <FlexibleVideo
- *       customWidth={200}
- *       customHeight={150}
+ *       customWidth={400}
+ *       customHeight={300}
  *       rows={2}
  *       columns={2}
  *       componentsToRender={videoComponents}
  *       showAspect={true}
- *       backgroundColor="black"
- *       Screenboard={<Text>Overlay Component</Text>}
- *       annotateScreenStream={true}
- *       localStreamScreen={myLocalStream}
+ *       backgroundColor="#000"
  *     />
  *   );
  * }
- *
- * export default App;
- * ```
+ * 
+ * @example
+ * // With screen sharing annotation
+ * <FlexibleVideo
+ *   customWidth={800}
+ *   customHeight={600}
+ *   rows={1}
+ *   columns={1}
+ *   componentsToRender={[screenShareVideo]}
+ *   showAspect={true}
+ *   backgroundColor="#1a1a2e"
+ *   Screenboard={<ScreenboardComponent />}
+ *   annotateScreenStream={true}
+ *   localStreamScreen={localScreenStream}
+ * />
+ * 
+ * @example
+ * // Using uiOverrides for complete video grid replacement
+ * import { MyCustomVideoGrid } from './MyCustomVideoGrid';
+ * 
+ * const sessionConfig = {
+ *   credentials: { apiKey: 'your-api-key' },
+ *   uiOverrides: {
+ *     flexibleVideoComponent: {
+ *       component: MyCustomVideoGrid,
+ *       injectedProps: {
+ *         layout: 'spotlight',
+ *         transition: 'smooth',
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * // MyCustomVideoGrid.tsx
+ * export const MyCustomVideoGrid = (props: FlexibleVideoOptions & { layout: string; transition: string }) => {
+ *   return (
+ *     <View style={{ flex: 1 }}>
+ *       {props.layout === 'spotlight' ? (
+ *         <View style={{ flex: 1 }}>{props.componentsToRender[0]}</View>
+ *       ) : (
+ *         props.componentsToRender.map((component, idx) => (
+ *           <View key={idx} style={{ width: props.customWidth, height: props.customHeight }}>
+ *             {component}
+ *           </View>
+ *         ))
+ *       )}
+ *       {props.Screenboard}
+ *     </View>
+ *   );
+ * };
  */
 
 const FlexibleVideo: React.FC<FlexibleVideoOptions> = ({

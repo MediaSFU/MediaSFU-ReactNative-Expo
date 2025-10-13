@@ -16,7 +16,34 @@ import ShareButtonsComponent from '../menuComponents/ShareButtonsComponent';
 import { EventType } from '../../@types/types';
 
 /**
- * Interface defining the options for the ShareEventModal component.
+ * Configuration options for the ShareEventModal component.
+ * 
+ * @interface ShareEventModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isShareEventModalVisible - Controls modal visibility
+ * @property {() => void} onShareEventClose - Callback when modal is closed
+ * 
+ * **Meeting Information:**
+ * @property {string} roomName - Room/meeting name to be shared with participants
+ * @property {string} [adminPasscode] - Admin passcode for host access (shown only to hosts)
+ * @property {EventType} eventType - Type of event ('chat', 'broadcast', 'conference', 'webinar')
+ * 
+ * **User Context:**
+ * @property {string} [islevel] - User level ('0'=participant, '1'=co-host, '2'=host) - determines which credentials are shown
+ * 
+ * **Sharing Options:**
+ * @property {boolean} [shareButtons=true] - Whether to display social share buttons (copy link, QR code, etc.)
+ * @property {string} [localLink] - Optional local server link for sharing
+ * 
+ * **Customization:**
+ * @property {'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center'} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='rgba(255, 255, 255, 0.25)'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
  */
 export interface ShareEventModalOptions {
   /**
@@ -98,39 +125,101 @@ export interface ShareEventModalOptions {
 export type ShareEventModalType = (options: ShareEventModalOptions) => JSX.Element;
 
 /**
- * ShareEventModal component displays a modal that allows users to share event details,
- * including the room name and an optional admin passcode, with other participants.
- * This modal provides customizable options for positioning, appearance, and shared content.
- *
+ * ShareEventModal - Meeting credentials and invitation sharing interface
+ * 
+ * ShareEventModal is a React Native component that displays meeting credentials
+ * (room name, meeting ID, passcode) with social sharing buttons. It allows hosts
+ * to share meeting access information via copy link, QR code, email, and other methods.
+ * 
+ * **Key Features:**
+ * - Meeting ID display with copy functionality
+ * - Passcode display (admin passcode shown only to hosts)
+ * - Social share buttons (copy link, QR code, email, etc.)
+ * - Event type-specific formatting
+ * - Local/custom link support
+ * - Position-configurable modal (5 positions)
+ * - Scrollable content for long credentials
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.shareEventModal` to
+ * provide a completely custom sharing interface.
+ * 
  * @component
- * @param {ShareEventModalOptions} props - The properties for the ShareEventModal component.
- * @returns {JSX.Element} The rendered ShareEventModal component.
- *
+ * @param {ShareEventModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered share event modal
+ * 
  * @example
  * ```tsx
+ * // Basic usage for host sharing
  * import React, { useState } from 'react';
  * import { ShareEventModal } from 'mediasfu-reactnative-expo';
- *
- * function App() {
- *   const [modalVisible, setModalVisible] = useState(true);
- *
- *   return (
- *     <ShareEventModal
- *       isShareEventModalVisible={modalVisible}
- *       onShareEventClose={() => setModalVisible(false)}
- *       roomName="Room123"
- *       adminPasscode="Passcode456"
- *       islevel="2"
- *       eventType="conference"
- *       backgroundColor="rgba(255, 255, 255, 0.8)"
- *       shareButtons={true}
- *       position="topRight"
- *       localLink="https://example.com"
- *     />
- *   );
- * }
- *
- * export default App;
+ * 
+ * const [showShare, setShowShare] = useState(false);
+ * 
+ * return (
+ *   <ShareEventModal
+ *     isShareEventModalVisible={showShare}
+ *     onShareEventClose={() => setShowShare(false)}
+ *     roomName="meeting-room-123"
+ *     adminPasscode="host-pass-456"
+ *     islevel="2" // Host - shows admin passcode
+ *     eventType="conference"
+ *     shareButtons={true}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Participant view without admin passcode
+ * return (
+ *   <ShareEventModal
+ *     isShareEventModalVisible={isVisible}
+ *     onShareEventClose={handleClose}
+ *     roomName="webinar-room-789"
+ *     islevel="0" // Participant - no admin passcode shown
+ *     eventType="webinar"
+ *     position="center"
+ *     backgroundColor="rgba(255, 255, 255, 0.9)"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom local link
+ * return (
+ *   <ShareEventModal
+ *     isShareEventModalVisible={showModal}
+ *     onShareEventClose={closeModal}
+ *     roomName={roomId}
+ *     adminPasscode={hostPass}
+ *     islevel={userLevel}
+ *     eventType="broadcast"
+ *     localLink="https://custom-domain.com/join"
+ *     shareButtons={true}
+ *     position="bottomRight"
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     shareEventModal: {
+ *       component: MyCustomShareModal,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         showQRCode: true,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 

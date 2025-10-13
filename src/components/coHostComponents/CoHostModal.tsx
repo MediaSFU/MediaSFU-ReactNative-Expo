@@ -22,6 +22,40 @@ import {
 } from '../../@types/types';
 import { Socket } from 'socket.io-client';
 
+/**
+ * Configuration options for the CoHostModal component.
+ * 
+ * @interface CoHostModalOptions
+ * 
+ * **Modal Control:**
+ * @property {boolean} isCoHostModalVisible - Controls modal visibility
+ * @property {() => void} onCoHostClose - Callback when modal is closed
+ * 
+ * **Co-Host Management:**
+ * @property {string} [currentCohost='No coHost'] - Name of currently assigned co-host
+ * @property {Participant[]} participants - List of event participants eligible for co-host assignment
+ * @property {CoHostResponsibility[]} coHostResponsibility - Array of co-host responsibility items with enable/disable status
+ * @property {(coHostResponsibility: CoHostResponsibility[]) => void} updateCoHostResponsibility - Updates co-host responsibility settings
+ * @property {(coHost: string) => void} updateCoHost - Sets new co-host by name
+ * @property {(isCoHostModalVisible: boolean) => void} updateIsCoHostModalVisible - Toggles modal visibility state
+ * 
+ * **Settings Handler:**
+ * @property {(settings: ModifyCoHostSettingsOptions) => void} [onModifyEventSettings] - Custom handler for applying co-host settings (defaults to modifyCoHostSettings)
+ * 
+ * **Session Context:**
+ * @property {string} roomName - Room identifier for event
+ * @property {Socket} socket - Socket.io instance for real-time co-host updates
+ * @property {ShowAlert} [showAlert] - Alert display function for user feedback
+ * 
+ * **Customization:**
+ * @property {string} [position='topRight'] - Modal position on screen
+ * @property {string} [backgroundColor='#83c0e9'] - Modal background color
+ * @property {object} [style] - Additional custom styles for modal container
+ * 
+ * **Advanced Render Overrides:**
+ * @property {(options: { defaultContent: JSX.Element; dimensions: { width: number; height: number } }) => JSX.Element} [renderContent] - Custom render function for modal content
+ * @property {(options: { defaultContainer: JSX.Element; dimensions: { width: number; height: number } }) => React.ReactNode} [renderContainer] - Custom render function for modal container
+ */
 export interface CoHostModalOptions {
   isCoHostModalVisible: boolean;
   currentCohost?: string;
@@ -56,64 +90,113 @@ export type CoHostModalType = (options: CoHostModalOptions) => JSX.Element;
 
 
 /**
- * CoHostModal component allows users to manage co-host settings in a virtual event.
- *
- * This component renders a modal interface where users can assign a new co-host from the list of participants,
- * set responsibilities, and save the updated settings. It leverages a Socket instance for real-time updates
- * and offers customizable modal position and styling options.
- *
+ * CoHostModal - Co-host assignment and responsibility management interface
+ * 
+ * CoHostModal is a React Native component that provides host users with controls
+ * to assign a co-host from participant list and configure their responsibilities
+ * (media management, participant management, settings access). Changes are
+ * broadcast in real-time via Socket.io.
+ * 
+ * **Key Features:**
+ * - Co-host participant selection from dropdown
+ * - Granular responsibility toggles (manage media, manage participants, manage settings)
+ * - Real-time updates via Socket.io
+ * - Current co-host display
+ * - Validation and error alerts
+ * - Position-configurable modal (4 corners)
+ * - Scrollable responsibility list
+ * 
+ * **UI Customization:**
+ * This component can be replaced via `uiOverrides.coHostModal` to
+ * provide a completely custom co-host management interface.
+ * 
  * @component
- * @param {boolean} isCoHostModalVisible - Flag to control the visibility of the modal.
- * @param {() => void} onCoHostClose - Callback to close the modal.
- * @param {Function} [onModifyEventSettings=modifyCoHostSettings] - Callback to handle changes to event settings, defaulting to `modifyCoHostSettings`.
- * @param {string} [currentCohost='No coHost'] - Name of the current co-host.
- * @param {Participant[]} participants - List of event participants.
- * @param {CoHostResponsibility[]} coHostResponsibility - List of co-host responsibilities and their statuses.
- * @param {string} [position='topRight'] - Screen position of the modal.
- * @param {string} [backgroundColor='#83c0e9'] - Background color for the modal.
- * @param {string} roomName - Room identifier for the event.
- * @param {ShowAlert} [showAlert] - Function to display alerts.
- * @param {Function} updateCoHostResponsibility - Function to update co-host responsibility statuses.
- * @param {Function} updateCoHost - Function to set a new co-host.
- * @param {Function} updateIsCoHostModalVisible - Function to toggle modal visibility.
- * @param {Socket} socket - Socket instance for real-time communication.
- *
- * @returns {JSX.Element} The CoHostModal component.
- *
+ * @param {CoHostModalOptions} props - Configuration options
+ * 
+ * @returns {JSX.Element} Rendered co-host modal
+ * 
  * @example
  * ```tsx
- * import React from 'react';
+ * // Basic usage with participant selection
+ * import React, { useState } from 'react';
  * import { CoHostModal } from 'mediasfu-reactnative-expo';
  * import { io } from 'socket.io-client';
- *
- * function App() {
- *   const socket = io('http://localhost:3000');
- *   
- *   return (
- *     <CoHostModal
- *       isCoHostModalVisible={true}
- *       onCoHostClose={() => console.log('Modal closed')}
- *       currentCohost="John Doe"
- *       participants={[
- *         { name: 'John Doe', islevel: '1' },
- *         { name: 'Jane Doe', islevel: '0' }
- *       ]}
- *       coHostResponsibility={[
- *         { name: 'manageParticipants', value: true, dedicated: false }
- *       ]}
- *       position="topRight"
- *       backgroundColor="#83c0e9"
- *       roomName="Room 1"
- *       showAlert={({ message, type }) => console.log(message, type)}
- *       updateCoHostResponsibility={(responsibilities) => console.log(responsibilities)}
- *       updateCoHost={(coHost) => console.log(coHost)}
- *       updateIsCoHostModalVisible={(visible) => console.log(visible)}
- *       socket={socket}
- *     />
- *   );
- * }
- *
- * export default App;
+ * 
+ * const socket = io('https://your-server.com');
+ * const [showCoHost, setShowCoHost] = useState(false);
+ * 
+ * const participants = [
+ *   { name: 'John Doe', islevel: '1', id: '123' },
+ *   { name: 'Jane Smith', islevel: '2', id: '456' },
+ * ];
+ * 
+ * const responsibilities = [
+ *   { name: 'manageParticipants', value: true, dedicated: false },
+ *   { name: 'manageMedia', value: false, dedicated: true },
+ *   { name: 'manageSettings', value: true, dedicated: false },
+ * ];
+ * 
+ * return (
+ *   <CoHostModal
+ *     isCoHostModalVisible={showCoHost}
+ *     onCoHostClose={() => setShowCoHost(false)}
+ *     currentCohost="John Doe"
+ *     participants={participants}
+ *     coHostResponsibility={responsibilities}
+ *     roomName="meeting-room-123"
+ *     socket={socket}
+ *     updateCoHost={(name) => console.log('New co-host:', name)}
+ *     updateCoHostResponsibility={(resp) => console.log('Updated:', resp)}
+ *     updateIsCoHostModalVisible={setShowCoHost}
+ *     showAlert={({ message, type }) => alert(message)}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // With custom positioning and alert handling
+ * const handleModifySettings = (settings: ModifyCoHostSettingsOptions) => {
+ *   modifyCoHostSettings(settings);
+ *   console.log('Co-host settings applied');
+ * };
+ * 
+ * return (
+ *   <CoHostModal
+ *     isCoHostModalVisible={isVisible}
+ *     onCoHostClose={handleClose}
+ *     onModifyEventSettings={handleModifySettings}
+ *     currentCohost={currentCoHost}
+ *     participants={participantList}
+ *     coHostResponsibility={coHostResponsibilities}
+ *     roomName={roomId}
+ *     socket={socketInstance}
+ *     updateCoHost={setCurrentCoHost}
+ *     updateCoHostResponsibility={setCoHostResponsibilities}
+ *     updateIsCoHostModalVisible={setIsVisible}
+ *     position="bottomRight"
+ *     backgroundColor="#2c3e50"
+ *     showAlert={showCustomAlert}
+ *   />
+ * );
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Using custom UI via uiOverrides
+ * const config = {
+ *   uiOverrides: {
+ *     coHostModal: {
+ *       component: MyCustomCoHostManager,
+ *       injectedProps: {
+ *         theme: 'dark',
+ *         allowMultipleCoHosts: false,
+ *       },
+ *     },
+ *   },
+ * };
+ * 
+ * return <MyMeetingComponent config={config} />;
  * ```
  */
 
