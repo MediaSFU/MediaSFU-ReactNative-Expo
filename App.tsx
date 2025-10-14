@@ -802,6 +802,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import MediasfuGeneric, { MediasfuGenericOptions } from './src/components/mediasfuComponents/MediasfuGeneric';
 import MediasfuBroadcast from './src/components/mediasfuComponents/MediasfuBroadcast';
 import MediasfuChat from './src/components/mediasfuComponents/MediasfuChat';
@@ -1014,18 +1015,16 @@ const ShowcaseAudioCard: CustomAudioCardType = ({
 
 const ShowcaseMiniCard: CustomMiniCardType = ({ customStyle, initials, fontSize, renderContainer, ...rest }) => {
   const decorateContainer = ({ defaultContainer }: { defaultContainer: React.ReactNode; isImage: boolean }) => (
-    <div
+    <View
       style={{
-        display: 'grid',
-        gap: 6,
-        justifyItems: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
         height: '100%',
         width: '100%',
       }}
     >
       {defaultContainer}
-    </div>
+    </View>
   );
 
   const combinedRenderContainer = (options: { defaultContainer: React.ReactNode; isImage: boolean }) => {
@@ -1040,20 +1039,20 @@ const ShowcaseMiniCard: CustomMiniCardType = ({ customStyle, initials, fontSize,
       fontSize={fontSize ?? 16}
       customStyle={{
         borderRadius: 16,
-        border: '2px dashed #f59e0b',
-        background: '#fff7ed',
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: '#f59e0b',
+        backgroundColor: '#fff7ed',
         color: '#b45309',
-        fontWeight: 600,
+        fontWeight: '600',
         textTransform: 'uppercase',
         letterSpacing: 1,
         padding: 12,
-        display: 'grid',
-        placeItems: 'center',
-        gap: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
         width: '100%',
         height: '100%',
         minHeight: '100%',
-        boxSizing: 'border-box',
         ...customStyle,
       }}
       renderContainer={combinedRenderContainer}
@@ -1097,114 +1096,114 @@ const CustomWorkspace: CustomComponentType = ({ parameters }) => {
   } = parameters;
 
   return (
-    <div
+    <View
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(260px, 320px) 1fr',
-        gridTemplateRows: 'auto 1fr',
-        height: '100vh',
-        background: '#0f172a',
-        color: '#f1f5f9',
+        flex: 1,
+        height: '100%',
+        backgroundColor: '#0f172a',
       }}
     >
-      <header style={{ gridColumn: '1 / -1', padding: '24px 32px', borderBottom: '1px solid rgba(148, 163, 184, 0.3)' }}>
-        <h1 style={{ fontSize: 28, marginBottom: 8 }}>Custom Workspace</h1>
-        <p style={{ margin: 0, fontSize: 14, opacity: 0.8 }}>
-          Room <strong>{roomName || 'Unnamed room'}</strong> · Meeting ID <strong>{meetingID || 'pending'}</strong> · Your role level: <strong>{islevel || 'viewer'}</strong>
-        </p>
-      </header>
+      <View style={{ width: '100%', padding: 24, borderBottomWidth: 1, borderBottomColor: 'rgba(148, 163, 184, 0.3)' }}>
+        <Text style={{ fontSize: 28, marginBottom: 8, color: '#f1f5f9', fontWeight: 'bold' }}>Custom Workspace</Text>
+        <Text style={{ margin: 0, fontSize: 14, opacity: 0.8, color: '#f1f5f9' }}>
+          Room <Text style={{ fontWeight: 'bold' }}>{roomName || 'Unnamed room'}</Text> · Meeting ID <Text style={{ fontWeight: 'bold' }}>{meetingID || 'pending'}</Text> · Your role level: <Text style={{ fontWeight: 'bold' }}>{islevel || 'viewer'}</Text>
+        </Text>
+      </View>
 
-      <aside style={{ padding: 24, borderRight: '1px solid rgba(148, 163, 184, 0.2)' }}>
-        <h2 style={{ fontSize: 16, marginBottom: 12 }}>Participants ({participants?.length ?? 0})</h2>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
-          {(participants ?? []).map((person: Participant) => (
-            <li
-              key={person.id ?? person.name}
-              style={{
-                padding: '12px 16px',
-                borderRadius: 12,
-                background: 'rgba(79, 70, 229, 0.15)',
-                border: '1px solid rgba(79, 70, 229, 0.4)',
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>{person.name}</div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>Level {person.islevel ?? 'n/a'}</div>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      <View style={{ flexDirection: 'row', flex: 1 }}>
+        <View style={{ padding: 24, borderRightWidth: 1, borderRightColor: 'rgba(148, 163, 184, 0.2)', width: 320 }}>
+          <Text style={{ fontSize: 16, marginBottom: 12, color: '#f1f5f9', fontWeight: 'bold' }}>Participants ({participants?.length ?? 0})</Text>
+          <ScrollView>
+            {(participants ?? []).map((person: Participant) => (
+              <View
+                key={person.id ?? person.name}
+                style={{
+                  padding: 12,
+                  marginBottom: 8,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(79, 70, 229, 0.15)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(79, 70, 229, 0.4)',
+                }}
+              >
+                <Text style={{ fontWeight: '600', color: '#f1f5f9' }}>{person.name}</Text>
+                <Text style={{ fontSize: 12, opacity: 0.8, color: '#f1f5f9' }}>Level {person.islevel ?? 'n/a'}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
 
-      <main style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <section
-          style={{
-            padding: 24,
-            borderRadius: 18,
-            background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.25), rgba(14, 165, 233, 0.25))',
-            border: '1px solid rgba(79, 70, 229, 0.55)',
-            boxShadow: '0 18px 45px rgba(15, 23, 42, 0.45)',
-          }}
-        >
-          <h2 style={{ marginBottom: 12, fontSize: 18 }}>Custom Controls</h2>
-          <p style={{ marginBottom: 18, fontSize: 14, maxWidth: 420 }}>
-            Trigger native alerts, switch MediaSFU menus, or call any exposed helper via <code>parameters</code>.
-          </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              style={{
-                padding: '10px 18px',
-                borderRadius: 999,
-                border: 'none',
-                background: '#22c55e',
-                color: '#022c22',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-              onClick={() =>
-                showAlert?.({ message: 'Custom workspace calling back into MediaSFU!', type: 'success' })
-              }
-            >
-              Trigger success toast
-            </button>
-            <button
-              type="button"
-              style={{
-                padding: '10px 18px',
-                borderRadius: 999,
-                border: '1px solid rgba(148, 163, 184, 0.6)',
-                background: 'transparent',
-                color: '#e2e8f0',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-              onClick={() => toggleMenuModal?.({ showMenuModal: true })}
-            >
-              Open menu modal
-            </button>
-          </div>
-        </section>
-        <footer style={{ fontSize: 12, opacity: 0.6 }}>
-          Built using <code>customComponent</code>. Disable <code>enableFullCustomUI</code> to fall back to the standard UI.
-        </footer>
-      </main>
-    </div>
+        <ScrollView style={{ flex: 1, padding: 32 }}>
+          <View
+            style={{
+              padding: 24,
+              borderRadius: 18,
+              backgroundColor: 'rgba(79, 70, 229, 0.25)',
+              borderWidth: 1,
+              borderColor: 'rgba(79, 70, 229, 0.55)',
+              shadowColor: '#0f172a',
+              shadowOffset: { width: 0, height: 18 },
+              shadowOpacity: 0.45,
+              shadowRadius: 45,
+              elevation: 18,
+            }}
+          >
+            <Text style={{ marginBottom: 12, fontSize: 18, color: '#f1f5f9', fontWeight: 'bold' }}>Custom Controls</Text>
+            <Text style={{ marginBottom: 18, fontSize: 14, maxWidth: 420, color: '#f1f5f9' }}>
+              Trigger native alerts, switch MediaSFU menus, or call any exposed helper via <Text style={{ fontFamily: 'monospace' }}>parameters</Text>.
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 18,
+                  borderRadius: 999,
+                  backgroundColor: '#22c55e',
+                }}
+                onPress={() =>
+                  showAlert?.({ message: 'Custom workspace calling back into MediaSFU!', type: 'success' })
+                }
+              >
+                <Text style={{ color: '#022c22', fontWeight: '600' }}>Trigger success toast</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 18,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: 'rgba(148, 163, 184, 0.6)',
+                  backgroundColor: 'transparent',
+                }}
+                onPress={() => toggleMenuModal?.({ showMenuModal: true })}
+              >
+                <Text style={{ color: '#e2e8f0', fontWeight: '600' }}>Open menu modal</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Text style={{ fontSize: 12, opacity: 0.6, marginTop: 16, color: '#f1f5f9' }}>
+            Built using <Text style={{ fontFamily: 'monospace' }}>customComponent</Text>. Disable <Text style={{ fontFamily: 'monospace' }}>enableFullCustomUI</Text> to fall back to the standard UI.
+          </Text>
+        </ScrollView>
+      </View>
+    </View>
   );
 };
 
 const EnhancedMainContainer: React.FC<React.ComponentProps<typeof MainContainerComponent>> = (props) => (
-  <div style={{ border: '4px dashed rgba(139, 92, 246, 0.8)', borderRadius: 28, padding: 16, background: 'rgba(244, 244, 255, 0.55)' }}>
-    <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#6b21a8', marginBottom: 8 }}>
+  <View style={{ borderWidth: 4, borderStyle: 'dashed', borderColor: 'rgba(139, 92, 246, 0.8)', borderRadius: 28, padding: 16, backgroundColor: 'rgba(244, 244, 255, 0.55)' }}>
+    <Text style={{ fontSize: 12, fontWeight: '600', textTransform: 'uppercase', color: '#6b21a8', marginBottom: 8 }}>
       Custom main container wrapper (uiOverrides.mainContainer)
-    </div>
+    </Text>
     <MainContainerComponent {...props} />
-  </div>
+  </View>
 );
 
 const EnhancedPagination: React.FC<React.ComponentProps<typeof Pagination>> = (props) => (
-  <div style={{ display: 'grid', gap: 8, background: '#0ea5e9', padding: '10px 14px', borderRadius: 16, color: '#f8fafc' }}>
-    <span style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>Custom pagination shell</span>
+  <View style={{ backgroundColor: '#0ea5e9', padding: 10, borderRadius: 16 }}>
+    <Text style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: '#f8fafc', marginBottom: 8 }}>Custom pagination shell</Text>
     <Pagination {...props} />
-  </div>
+  </View>
 );
 
 const EnhancedAlert: React.FC<React.ComponentProps<typeof AlertComponent>> = (props) => (
