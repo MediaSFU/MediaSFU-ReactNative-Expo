@@ -17,6 +17,7 @@ import {
   Participant,
   ShowAlert,
 } from '../../@types/types';
+import { getModalBodyTheme } from '../../components_modern/core/modalBodyTheme';
 
 /**
  * Interface defining the props for the MessagePanel component.
@@ -122,6 +123,11 @@ export interface MessagePanelOptions {
    * Settings for the chat.
    */
   chatSetting: string;
+
+  /**
+   * Whether to render the panel with modern dark/light theme colors.
+   */
+  isDarkMode?: boolean;
 }
 
 /**
@@ -197,8 +203,21 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
   roomName,
   socket,
   chatSetting,
+  isDarkMode,
 }) => {
   const inputRef = useRef<TextInput | null>(null);
+  const theme = getModalBodyTheme(isDarkMode);
+  const shouldUseModernTheme = typeof isDarkMode === 'boolean';
+  const selfBubbleColor = shouldUseModernTheme
+    ? isDarkMode
+      ? 'rgba(37, 99, 235, 0.26)'
+      : 'rgba(219, 234, 254, 0.95)'
+    : '#DCF8C6';
+  const otherBubbleColor = shouldUseModernTheme
+    ? isDarkMode
+      ? 'rgba(15, 23, 42, 0.72)'
+      : 'rgba(241, 245, 249, 0.95)'
+    : '#1ce5c7';
 
   const [replyInfo, setReplyInfo] = useState<{
     text: string;
@@ -218,6 +237,18 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
     } else {
       setGroupMessageText(text);
     }
+  };
+
+  const getDirectReceiverLabel = (receivers?: string[]) => {
+    const normalizedReceivers = Array.isArray(receivers)
+      ? receivers.filter((receiver) => receiver && receiver.trim().length > 0)
+      : [];
+
+    if (normalizedReceivers.length > 0) {
+      return normalizedReceivers.join(', ');
+    }
+
+    return '';
   };
 
   /**
@@ -280,7 +311,7 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
     try {
       await onSendMessagePress({
         message,
-        receivers: type === 'direct' ? [senderId!] : [],
+        receivers: type === 'direct' && senderId ? [senderId] : [],
         group: type === 'group',
         messagesLength,
         member,
@@ -340,7 +371,7 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
   }, [directMessageDetails, focusedInput, startDirectMessage]);
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor }]}> 
       <ScrollView style={styles.messagesContainer}>
       {messages.map((message, index) => (
         <View key={index} style={styles.messageWrapper}>
@@ -353,21 +384,21 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
             ]}
           >
             <View style={styles.messageHeader}>
-              {message.sender === username && !message.group && (
-                <Text style={styles.receiverText}>
-                  To: {message.receivers.join(', ')}
+              {message.sender === username && !message.group && getDirectReceiverLabel(message.receivers) && (
+                <Text style={[styles.receiverText, { color: theme.textColor }]}> 
+                  To: {getDirectReceiverLabel(message.receivers)}
                 </Text>
               )}
-              <Text style={styles.senderText}>
+              <Text style={[styles.senderText, { color: theme.textColor }]}> 
                 {message.sender === username ? '' : message.sender}
               </Text>
-              <Text style={styles.timestampText}>{message.timestamp}</Text>
+              <Text style={[styles.timestampText, { color: theme.mutedTextColor }]}>{message.timestamp}</Text>
               {message.sender !== username && !message.group && (
                 <Pressable
                   style={styles.replyButton}
                   onPress={() => openReplyInput(message.sender)}
                 >
-                  <FontAwesome5 name="reply" size={12} color="black" />
+                  <FontAwesome5 name="reply" size={12} color={theme.iconColor} />
                 </Pressable>
               )}
             </View>
@@ -376,9 +407,10 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
                 message.sender === member
                   ? styles.contentSelf
                   : styles.contentOther,
+                { backgroundColor: message.sender === member ? selfBubbleColor : otherBubbleColor },
               ]}
             >
-              <Text style={styles.messageText}>{message.message}</Text>
+              <Text style={[styles.messageText, { color: theme.textColor }]}>{message.message}</Text>
             </View>
           </View>
         </View>
@@ -386,27 +418,38 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
 
       {/* Reply Info */}
       {replyInfo && (
-        <View style={styles.replyInfoContainer}>
-          <Text style={styles.replyText}>{replyInfo.text}</Text>
-          <Text style={styles.replyUsername}>{replyInfo.username}</Text>
+        <View style={[styles.replyInfoContainer, { backgroundColor: theme.rowBackgroundColor }]}> 
+          <Text style={[styles.replyText, { color: theme.textColor }]}>{replyInfo.text}</Text>
+          <Text style={[styles.replyUsername, { color: theme.dangerColor }]}>{replyInfo.username}</Text>
         </View>
       )}
       </ScrollView>
 
       {/* Input Area */}
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { borderColor: theme.dividerColor }]}> 
         <TextInput
           ref={
             focusedInput && startDirectMessage && directMessageDetails
               ? inputRef
               : null
           }
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: theme.inputBackgroundColor,
+              borderColor: theme.borderColor,
+              color: theme.inputTextColor,
+            },
+          ]}
           placeholder={
             type === 'direct'
-              ? focusedInput && startDirectMessage && directMessageDetails
+              ? senderId
+                ? `Send a direct message to ${senderId}`
+                : directMessageDetails
                 ? `Send a direct message to ${directMessageDetails.name}`
-                : 'Select a message to reply to'
+                : islevel === '2'
+                ? 'Select a message to reply to'
+                : 'Send a direct message to the host'
               : eventType === 'chat'
               ? 'Send a message'
               : 'Send a message to everyone'
@@ -415,10 +458,10 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
           multiline
           onChangeText={handleTextInputChange}
           value={type === 'direct' ? directMessageText : groupMessageText}
-          placeholderTextColor="gray"
+          placeholderTextColor={theme.placeholderTextColor}
         />
-        <Pressable style={styles.sendButton} onPress={handleSendButton}>
-          <FontAwesome5 name="paper-plane" size={16} color="white" />
+        <Pressable style={[styles.sendButton, { backgroundColor: theme.buttonBackgroundColor }]} onPress={handleSendButton}>
+          <FontAwesome5 name="paper-plane" size={16} color={theme.buttonTextColor} />
         </Pressable>
       </View>
     </View>

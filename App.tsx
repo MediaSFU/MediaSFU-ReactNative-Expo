@@ -632,7 +632,7 @@
 //  *       return res.status(401).json({ error: "Invalid or expired credentials" });
 //  *     }
 //  *
-//  *     const response = await fetch("https://mediasfu.com/v1/rooms", {
+//  *     const response = await fetch("https://mediasfu.com/v1/rooms/", {
 //  *       method: "POST",
 //  *       headers: {
 //  *         "Content-Type": "application/json",
@@ -720,7 +720,7 @@
 // *     localLink = '',
 // * }) => {
 // *     try {
-// *         let finalLink = 'https://mediasfu.com/v1/rooms/join';
+// *         let finalLink = 'https://mediasfu.com/v1/rooms/';
 // *
 // *         // Update finalLink if using a local server
 // *         if (localLink) {
@@ -801,14 +801,15 @@
  * verbose to double as living documentation that developers can copy, trim, or expand.
  */
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import MediasfuGeneric, { MediasfuGenericOptions } from './src/components/mediasfuComponents/MediasfuGeneric';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Linking, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import AppVisualAudit from './AppVisualAudit';
+import MediasfuGeneric, { ModernMediasfuGenericOptions as MediasfuGenericOptions } from './src/components_modern/mediasfu_components/ModernMediasfuGeneric';
 import MediasfuBroadcast from './src/components/mediasfuComponents/MediasfuBroadcast';
 import MediasfuChat from './src/components/mediasfuComponents/MediasfuChat';
 import MediasfuWebinar from './src/components/mediasfuComponents/MediasfuWebinar';
 import MediasfuConference from './src/components/mediasfuComponents/MediasfuConference';
-import PreJoinPage from './src/components/miscComponents/PreJoinPage';
+import PreJoinPage from './src/components_modern/misc_components/ModernPreJoinPage';
 import MainContainerComponent from './src/components/displayComponents/MainContainerComponent';
 import Pagination from './src/components/displayComponents/Pagination';
 import AlertComponent from './src/components/displayComponents/AlertComponent';
@@ -822,6 +823,7 @@ import MiniAudio from './src/components/displayComponents/MiniAudio';
 import MiniAudioPlayer from './src/methods/utils/MiniAudioPlayer/MiniAudioPlayer';
 import { createRoomOnMediaSFU } from './src/methods/utils/createRoomOnMediaSFU';
 import { joinRoomOnMediaSFU } from './src/methods/utils/joinRoomOnMediaSFU';
+import { getDemoCloudConfig } from './demoCloudConfig';
 import {
   CreateMediaSFURoomOptions,
   JoinMediaSFURoomOptions,
@@ -832,6 +834,167 @@ import {
   MediasfuUICustomOverrides,
   Participant,
 } from './src/@types/types';
+
+type LiveRoomRoute = {
+  action: 'create' | 'join';
+  userName: string;
+  meetingID?: string;
+  eventType: string;
+  duration: number;
+  capacity: number;
+  renderUI: boolean;
+  autoRequest?: 'audio' | 'video' | 'screen';
+};
+
+const parsePositiveInteger = (value: string | null, fallback: number) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const readRouteParam = (url: string, key: string) => {
+  const match = new RegExp(`[?&]${key}=([^&#]+)`, 'i').exec(url);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+const normalizeAutoRequest = (value?: string | null) => {
+  return value === 'audio' || value === 'video' || value === 'screen'
+    ? value
+    : undefined;
+};
+
+const resolveLiveRoomRoute = (url?: string | null): LiveRoomRoute | null => {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const normalizedTarget = `${parsed.host}${parsed.pathname}`.replace(/^\/+|\/+$/g, '');
+    const normalizedTargetParts = normalizedTarget
+      .split('/')
+      .map((part) => part.trim().toLowerCase())
+      .filter(Boolean);
+    const isLiveLaunch =
+      normalizedTarget === 'live' ||
+      normalizedTargetParts.at(-1) === 'live' ||
+      parsed.searchParams.get('live') === '1';
+
+    if (!isLiveLaunch) {
+      return null;
+    }
+
+    const action = parsed.searchParams.get('action');
+    const userName = (parsed.searchParams.get('userName') ?? '').trim();
+
+    if ((action !== 'create' && action !== 'join') || !userName) {
+      return null;
+    }
+
+    const meetingID = (parsed.searchParams.get('meetingID') ?? '').trim();
+    if (action === 'join' && !meetingID) {
+      return null;
+    }
+
+    return {
+      action,
+      userName,
+      meetingID: meetingID || undefined,
+      eventType: (parsed.searchParams.get('eventType') ?? 'conference').trim() || 'conference',
+      duration: parsePositiveInteger(parsed.searchParams.get('duration'), 15),
+      capacity: parsePositiveInteger(parsed.searchParams.get('capacity'), 4),
+      renderUI:
+        parsed.searchParams.get('ui') === '1' ||
+        parsed.searchParams.get('renderUI') === '1',
+      autoRequest: normalizeAutoRequest(parsed.searchParams.get('autoRequest')),
+    };
+  } catch {
+    const isLiveLaunch = /:\/\/live(?:[/?#]|$)|\/live(?:[?#]|$)|[?&]live=1(?:&|$)/i.test(url);
+
+    if (!isLiveLaunch) {
+      return null;
+    }
+
+    const action = readRouteParam(url, 'action');
+    const userName = (readRouteParam(url, 'userName') ?? '').trim();
+    const meetingID = (readRouteParam(url, 'meetingID') ?? '').trim();
+
+    if ((action !== 'create' && action !== 'join') || !userName) {
+      return null;
+    }
+
+    if (action === 'join' && !meetingID) {
+      return null;
+    }
+
+    return {
+      action,
+      userName,
+      meetingID: meetingID || undefined,
+      eventType: (readRouteParam(url, 'eventType') ?? 'conference').trim() || 'conference',
+      duration: parsePositiveInteger(readRouteParam(url, 'duration'), 15),
+      capacity: parsePositiveInteger(readRouteParam(url, 'capacity'), 4),
+      renderUI:
+        readRouteParam(url, 'ui') === '1' ||
+        readRouteParam(url, 'renderUI') === '1',
+      autoRequest: normalizeAutoRequest(readRouteParam(url, 'autoRequest')),
+    };
+  }
+};
+
+const buildLiveNoUIPreJoinOptions = (
+  liveRoomRoute: LiveRoomRoute,
+): CreateMediaSFURoomOptions | JoinMediaSFURoomOptions => {
+  if (liveRoomRoute.action === 'join') {
+    return {
+      action: 'join',
+      meetingID: liveRoomRoute.meetingID!,
+      userName: liveRoomRoute.userName,
+    };
+  }
+
+  return {
+    action: 'create',
+    capacity: liveRoomRoute.capacity,
+    duration: liveRoomRoute.duration,
+    eventType: liveRoomRoute.eventType,
+    userName: liveRoomRoute.userName,
+  };
+};
+
+const getInitialLiveDebugState = (liveRoomRoute?: LiveRoomRoute | false) => ({
+  request: liveRoomRoute ? 'booting' : 'idle',
+  status: liveRoomRoute ? 'booting' : 'inactive',
+  room: liveRoomRoute && 'meetingID' in liveRoomRoute ? liveRoomRoute.meetingID ?? '' : '',
+  member: liveRoomRoute && 'userName' in liveRoomRoute ? liveRoomRoute.userName : '',
+  event: liveRoomRoute && 'eventType' in liveRoomRoute ? liveRoomRoute.eventType : '',
+  participants: 0,
+  host: false,
+  cohost: false,
+  audioRequestState: 'none',
+  audioRequestTime: 0,
+  micAction: false,
+  videoRequestState: 'none',
+  videoRequestTime: 0,
+  videoAction: false,
+  screenRequestState: 'none',
+  screenRequestTime: 0,
+  screenAction: false,
+  shared: false,
+  shareScreenStarted: false,
+  error: 'none',
+});
+
+const extractResponseError = (data: unknown) => {
+  if (!data || typeof data !== 'object') {
+    return 'unknown';
+  }
+
+  if ('error' in data && typeof data.error === 'string' && data.error.trim()) {
+    return data.error;
+  }
+
+  return 'unknown';
+};
 
 // -----------------------------------------------------------------------------
 // Toggle Section
@@ -852,13 +1015,15 @@ const enableFullCustomUI = false;      // Set true to mount the CustomWorkspace 
 const enableNoUIPreJoin = !showPrebuiltUI || enableFullCustomUI; // auto-calculated helper
 
 // Layered customization toggles
-const enableCardBuilders = true;       // Enables custom video/audio/mini card components
+const enableCardBuilders = false;      // Keep the running app on the default prebuilt cards
 const enableUICoreOverrides = false;    // Enables layout-centric overrides via uiOverrides
-const enableModalOverrides = true;     // Enables modal overrides via uiOverrides
-const enableAudioComponentOverrides = true; // Enables MiniAudio and MiniAudioPlayer overrides
-const enableContainerStyling = true;   // Applies a custom containerStyle
+const enableModalOverrides = false;    // Keep the running app on the default modal set
+const enableAudioComponentOverrides = false; // Keep the running app on the default audio surfaces
+const enableContainerStyling = false;  // Avoid showcase-only shell styling on the validation surface
 const enableBackendProxyHooks = true;  // Hooks create/join calls through helper functions
-const enableDebugPanel = true;         // Renders a JSON panel of live parameters on the right
+const enableDebugPanel = false;        // Do not render showcase/debug-only UI in the validation surface
+
+const demoCloudConfig = getDemoCloudConfig();
 
 const connectionPresets: Record<ConnectionScenario, {
   credentials?: { apiUserName: string; apiKey: string };
@@ -866,20 +1031,14 @@ const connectionPresets: Record<ConnectionScenario, {
   connectMediaSFU: boolean;
 }> = {
   cloud: {
-    credentials: {
-      apiUserName: 'yourDevUser',
-      apiKey: 'yourDevApiKey1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
+    credentials: demoCloudConfig.credentials,
     localLink: '',
-    connectMediaSFU: true,
+    connectMediaSFU: demoCloudConfig.connectMediaSFU,
   },
   hybrid: {
-    credentials: {
-      apiUserName: 'dummyUsr',
-      apiKey: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
+    credentials: demoCloudConfig.credentials,
     localLink: 'http://localhost:3000',
-    connectMediaSFU: true,
+    connectMediaSFU: demoCloudConfig.connectMediaSFU,
   },
   ce: {
     credentials: undefined,
@@ -1329,27 +1488,326 @@ const SoftConfirmExitModal: React.FC<React.ComponentProps<typeof ConfirmExitModa
 // AppUnique Component
 // -----------------------------------------------------------------------------
 const AppUnique: React.FC = () => {
+  const [liveRoomRoute, setLiveRoomRoute] = useState<LiveRoomRoute | false>(() => {
+    if (typeof window !== 'undefined' && typeof window.location?.href === 'string') {
+      return resolveLiveRoomRoute(window.location.href) ?? false;
+    }
+
+    return false;
+  });
   const [sourceParameters, setSourceParameters] = useState<{ [key: string]: any }>({});
+  const [liveDebugState, setLiveDebugState] = useState(() =>
+    getInitialLiveDebugState(liveRoomRoute),
+  );
+  const [autoRequestSent, setAutoRequestSent] = useState(false);
+
+  useEffect(() => {
+    const applyRoute = (url?: string | null) => {
+      const route = resolveLiveRoomRoute(url);
+      setLiveRoomRoute((current) => route ?? current ?? false);
+    };
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      applyRoute(url);
+    });
+
+    Linking.getInitialURL().then(applyRoute).catch(() => undefined);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    setLiveDebugState(getInitialLiveDebugState(liveRoomRoute));
+  }, [
+    liveRoomRoute && 'action' in liveRoomRoute ? liveRoomRoute.action : null,
+    liveRoomRoute && 'autoRequest' in liveRoomRoute ? liveRoomRoute.autoRequest : null,
+    liveRoomRoute && 'meetingID' in liveRoomRoute ? liveRoomRoute.meetingID : null,
+    liveRoomRoute && 'userName' in liveRoomRoute ? liveRoomRoute.userName : null,
+    liveRoomRoute && 'eventType' in liveRoomRoute ? liveRoomRoute.eventType : null,
+    liveRoomRoute && 'renderUI' in liveRoomRoute ? liveRoomRoute.renderUI : null,
+  ]);
+
+  useEffect(() => {
+    setAutoRequestSent(false);
+  }, [
+    liveRoomRoute && 'action' in liveRoomRoute ? liveRoomRoute.action : null,
+    liveRoomRoute && 'autoRequest' in liveRoomRoute ? liveRoomRoute.autoRequest : null,
+    liveRoomRoute && 'meetingID' in liveRoomRoute ? liveRoomRoute.meetingID : null,
+    liveRoomRoute && 'userName' in liveRoomRoute ? liveRoomRoute.userName : null,
+  ]);
+
+  const liveModeRequested = Boolean(liveRoomRoute);
+  const liveRoomWantsUI = Boolean(liveRoomRoute?.renderUI);
+
   const updateSourceParameters = (data: { [key: string]: any }) => {
     setSourceParameters(data);
+
+    if (!liveModeRequested) {
+      return;
+    }
+
+    const participantsCount =
+      typeof data.participantsCounter === 'number'
+        ? data.participantsCounter
+        : Array.isArray(data.participants)
+          ? data.participants.length
+          : 0;
+
+    const nextAudioRequestState =
+      typeof data.audioRequestState === 'string'
+        ? data.audioRequestState
+        : data.audioRequestState === null
+          ? 'none'
+          : undefined;
+    const nextAudioRequestTime =
+      typeof data.audioRequestTime === 'number' && Number.isFinite(data.audioRequestTime)
+        ? data.audioRequestTime
+        : undefined;
+    const nextMicAction =
+      typeof data.micAction === 'boolean' ? data.micAction : undefined;
+    const nextVideoRequestState =
+      typeof data.videoRequestState === 'string'
+        ? data.videoRequestState
+        : data.videoRequestState === null
+          ? 'none'
+          : undefined;
+    const nextVideoRequestTime =
+      typeof data.videoRequestTime === 'number' && Number.isFinite(data.videoRequestTime)
+        ? data.videoRequestTime
+        : undefined;
+    const nextVideoAction =
+      typeof data.videoAction === 'boolean' ? data.videoAction : undefined;
+
+    const nextScreenRequestState =
+      typeof data.screenRequestState === 'string'
+        ? data.screenRequestState
+        : data.screenRequestState === null
+          ? 'none'
+          : undefined;
+    const nextScreenRequestTime =
+      typeof data.screenRequestTime === 'number' && Number.isFinite(data.screenRequestTime)
+        ? data.screenRequestTime
+        : undefined;
+    const nextScreenAction =
+      typeof data.screenAction === 'boolean' ? data.screenAction : undefined;
+    const nextShared =
+      typeof data.shared === 'boolean' ? data.shared : undefined;
+    const nextShareScreenStarted =
+      typeof data.shareScreenStarted === 'boolean'
+        ? data.shareScreenStarted
+        : undefined;
+
+    setLiveDebugState((current) => ({
+      ...current,
+      request: data.validated
+        ? liveRoomRoute?.action === 'join'
+          ? 'room-joined'
+          : 'room-active'
+        : current.request,
+      status: data.validated ? 'validated' : current.status === 'error' ? 'error' : 'connecting',
+      room:
+        typeof data.roomName === 'string' && data.roomName.trim()
+          ? data.roomName
+          : current.room,
+      member:
+        typeof data.member === 'string' && data.member.trim()
+          ? data.member
+          : current.member,
+      event:
+        typeof data.eventType === 'string' && data.eventType.trim()
+          ? data.eventType
+          : current.event,
+      participants: participantsCount,
+      host: Boolean(data.youAreHost),
+      cohost: Boolean(data.youAreCoHost),
+      audioRequestState: nextAudioRequestState ?? current.audioRequestState,
+      audioRequestTime: nextAudioRequestTime ?? current.audioRequestTime,
+      micAction: nextMicAction ?? current.micAction,
+      videoRequestState: nextVideoRequestState ?? current.videoRequestState,
+      videoRequestTime: nextVideoRequestTime ?? current.videoRequestTime,
+      videoAction: nextVideoAction ?? current.videoAction,
+      screenRequestState: nextScreenRequestState ?? current.screenRequestState,
+      screenRequestTime: nextScreenRequestTime ?? current.screenRequestTime,
+      screenAction: nextScreenAction ?? current.screenAction,
+      shared: nextShared ?? current.shared,
+      shareScreenStarted: nextShareScreenStarted ?? current.shareScreenStarted,
+    }));
   };
+
+  useEffect(() => {
+    if (
+      !liveModeRequested ||
+      autoRequestSent ||
+      liveRoomRoute?.action !== 'join' ||
+      liveDebugState.status !== 'validated' ||
+      !liveRoomRoute.autoRequest
+    ) {
+      return;
+    }
+
+    const liveSocket = sourceParameters.socket;
+    const roomName =
+      typeof sourceParameters.roomName === 'string' && sourceParameters.roomName.trim()
+        ? sourceParameters.roomName
+        : liveRoomRoute.meetingID;
+    const memberName =
+      typeof sourceParameters.member === 'string' && sourceParameters.member.trim()
+        ? sourceParameters.member
+        : liveRoomRoute.userName;
+
+    if (!liveSocket?.emit || !liveSocket?.id || !roomName || !memberName) {
+      return;
+    }
+
+    const requestConfig =
+      liveRoomRoute.autoRequest === 'audio'
+        ? {
+            icon: 'fa-microphone',
+            applyLocalState: () => {
+              sourceParameters.updateAudioRequestState?.('pending');
+              setLiveDebugState((current) => ({
+                ...current,
+                audioRequestState: 'pending',
+              }));
+            },
+          }
+        : liveRoomRoute.autoRequest === 'video'
+          ? {
+              icon: 'fa-video',
+              applyLocalState: () => {
+                sourceParameters.updateVideoRequestState?.('pending');
+                setLiveDebugState((current) => ({
+                  ...current,
+                  videoRequestState: 'pending',
+                }));
+              },
+            }
+          : {
+              icon: 'fa-desktop',
+              applyLocalState: () => {
+                sourceParameters.updateScreenRequestState?.('pending');
+                setLiveDebugState((current) => ({
+                  ...current,
+                  screenRequestState: 'pending',
+                }));
+              },
+            };
+
+    requestConfig.applyLocalState();
+    liveSocket.emit('participantRequest', {
+      userRequest: {
+        id: liveSocket.id,
+        name: memberName,
+        icon: requestConfig.icon,
+      },
+      roomName,
+    });
+    setAutoRequestSent(true);
+  }, [
+    autoRequestSent,
+    liveDebugState.status,
+    liveModeRequested,
+    liveRoomRoute,
+    sourceParameters,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Connection Scenarios
   // ---------------------------------------------------------------------------
   const preset = connectionPresets[connectionScenario];
   const { credentials, localLink, connectMediaSFU } = preset;
+  const useHeadlessPreJoin = (liveModeRequested && !liveRoomWantsUI) || enableNoUIPreJoin;
+  const returnUI = (liveRoomWantsUI || !liveModeRequested) && !enableFullCustomUI && showPrebuiltUI;
 
   // When the UI is bypassed, simulate pre-join input here
-  const noUIPreJoinOptions: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions | undefined = enableNoUIPreJoin
-    ? {
+  const noUIPreJoinOptions: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions | undefined = liveRoomRoute
+    ? buildLiveNoUIPreJoinOptions(liveRoomRoute)
+    : enableNoUIPreJoin
+      ? {
         action: 'create',
         capacity: 12,
         duration: 30,
         eventType: 'conference',
         userName: 'Demo Host',
       }
-    : undefined;
+      : undefined;
+
+  const createMediaSFURoom = async (
+    options: Parameters<typeof createRoomOnMediaSFU>[0],
+  ) => {
+    if (liveModeRequested) {
+      setLiveDebugState((current) => ({
+        ...current,
+        request: 'creating-room',
+        status: 'connecting',
+        error: 'none',
+      }));
+    }
+
+    const response = await createRoomOnMediaSFU(options);
+
+    if (liveModeRequested) {
+      if (response.success && response.data && 'roomName' in response.data) {
+        setLiveDebugState((current) => ({
+          ...current,
+          request: 'room-created',
+          status: 'awaiting-room',
+          room: response.data.roomName,
+          member: options.payload.userName,
+          event: options.payload.eventType,
+          error: 'none',
+        }));
+      } else {
+        setLiveDebugState((current) => ({
+          ...current,
+          request: 'create-failed',
+          status: 'error',
+          error: extractResponseError(response.data),
+        }));
+      }
+    }
+
+    return response;
+  };
+
+  const joinMediaSFURoom = async (
+    options: Parameters<typeof joinRoomOnMediaSFU>[0],
+  ) => {
+    if (liveModeRequested) {
+      setLiveDebugState((current) => ({
+        ...current,
+        request: 'joining-room',
+        status: 'connecting',
+        error: 'none',
+      }));
+    }
+
+    const response = await joinRoomOnMediaSFU(options);
+
+    if (liveModeRequested) {
+      if (response.success) {
+        setLiveDebugState((current) => ({
+          ...current,
+          request: 'room-joined',
+          status: 'awaiting-room',
+          room: options.payload.meetingID,
+          member: options.payload.userName,
+          error: 'none',
+        }));
+      } else {
+        setLiveDebugState((current) => ({
+          ...current,
+          request: 'join-failed',
+          status: 'error',
+          error: extractResponseError(response.data),
+        }));
+      }
+    }
+
+    return response;
+  };
 
   const cardOverrides = useMemo<
     Partial<Pick<MediasfuGenericOptions, 'customVideoCard' | 'customAudioCard' | 'customMiniCard'>>
@@ -1404,33 +1862,100 @@ const AppUnique: React.FC = () => {
 
   const ExperienceComponent = experienceComponentMap[selectedExperience];
 
-  const preJoinRenderer = showPrebuiltUI
+  const preJoinRenderer = returnUI
     ? (options: React.ComponentProps<typeof PreJoinPage>) => <PreJoinPage {...options} />
     : undefined;
 
-  const customComponent = enableFullCustomUI ? CustomWorkspace : undefined;
+  const customComponent = !liveModeRequested && enableFullCustomUI ? CustomWorkspace : undefined;
+
+  const liveDebugLines = liveModeRequested
+    ? [
+        'sdk: expo',
+        `action: ${liveRoomRoute?.action ?? 'unknown'}`,
+        `request: ${liveDebugState.request}`,
+        `status: ${liveDebugState.status}`,
+        `room: ${liveDebugState.room || 'pending'}`,
+        `member: ${liveDebugState.member || liveRoomRoute?.userName || 'pending'}`,
+        `event: ${liveDebugState.event || liveRoomRoute?.eventType || 'pending'}`,
+        `participants: ${liveDebugState.participants}`,
+        `host: ${liveDebugState.host ? 'yes' : 'no'}`,
+        `cohost: ${liveDebugState.cohost ? 'yes' : 'no'}`,
+        `audioRequestState: ${liveDebugState.audioRequestState}`,
+        `audioCooldown: ${liveDebugState.audioRequestTime > Date.now() ? Math.ceil((liveDebugState.audioRequestTime - Date.now()) / 1000) : 0}`,
+        `micAction: ${liveDebugState.micAction ? 'yes' : 'no'}`,
+        `videoRequestState: ${liveDebugState.videoRequestState}`,
+        `videoCooldown: ${liveDebugState.videoRequestTime > Date.now() ? Math.ceil((liveDebugState.videoRequestTime - Date.now()) / 1000) : 0}`,
+        `videoAction: ${liveDebugState.videoAction ? 'yes' : 'no'}`,
+        `screenRequestState: ${liveDebugState.screenRequestState}`,
+        `screenCooldown: ${liveDebugState.screenRequestTime > Date.now() ? Math.ceil((liveDebugState.screenRequestTime - Date.now()) / 1000) : 0}`,
+        `screenAction: ${liveDebugState.screenAction ? 'yes' : 'no'}`,
+        `shared: ${liveDebugState.shared ? 'yes' : 'no'}`,
+        `shareScreenStarted: ${liveDebugState.shareScreenStarted ? 'yes' : 'no'}`,
+        `error: ${liveDebugState.error}`,
+      ]
+    : [];
+
+  const experienceKey = liveModeRequested
+    ? [
+        selectedExperience,
+        'live',
+        liveRoomRoute?.action ?? 'unknown',
+        liveRoomRoute?.meetingID ?? liveRoomRoute?.eventType ?? 'pending',
+        liveRoomRoute?.userName ?? 'pending',
+        liveRoomRoute?.renderUI ? 'ui' : 'headless',
+      ].join(':')
+    : `${selectedExperience}:default`;
 
   return (
-        <ExperienceComponent
+    <>
+      <ExperienceComponent
+          key={experienceKey}
           PrejoinPage={preJoinRenderer}
           localLink={localLink}
           connectMediaSFU={connectMediaSFU}
           credentials={credentials}
-          // returnUI={!enableFullCustomUI && showPrebuiltUI}
-          // noUIPreJoinOptions={noUIPreJoinOptions}
-          // sourceParameters={sourceParameters}
-          // updateSourceParameters={updateSourceParameters}
-          // customComponent={customComponent}
+          returnUI={returnUI}
+          noUIPreJoinOptions={liveModeRequested || useHeadlessPreJoin ? noUIPreJoinOptions : undefined}
+          autoProceedPreJoin={liveRoomWantsUI ? true : undefined}
+          sourceParameters={liveModeRequested || useHeadlessPreJoin ? sourceParameters : undefined}
+          updateSourceParameters={liveModeRequested || useHeadlessPreJoin ? updateSourceParameters : undefined}
+          customComponent={customComponent}
           // containerStyle={containerStyle}
           uiOverrides={uiOverrides}
-          // createMediaSFURoom={enableBackendProxyHooks ? createRoomOnMediaSFU : undefined}
-          // joinMediaSFURoom={enableBackendProxyHooks ? joinRoomOnMediaSFU : undefined}
+          createMediaSFURoom={enableBackendProxyHooks || liveModeRequested ? createMediaSFURoom : undefined}
+          joinMediaSFURoom={enableBackendProxyHooks || liveModeRequested ? joinMediaSFURoom : undefined}
           {...cardOverrides}
         />
+
+      {liveModeRequested ? (
+        <View
+          testID="live-debug-expo"
+          accessibilityLabel="live-debug-expo"
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            right: 16,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            borderRadius: 12,
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            zIndex: 9999,
+          }}
+        >
+          <Text selectable style={{ color: '#e2e8f0', fontSize: 12, lineHeight: 18 }}>
+            {liveDebugLines.join('\n')}
+          </Text>
+        </View>
+      ) : null}
+    </>
   );
 };
 
-export default AppUnique;
+const RootApp = process.env.EXPO_PUBLIC_MEDIASFU_VISUAL_AUDIT === '1' ? AppVisualAudit : AppUnique;
+
+export default RootApp;
 
 
 

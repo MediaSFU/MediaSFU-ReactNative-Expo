@@ -28,6 +28,7 @@ import RNPickerSelect from "react-native-picker-select";
 import { checkLimitsAndMakeRequest } from "../../methods/utils/checkLimitsAndMakeRequest";
 import { createRoomOnMediaSFU } from "../../methods/utils/createRoomOnMediaSFU";
 import { CreateRoomOnMediaSFUType, JoinRoomOnMediaSFUType, joinRoomOnMediaSFU } from "../../methods/utils/joinRoomOnMediaSFU";
+import { validateAlphanumeric } from "../../methods/utils/validateAlphanumeric";
 
 /**
  * Interface defining the parameters for joining a local event room.
@@ -241,6 +242,11 @@ export interface PreJoinPageOptions {
   noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
 
   /**
+   * When true, automatically runs the pre-join flow even if the room UI should render after validation.
+   */
+  autoProceedPreJoin?: boolean;
+
+  /**
    * Function to create a room on MediaSFU.
    */
   createMediaSFURoom?: CreateRoomOnMediaSFUType;
@@ -381,6 +387,7 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
   credentials,
   returnUI = false,
   noUIPreJoinOptions,
+  autoProceedPreJoin,
   createMediaSFURoom = createRoomOnMediaSFU,
   joinMediaSFURoom = joinRoomOnMediaSFU,
 }) => {
@@ -393,10 +400,18 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
   const [eventID, setEventID] = useState<string>("");
   const [error, setError] = useState<string>("");
   const pending = useRef(false);
+  const lastAutoProceedKey = useRef<string | null>(null);
 
   const localConnected = useRef(false);
   const localData = useRef<ResponseLocalConnectionData | undefined>(undefined);
   const initSocket = useRef<Socket | undefined>(undefined);
+  const shouldAutoProceed = autoProceedPreJoin ?? !returnUI;
+
+  const autoProceedKey = !shouldAutoProceed || !noUIPreJoinOptions
+    ? null
+    : noUIPreJoinOptions.action === "create"
+      ? `create:${noUIPreJoinOptions.userName}:${noUIPreJoinOptions.eventType}:${noUIPreJoinOptions.duration}:${noUIPreJoinOptions.capacity}`
+      : `join:${noUIPreJoinOptions.userName}:${noUIPreJoinOptions.meetingID}`;
 
   const {
     showAlert,
@@ -411,21 +426,50 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
     updateMember,
   } = parameters;
 
-  const handleCreateRoom = async () => {
+  const validateDisplayName = async (displayName: string) => {
+    const isValidDisplayName =
+      displayName.length >= 2 &&
+      displayName.length <= 10 &&
+      (await validateAlphanumeric({ str: displayName }));
+
+    if (isValidDisplayName) {
+      return true;
+    }
+
+    const message =
+      "Display Name must be alphanumeric and between 2 and 10 characters.";
+    pending.current = false;
+
+    if (returnUI) {
+      setError(message);
+      return false;
+    }
+
+    throw new Error(message);
+  };
+
+  const handleCreateRoom = async (
+    providedPayload?: CreateMediaSFURoomOptions
+  ) => {
     if (pending.current) {
       return;
     }
     pending.current = true;
+    setError("");
     let payload = {} as CreateMediaSFURoomOptions;
-    if (returnUI) {
+    if (providedPayload) {
+      payload = providedPayload;
+    } else if (returnUI) {
       if (!name || !duration || !eventType || !capacity) {
         setError("Please fill all the fields.");
+        pending.current = false;
         return;
       }
+
       payload = {
         action: "create",
-        duration: parseInt(duration),
-        capacity: parseInt(capacity),
+        duration: parseInt(duration, 10),
+        capacity: parseInt(capacity, 10),
         eventType: eventType as "chat" | "broadcast" | "webinar" | "conference",
         userName: name,
         recordOnly: false,
@@ -443,6 +487,10 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
           "Invalid options provided for creating a room without UI."
         );
       }
+    }
+
+    if (!(await validateDisplayName(payload.userName))) {
+      return;
     }
 
     updateIsLoadingModalVisible(true);
@@ -678,15 +726,21 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
     }
   };
 
-  const handleJoinRoom = async () => {
+  const handleJoinRoom = async (
+    providedPayload?: JoinMediaSFURoomOptions
+  ) => {
     if (pending.current) {
       return;
     }
     pending.current = true;
+    setError("");
     let payload = {} as JoinMediaSFURoomOptions;
-    if (returnUI) {
+    if (providedPayload) {
+      payload = providedPayload;
+    } else if (returnUI) {
       if (!name || !eventID) {
         setError("Please fill all the fields.");
+        pending.current = false;
         return;
       }
 
@@ -703,10 +757,15 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
       ) {
         payload = noUIPreJoinOptions as JoinMediaSFURoomOptions;
       } else {
+        pending.current = false;
         throw new Error(
           "Invalid options provided for joining a room without UI."
         );
       }
+    }
+
+    if (!(await validateDisplayName(payload.userName))) {
+      return;
     }
 
     if (localLink.length > 0 && !localLink.includes("mediasfu.com")) {
@@ -745,14 +804,10 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
     } else {
       pending.current = false;
       updateIsLoadingModalVisible(false);
+      const joinErrorMessage =
+        response.data && "error" in response.data ? response.data.error : "";
       setError(
-        `Unable to join room. ${
-          response.data
-            ? "error" in response.data
-              ? response.data.error
-              : ""
-            : ""
-        }`
+        formatRequestError("Unable to join room", joinErrorMessage)
       );
     }
   };
@@ -838,26 +893,20 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
       return response;
     } else {
       updateIsLoadingModalVisible(false);
+      const createErrorMessage =
+        response.data && "error" in response.data ? response.data.error : "";
       setError(
-        `Unable to create room. ${
-          response.data
-            ? "error" in response.data
-              ? response.data.error
-              : ""
-            : ""
-        }`
+        formatRequestError("Unable to create room", createErrorMessage)
       );
     }
   };
 
   const checkProceed = async ({
-    returnUI,
     noUIPreJoinOptions,
   }: {
-    returnUI: boolean;
     noUIPreJoinOptions: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
   }) => {
-    if (!returnUI && noUIPreJoinOptions) {
+    if (shouldAutoProceed && noUIPreJoinOptions) {
       if (
         "action" in noUIPreJoinOptions &&
         noUIPreJoinOptions.action === "create"
@@ -876,7 +925,7 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
           );
         }
 
-        await handleCreateRoom();
+        await handleCreateRoom(createOptions);
       } else if (
         "action" in noUIPreJoinOptions &&
         noUIPreJoinOptions.action === "join"
@@ -890,7 +939,7 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
           );
         }
 
-        await handleJoinRoom();
+        await handleJoinRoom(joinOptions);
       } else {
         throw new Error(
           "Invalid options provided for creating/joining a room without UI."
@@ -911,10 +960,6 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
             localData.current = response!.data;
             initSocket.current = response!.socket;
             localConnected.current = true;
-
-            if (!returnUI && noUIPreJoinOptions) {
-              checkProceed({ returnUI, noUIPreJoinOptions });
-            }
           })
           .catch((error) => {
             showAlert?.({
@@ -930,16 +975,57 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
           duration: 3000,
         });
       }
-    } else if (localLink.length === 0 && !initSocket.current) {
-      if (!returnUI && noUIPreJoinOptions) {
-        checkProceed({ returnUI, noUIPreJoinOptions });
-      }
     }
   }, []);
+
+  useEffect(() => {
+    if (!autoProceedKey || !noUIPreJoinOptions) {
+      return;
+    }
+
+    if (lastAutoProceedKey.current === autoProceedKey) {
+      return;
+    }
+
+    if (localLink.length > 0 && !localConnected.current) {
+      return;
+    }
+
+    lastAutoProceedKey.current = autoProceedKey;
+
+    void checkProceed({ noUIPreJoinOptions }).catch((caughtError) => {
+      pending.current = false;
+      lastAutoProceedKey.current = null;
+
+      const message = caughtError instanceof Error
+        ? caughtError.message
+        : "Unable to proceed with the room request.";
+
+      if (returnUI) {
+        setError(message);
+      } else {
+        showAlert?.({
+          message,
+          type: "danger",
+          duration: 3000,
+        });
+      }
+    });
+  }, [autoProceedKey, localLink, noUIPreJoinOptions, returnUI, showAlert]);
 
   const handleToggleMode = () => {
     setIsCreateMode(!isCreateMode);
     setError("");
+  };
+
+  const formatRequestError = (prefix: string, errorMessage: string) => {
+    if (!errorMessage) {
+      return `${prefix}.`;
+    }
+
+    return errorMessage.startsWith(prefix)
+      ? errorMessage
+      : `${prefix}. ${errorMessage}`;
   };
 
   /**
@@ -957,154 +1043,171 @@ const PreJoinPage: React.FC<PreJoinPageOptions> = ({
     return <></>;
   }
 
-  return (
+  const content = (
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View
+        style={[
+          styles.container,
+          Platform.OS === "web" && {
+            width: "100%",
+            maxWidth: isCreateMode ? 500 : 440,
+            alignSelf: "center",
+          },
+        ]}
+      >
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={{
+              uri:
+                parameters.imgSrc ||
+                "https://mediasfu.com/images/logo192.png",
+            }}
+            style={styles.logoImage}
+          />
+        </View>
+
+        {/* Input Fields */}
+        <View style={styles.inputContainer}>
+          {isCreateMode ? (
+            <>
+              <TextInput
+                style={styles.inputField}
+                placeholder="Display Name"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Display Name"
+                placeholderTextColor="gray"
+              />
+              <TextInput
+                style={styles.inputField}
+                placeholder="Duration (minutes)"
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric"
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Duration (minutes)"
+                placeholderTextColor="gray"
+              />
+
+              <RNPickerSelect
+                onValueChange={(value: string) => {
+                  setEventType(value);
+                }}
+                items={[
+                  { label: "Chat", value: "chat" },
+                  { label: "Broadcast", value: "broadcast" },
+                  { label: "Webinar", value: "webinar" },
+                  { label: "Conference", value: "conference" },
+                ]}
+                value={eventType}
+                style={pickerSelectStyles}
+                placeholder={{
+                  label: "Select Event Type",
+                  value: "",
+                  color: "gray",
+                }}
+                useNativeAndroidPickerStyle={false}
+              />
+              <View style={styles.gap} />
+              <TextInput
+                style={styles.inputField}
+                placeholder="Room Capacity"
+                value={capacity}
+                onChangeText={setCapacity}
+                keyboardType="numeric"
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Room Capacity"
+                placeholderTextColor="gray"
+              />
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => {
+                  void handleCreateRoom();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Create Room"
+              >
+                <Text style={styles.actionButtonText}>Create Room</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <TextInput
+                style={styles.inputField}
+                placeholder="Display Name"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Display Name"
+                placeholderTextColor="gray"
+              />
+              <TextInput
+                style={styles.inputField}
+                placeholder="Event ID"
+                value={eventID}
+                onChangeText={setEventID}
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Event ID"
+                placeholderTextColor="gray"
+              />
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => {
+                  void handleJoinRoom();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Join Room"
+              >
+                <Text style={styles.actionButtonText}>Join Room</Text>
+              </Pressable>
+            </>
+          )}
+          {error !== "" && <Text style={styles.errorText}>{error}</Text>}
+        </View>
+
+        {/* OR Separator */}
+        <View style={styles.orContainer}>
+          <Text style={styles.orText}>OR</Text>
+        </View>
+
+        {/* Toggle Mode Button */}
+        <View style={styles.toggleContainer}>
+          <Pressable
+            style={styles.toggleButton}
+            onPress={handleToggleMode}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isCreateMode ? "Switch to Join Mode" : "Switch to Create Mode"
+            }
+          >
+            <Text style={styles.toggleButtonText}>
+              {isCreateMode ? "Switch to Join Mode" : "Switch to Create Mode"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  return Platform.OS === "ios" ? (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior="padding"
       style={styles.keyboardAvoidingContainer}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View
-          style={[
-            styles.container,
-            Platform.OS === "web" && { maxWidth: 600, alignSelf: "center" },
-          ]}
-        >
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Image
-              source={{
-                uri:
-                  parameters.imgSrc ||
-                  "https://mediasfu.com/images/logo192.png",
-              }}
-              style={styles.logoImage}
-            />
-          </View>
-
-          {/* Input Fields */}
-          <View style={styles.inputContainer}>
-            {isCreateMode ? (
-              <>
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Display Name"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Display Name"
-                  placeholderTextColor="gray"
-                />
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Duration (minutes)"
-                  value={duration}
-                  onChangeText={setDuration}
-                  keyboardType="numeric"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Duration (minutes)"
-                  placeholderTextColor="gray"
-                />
-
-                <RNPickerSelect
-                  onValueChange={(value: string) => {
-                    setEventType(value);
-                  }}
-                  items={[
-                    { label: "Chat", value: "chat" },
-                    { label: "Broadcast", value: "broadcast" },
-                    { label: "Webinar", value: "webinar" },
-                    { label: "Conference", value: "conference" },
-                  ]}
-                  value={eventType}
-                  style={pickerSelectStyles}
-                  placeholder={{
-                    label: "Select Event Type",
-                    value: "",
-                    color: "gray",
-                  }}
-                  useNativeAndroidPickerStyle={false}
-                />
-                <View style={styles.gap} />
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Room Capacity"
-                  value={capacity}
-                  onChangeText={setCapacity}
-                  keyboardType="numeric"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Room Capacity"
-                  placeholderTextColor="gray"
-                />
-                <Pressable
-                  style={styles.actionButton}
-                  onPress={handleCreateRoom}
-                  accessibilityRole="button"
-                  accessibilityLabel="Create Room"
-                >
-                  <Text style={styles.actionButtonText}>Create Room</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Display Name"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Display Name"
-                  placeholderTextColor="gray"
-                />
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Event ID"
-                  value={eventID}
-                  onChangeText={setEventID}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  accessibilityLabel="Event ID"
-                  placeholderTextColor="gray"
-                />
-                <Pressable
-                  style={styles.actionButton}
-                  onPress={handleJoinRoom}
-                  accessibilityRole="button"
-                  accessibilityLabel="Join Room"
-                >
-                  <Text style={styles.actionButtonText}>Join Room</Text>
-                </Pressable>
-              </>
-            )}
-            {error !== "" && <Text style={styles.errorText}>{error}</Text>}
-          </View>
-
-          {/* OR Separator */}
-          <View style={styles.orContainer}>
-            <Text style={styles.orText}>OR</Text>
-          </View>
-
-          {/* Toggle Mode Button */}
-          <View style={styles.toggleContainer}>
-            <Pressable
-              style={styles.toggleButton}
-              onPress={handleToggleMode}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isCreateMode ? "Switch to Join Mode" : "Switch to Create Mode"
-              }
-            >
-              <Text style={styles.toggleButtonText}>
-                {isCreateMode ? "Switch to Join Mode" : "Switch to Create Mode"}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </ScrollView>
+      {content}
     </KeyboardAvoidingView>
+  ) : (
+    <View style={styles.keyboardAvoidingContainer}>{content}</View>
   );
 };
 
@@ -1120,46 +1223,66 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    backgroundColor: "#53C6E0",
-    paddingVertical: 10,
+    backgroundColor: "#eef5ff",
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     maxHeight: "100%",
   },
   container: {
-    flex: 1,
-    paddingHorizontal: "10%",
+    width: "100%",
+    paddingHorizontal: 20,
+    paddingVertical: 24,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(248, 251, 255, 0.96)",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(71, 85, 105, 0.22)",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 16 },
+    shadowRadius: 24,
+    elevation: 10,
   },
   logoContainer: {
-    marginBottom: 30,
+    marginBottom: 24,
     alignItems: "center",
+    justifyContent: "center",
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "rgba(37, 99, 235, 0.18)",
   },
   logoImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
   },
   inputContainer: {
     width: "100%",
-    marginBottom: 10,
+    marginBottom: 4,
+    gap: 2,
   },
   inputField: {
-    height: 40,
+    height: 46,
     width: "100%",
-    borderColor: "black",
+    borderColor: "rgba(71, 85, 105, 0.24)",
     borderWidth: 1,
-    marginBottom: 15,
+    marginBottom: 12,
     paddingHorizontal: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: "#ffffff",
     fontSize: 16,
+    color: "#0f172a",
   },
   actionButton: {
-    backgroundColor: "black",
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: "#2563eb",
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   actionButtonText: {
     color: "white",
@@ -1171,20 +1294,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   toggleButton: {
-    backgroundColor: "black",
-    paddingVertical: 5,
+    backgroundColor: "#ffffff",
+    paddingVertical: 10,
     paddingHorizontal: 25,
-    borderRadius: 8,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(37, 99, 235, 0.28)",
   },
   toggleButtonText: {
-    color: "white",
+    color: "#1d4ed8",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 15,
   },
   errorText: {
-    color: "red",
+    color: "#dc2626",
     textAlign: "center",
     marginTop: 10,
     fontSize: 14,
@@ -1195,7 +1320,7 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   orText: {
-    color: "black",
+    color: "#475569",
     fontSize: 16,
     fontWeight: "bold",
     marginHorizontal: 10,
@@ -1207,39 +1332,39 @@ const styles = StyleSheet.create({
 
 const pickerSelectStyles = StyleSheet.create({
   inputIOS: {
-    height: 40,
-    borderColor: "gray",
+    height: 46,
+    borderColor: "rgba(71, 85, 105, 0.24)",
     borderWidth: 1,
-    marginBottom: 20,
-    paddingHorizontal: 5,
-    borderRadius: 5,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     backgroundColor: "#ffffff",
     fontSize: 16,
-    color: "black",
+    color: "#0f172a",
     paddingRight: 20,
   },
   inputAndroid: {
-    height: 40,
-    borderColor: "gray",
+    height: 46,
+    borderColor: "rgba(71, 85, 105, 0.24)",
     borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     backgroundColor: "#ffffff",
     fontSize: 16,
-    color: "black",
+    color: "#0f172a",
     paddingRight: 20,
   },
   inputWeb: {
-    height: 30,
-    borderColor: "gray",
+    height: 46,
+    borderColor: "rgba(71, 85, 105, 0.24)",
     borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     backgroundColor: "#ffffff",
     fontSize: 16,
-    color: "black",
+    color: "#0f172a",
     paddingRight: 20,
   },
   placeholder: {

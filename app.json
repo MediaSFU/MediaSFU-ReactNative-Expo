@@ -2,6 +2,7 @@
   "expo": {
     "name": "MediaSFU",
     "slug": "MediaSFU",
+    "scheme": "mediasfuexpo",
     "version": "1.0.0",
     "icon": "./assets/logo512.png",
     "splash": {
@@ -12,6 +13,7 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.MediaSFU",
       "bitcode": false,
@@ -30,7 +32,7 @@
     },
     "android": {
       "package": "com.MediaSFU",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo512.png",
         "backgroundColor": "#FFFFFF"
@@ -70,7 +72,9 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access camera."
         }
       ],
-      "expo-router"
+      "expo-router",
+      "expo-font",
+      "expo-asset"
     ],
     "extra": {
       "eas": {

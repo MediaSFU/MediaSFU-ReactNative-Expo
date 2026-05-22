@@ -20,6 +20,7 @@ import {
 import { getModalPosition } from '../../methods/utils/getModalPosition';
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Socket } from 'socket.io-client';
+import { createThemedPickerSelectStyles, getModalBodyTheme } from '../../components_modern/core/modalBodyTheme';
 
 interface EditRoomModalOptions {
   editRoomModalVisible: boolean;
@@ -35,6 +36,7 @@ interface EditRoomModalOptions {
     participant: Participant | BreakoutParticipant
   ) => void;
   currentRoomIndex: number | null;
+  isDarkMode?: boolean;
 }
 
 /**
@@ -133,6 +135,7 @@ export interface BreakoutRoomsModalOptions {
   parameters: BreakoutRoomsModalParameters;
   position?: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
   backgroundColor?: string;
+  isDarkMode?: boolean;
 
   // Render props for enhanced customization
   style?: object;
@@ -160,7 +163,11 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
   handleAddParticipant,
   handleRemoveParticipant,
   currentRoomIndex,
+  isDarkMode,
 }) => {
+  const theme = getModalBodyTheme(isDarkMode);
+  const shouldUseModernTheme = typeof isDarkMode === 'boolean';
+
   const renderAssignedParticipant = ({
     item,
     index,
@@ -168,13 +175,13 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
     item: BreakoutParticipant;
     index: number;
   }) => (
-    <View style={styles.listItem} key={index}>
-      <Text>{item.name}</Text>
+    <View style={[styles.listItem, { borderBottomColor: theme.dividerColor }]} key={index}>
+      <Text style={{ color: theme.textColor }}>{item.name}</Text>
       <Pressable
         onPress={() => handleRemoveParticipant(currentRoomIndex!, item)}
         style={styles.iconButton}
       >
-        <FontAwesome5 name="times" size={20} color="#000" />
+        <FontAwesome5 name="times" size={20} color={theme.dangerColor} />
       </Pressable>
     </View>
   );
@@ -186,13 +193,13 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
     item: Participant;
     index: number;
   }) => (
-    <View style={styles.listItem} key={index}>
-      <Text>{item.name}</Text>
+    <View style={[styles.listItem, { borderBottomColor: theme.dividerColor }]} key={index}>
+      <Text style={{ color: theme.textColor }}>{item.name}</Text>
       <Pressable
         onPress={() => handleAddParticipant(currentRoomIndex!, item)}
         style={styles.iconButton}
       >
-        <FontAwesome5 name="plus" size={20} color="#000" />
+        <FontAwesome5 name="plus" size={20} color={theme.successColor} />
       </Pressable>
     </View>
   );
@@ -205,13 +212,13 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
       onRequestClose={() => setEditRoomModalVisible(false)}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, shouldUseModernTheme ? { backgroundColor: '#0f172a', borderColor: theme.borderColor } : null]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              Edit Room {currentRoomIndex + 1} <FontAwesome5 name="pen" />
+            <Text style={[styles.modalTitle, { color: theme.textColor }]}> 
+              Edit Room {currentRoomIndex + 1} <FontAwesome5 name="pen" color={theme.iconColor} />
             </Text>
             <Pressable onPress={() => setEditRoomModalVisible(false)}>
-              <FontAwesome5 name="times" size={20} color="#000" />
+              <FontAwesome5 name="times" size={20} color={theme.iconColor} />
             </Pressable>
           </View>
           <FlatList
@@ -219,13 +226,13 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
             renderItem={renderAssignedParticipant}
             keyExtractor={(item, index) => `${item.name}-${index}`}
             ListHeaderComponent={
-              <Text style={styles.listTitle}>
-                Assigned Participants <FontAwesome5 name="users" />
+              <Text style={[styles.listTitle, { color: theme.textColor }]}> 
+                Assigned Participants <FontAwesome5 name="users" color={theme.iconColor} />
               </Text>
             }
             ListEmptyComponent={
-              <View style={styles.listItem}>
-                <Text>None assigned</Text>
+              <View style={[styles.listItem, { borderBottomColor: theme.dividerColor }]}> 
+                <Text style={{ color: theme.mutedTextColor }}>None assigned</Text>
               </View>
             }
           />
@@ -236,13 +243,13 @@ const EditRoomModal: React.FC<EditRoomModalOptions> = ({
             renderItem={renderUnassignedParticipant}
             keyExtractor={(item, index) => `${item.name}-${index}`}
             ListHeaderComponent={
-              <Text style={styles.listTitle}>
-                Unassigned Participants <FontAwesome5 name="users" />
+              <Text style={[styles.listTitle, { color: theme.textColor }]}> 
+                Unassigned Participants <FontAwesome5 name="users" color={theme.iconColor} />
               </Text>
             }
             ListEmptyComponent={
-              <View style={styles.listItem}>
-                <Text>None pending</Text>
+              <View style={[styles.listItem, { borderBottomColor: theme.dividerColor }]}> 
+                <Text style={{ color: theme.mutedTextColor }}>None pending</Text>
               </View>
             }
           />
@@ -355,6 +362,7 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
   parameters,
   position = 'topRight',
   backgroundColor = '#83c0e9',
+  isDarkMode,
   style,
   renderContent,
   renderContainer,
@@ -686,29 +694,36 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
   };
 
   const dimensions = { width: modalWidth, height: 0 };
+  const theme = getModalBodyTheme(isDarkMode);
+  const shouldUseModernTheme = typeof isDarkMode === 'boolean';
+  const themedPickerSelectStyles = createThemedPickerSelectStyles(theme);
 
   const defaultContent = (
     <>
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>
-          Breakout Rooms <FontAwesome5 name="door-open" />
+        <Text style={[styles.modalTitle, { color: theme.textColor }]}> 
+          Breakout Rooms <FontAwesome5 name="door-open" color={theme.iconColor} />
         </Text>
         <Pressable onPress={onBreakoutRoomsClose}>
-          <FontAwesome5 name="times" size={20} color="#000" />
+          <FontAwesome5 name="times" size={20} color={theme.iconColor} />
         </Pressable>
       </View>
       <FlatList
         ListHeaderComponent={
           <View>
             <View style={styles.formGroup}>
-              <Text>
-                Number of Rooms <FontAwesome5 name="users" />
+              <Text style={{ color: theme.textColor }}>
+                Number of Rooms <FontAwesome5 name="users" color={theme.iconColor} />
               </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: theme.inputBackgroundColor, borderColor: theme.borderColor, color: theme.inputTextColor },
+                ]}
                 value={numRooms}
                 onChangeText={setNumRooms}
                 inputMode="numeric"
+                placeholderTextColor={theme.placeholderTextColor}
               />
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -742,11 +757,11 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
               </View>
             </ScrollView>
             <View style={styles.formGroup}>
-              <Text>
-                New Participant Action <FontAwesome5 name="users" />
+              <Text style={{ color: theme.textColor }}>
+                New Participant Action <FontAwesome5 name="users" color={theme.iconColor} />
               </Text>
               <RNPickerSelect
-                style={pickerSelectStyles}
+                style={themedPickerSelectStyles}
                 value={newParticipantAction}
                 onValueChange={(value) => setNewParticipantAction(value)}
                 items={[
@@ -766,37 +781,37 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
         data={breakoutRoomsRef.current}
         keyExtractor={(item, index) => `room-${index}`}
         renderItem={({ item, index: roomIndex }) => (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme.rowBackgroundColor }, shouldUseModernTheme ? { borderColor: theme.borderColor, borderWidth: 1 } : null]}>
             <View style={styles.cardHeader}>
-              <Text>
-                Room {roomIndex + 1} <FontAwesome5 name="users" />
+              <Text style={{ color: theme.textColor }}>
+                Room {roomIndex + 1} <FontAwesome5 name="users" color={theme.iconColor} />
               </Text>
               <View style={styles.cardHeaderButtons}>
                 <Pressable
                   onPress={() => handleEditRoom(roomIndex)}
                   style={styles.iconButton}
                 >
-                  <FontAwesome5 name="pen" size={20} color="#000" />
+                  <FontAwesome5 name="pen" size={20} color={theme.iconColor} />
                 </Pressable>
                 <Pressable
                   onPress={() => handleDeleteRoom(roomIndex)}
                   style={styles.iconButton}
                 >
-                  <FontAwesome5 name="times" size={20} color="#000" />
+                  <FontAwesome5 name="times" size={20} color={theme.dangerColor} />
                 </Pressable>
               </View>
             </View>
-            <View style={styles.cardBody}>
+            <View style={[styles.cardBody, { borderTopColor: theme.dividerColor }]}> 
               {item.map((participant, index) => (
-                <View key={index} style={styles.listItem}>
-                  <Text>{participant.name}</Text>
+                <View key={index} style={[styles.listItem, { borderBottomColor: theme.dividerColor }]}> 
+                  <Text style={{ color: theme.textColor }}>{participant.name}</Text>
                   <Pressable
                     onPress={() =>
                       handleRemoveParticipant(roomIndex, participant)
                     }
                     style={styles.iconButton}
                   >
-                    <FontAwesome5 name="times" size={20} color="#000" />
+                    <FontAwesome5 name="times" size={20} color={theme.dangerColor} />
                   </Pressable>
                 </View>
               ))}
@@ -847,6 +862,7 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
         handleAddParticipant={handleAddParticipant}
         handleRemoveParticipant={handleRemoveParticipant}
         currentRoomIndex={currentRoomIndex}
+        isDarkMode={isDarkMode}
       />
     </>
   );
@@ -867,6 +883,7 @@ const BreakoutRoomsModal: React.FC<BreakoutRoomsModalOptions> = ({
           style={[
             styles.modalContent,
             { backgroundColor: backgroundColor, width: modalWidth },
+            shouldUseModernTheme ? { borderColor: theme.borderColor } : null,
             style,
           ]}
         >

@@ -25,6 +25,7 @@ import MediasfuChat from './src/components/mediasfuComponents/MediasfuChat';
 
 import MainContainerComponent from './src/components/displayComponents/MainContainerComponent';
 import AlertComponent from './src/components/displayComponents/AlertComponent';
+import { getDemoCloudConfig } from './demoCloudConfig';
 import VideoCard from './src/components/displayComponents/VideoCard';
 import AudioCard from './src/components/displayComponents/AudioCard';
 import MiniCard from './src/components/displayComponents/MiniCard';
@@ -60,6 +61,8 @@ const enableModalOverrides = false;     // Enable modal overrides via uiOverride
 const enableContainerStyling = true;    // Apply custom container styles
 const enableFunctionWrappers = true;    // Wrap helper functions with logging/analytics
 
+const demoCloudConfig = getDemoCloudConfig();
+
 // ============================================================================
 // CONNECTION PRESETS
 // ============================================================================
@@ -70,20 +73,14 @@ const connectionPresets: Record<ConnectionScenario, {
   connectMediaSFU: boolean;
 }> = {
   cloud: {
-    credentials: {
-      apiUserName: 'yourDevUser',
-      apiKey: 'yourDevApiKey1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
+    credentials: demoCloudConfig.credentials,
     localLink: '',
-    connectMediaSFU: true,
+    connectMediaSFU: demoCloudConfig.connectMediaSFU,
   },
   hybrid: {
-    credentials: {
-      apiUserName: 'dummyUsr',
-      apiKey: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    },
+    credentials: demoCloudConfig.credentials,
     localLink: 'http://localhost:3000',
-    connectMediaSFU: true,
+    connectMediaSFU: demoCloudConfig.connectMediaSFU,
   },
   ce: {
     credentials: undefined,

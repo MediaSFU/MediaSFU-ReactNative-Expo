@@ -1,6 +1,6 @@
 // AudioCard.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -132,6 +132,8 @@ export interface AudioCardOptions {
   participant: Participant;
   backgroundColor?: string;
   audioDecibels?: AudioDecibels;
+  liveSubtitleText?: string;
+  showSubtitles?: boolean;
   parameters: AudioCardParameters;
   customAudioCard?: CustomAudioCardType;
 
@@ -373,6 +375,8 @@ const AudioCard: React.FC<AudioCardOptions> = ({
   participant,
   backgroundColor,
   audioDecibels,
+  liveSubtitleText,
+  showSubtitles = true,
   parameters,
   customAudioCard,
   style,
@@ -385,13 +389,15 @@ const AudioCard: React.FC<AudioCardOptions> = ({
   );
 
   const [showWaveform, setShowWaveform] = useState<boolean>(true);
-  const { getUpdatedAllParams } = parameters;
-  parameters = getUpdatedAllParams();
+  const latestParameters = useCallback(
+    () => parameters.getUpdatedAllParams?.() ?? parameters,
+    [parameters],
+  );
 
   useEffect(() => {
     // Interval to check audio decibels and participant status every second
     const interval = setInterval(() => {
-      const { audioDecibels, participants } = parameters;
+      const { audioDecibels, participants } = latestParameters();
 
       const existingEntry = audioDecibels?.find((entry) => entry.name === name);
       const updatedParticipant = participants?.find((p) => p.name === name);
@@ -410,7 +416,7 @@ const AudioCard: React.FC<AudioCardOptions> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [audioDecibels]);
+  }, [audioDecibels, latestParameters, name]);
 
   useEffect(() => {
     if (participant?.muted) {
@@ -468,18 +474,20 @@ const AudioCard: React.FC<AudioCardOptions> = ({
    */
   const toggleAudio = async () => {
     if (!participant?.muted) {
+      const updatedParams = latestParameters();
+
       await controlUserMedia({
         participantId: participant.id || '',
         participantName: participant.name,
         type: 'audio',
-        socket: parameters.socket,
-        coHostResponsibility: parameters.coHostResponsibility,
-        roomName: parameters.roomName,
-        showAlert: parameters.showAlert,
-        coHost: parameters.coHost,
-        islevel: parameters.islevel,
-        member: parameters.member,
-        participants: parameters.participants,
+        socket: updatedParams.socket,
+        coHostResponsibility: updatedParams.coHostResponsibility,
+        roomName: updatedParams.roomName,
+        showAlert: updatedParams.showAlert,
+        coHost: updatedParams.coHost,
+        islevel: updatedParams.islevel,
+        member: updatedParams.member,
+        participants: updatedParams.participants,
       });
     }
   };
@@ -489,18 +497,20 @@ const AudioCard: React.FC<AudioCardOptions> = ({
    */
   const toggleVideo = async () => {
     if (participant?.videoOn) {
+      const updatedParams = latestParameters();
+
       await controlUserMedia({
         participantId: participant.id || '',
         participantName: participant.name,
         type: 'video',
-        socket: parameters.socket,
-        coHostResponsibility: parameters.coHostResponsibility,
-        roomName: parameters.roomName,
-        showAlert: parameters.showAlert,
-        coHost: parameters.coHost,
-        islevel: parameters.islevel,
-        member: parameters.member,
-        participants: parameters.participants,
+        socket: updatedParams.socket,
+        coHostResponsibility: updatedParams.coHostResponsibility,
+        roomName: updatedParams.roomName,
+        showAlert: updatedParams.showAlert,
+        coHost: updatedParams.coHost,
+        islevel: updatedParams.islevel,
+        member: updatedParams.member,
+        participants: updatedParams.participants,
       });
     }
   };
@@ -570,7 +580,11 @@ const AudioCard: React.FC<AudioCardOptions> = ({
           ) : (
             <MiniCard
               initials={name}
+              name={name}
               fontSize={20}
+              textColor={textColor}
+              showAudioIcon={!participant?.muted}
+              showVideoIcon={Boolean(participant?.videoOn || participant?.videoID)}
               customStyle={{
                 borderWidth: parameters.eventType !== 'broadcast' ? 2 : 0,
                 borderColor:
@@ -626,6 +640,14 @@ const AudioCard: React.FC<AudioCardOptions> = ({
             ))}
 
           {/* Control Buttons */}
+          {showSubtitles && liveSubtitleText ? (
+            <View style={styles.subtitleContainer}>
+              <Text style={styles.subtitleText} numberOfLines={2}>
+                {liveSubtitleText}
+              </Text>
+            </View>
+          ) : null}
+
           {videoControlsComponent ||
             (showControls && (
               <View
@@ -767,5 +789,20 @@ const styles = StyleSheet.create({
     flex: 1,
     opacity: 0.7,
     marginHorizontal: 1,
+  },
+  subtitleContainer: {
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    bottom: 8,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  subtitleText: {
+    color: 'white',
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

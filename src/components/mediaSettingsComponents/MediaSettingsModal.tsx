@@ -15,6 +15,7 @@ import { switchAudio, SwitchAudioOptions, SwitchAudioParameters } from '../../me
 import { switchVideo, SwitchVideoOptions, SwitchVideoParameters } from '../../methods/streamMethods/switchVideo';
 import { switchVideoAlt, SwitchVideoAltOptions, SwitchVideoAltParameters } from '../../methods/streamMethods/switchVideoAlt';
 import { getModalPosition } from '../../methods/utils/getModalPosition';
+import { createThemedPickerSelectStyles, getModalBodyTheme } from '../../components_modern/core/modalBodyTheme';
 
 /**
  * Parameters for media settings state and device management.
@@ -82,6 +83,8 @@ export interface MediaSettingsModalOptions {
   parameters: MediaSettingsModalParameters;
   position?: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
   backgroundColor?: string;
+  isDarkMode?: boolean;
+  renderMode?: 'modal' | 'sidebar' | 'inline';
   style?: object;
   renderContent?: (options: {
     defaultContent: JSX.Element;
@@ -215,6 +218,8 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
   parameters,
   position = 'topRight',
   backgroundColor = '#83c0e9',
+  isDarkMode,
+  renderMode = 'modal',
   style,
   renderContent,
   renderContainer,
@@ -304,33 +309,52 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
   // };
 
   const dimensions = { width: modalWidth, height: 0 };
+  const theme = getModalBodyTheme(isDarkMode);
+  const shouldUseModernTheme = typeof isDarkMode === 'boolean';
+  const themedPickerSelectStyles = createThemedPickerSelectStyles(theme);
+  const isEmbedded = renderMode === 'sidebar' || renderMode === 'inline';
+
+  if (isEmbedded && !isMediaSettingsModalVisible) {
+    return null;
+  }
+
+  const renderFieldLabel = (icon: string, label: string) => (
+    <View style={styles.labelRow}>
+      <View style={[styles.labelIcon, { backgroundColor: theme.badgeBackgroundColor }]}> 
+        <FontAwesome5 name={icon as any} size={13} color={theme.accentColor} />
+      </View>
+      <Text style={[styles.label, { color: theme.textColor }]}>{label}</Text>
+    </View>
+  );
 
   const defaultContent = (
-    <>
-      {/* Header */}
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>Media Settings</Text>
-        <Pressable
-          onPress={onMediaSettingsClose}
-          style={styles.btnCloseMediaSettings}
-          accessibilityRole="button"
-          accessibilityLabel="Close Media Settings Modal"
-        >
-          <FontAwesome5 name="times" style={styles.icon} />
-        </Pressable>
-      </View>
+    <View style={[styles.contentShell, isEmbedded && styles.embeddedContentShell]}>
+      {!isEmbedded && (
+        <>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleGroup}>
+              <View style={[styles.titleIcon, { backgroundColor: theme.badgeBackgroundColor }]}> 
+                <FontAwesome5 name="sliders-h" size={14} color={theme.accentColor} />
+              </View>
+              <Text style={[styles.modalTitle, { color: theme.textColor }]}>Media Settings</Text>
+            </View>
+            <Pressable
+              onPress={onMediaSettingsClose}
+              style={styles.btnCloseMediaSettings}
+              accessibilityRole="button"
+              accessibilityLabel="Close Media Settings Modal"
+            >
+              <FontAwesome5 name="times" style={[styles.icon, { color: theme.iconColor }]} />
+            </Pressable>
+          </View>
 
-      {/* Divider */}
-      <View style={styles.hr} />
+          <View style={[styles.hr, { borderBottomColor: theme.dividerColor }]} />
+        </>
+      )}
 
-      {/* Body */}
       <View style={styles.modalBody}>
-        {/* Select Camera */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>
-            <FontAwesome5 name="camera" size={16} color="black" />
-            Select Camera:
-          </Text>
+        <View style={[styles.formGroup, styles.deviceCard, { backgroundColor: theme.rowBackgroundColor, borderColor: theme.borderColor }]}> 
+          {renderFieldLabel('camera', 'Camera')}
           <RNPickerSelect
             onValueChange={(value: string) => handleVideoSwitch(value)}
             items={videoInputs.map((input) => ({
@@ -338,21 +362,16 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
               value: input.deviceId,
             }))}
             value={selectedVideoInput || ''}
-            style={pickerSelectStyles}
+            style={themedPickerSelectStyles}
             placeholder={{ label: 'Select a camera...', value: '' }}
             useNativeAndroidPickerStyle={false}
           />
         </View>
 
-        {/* Separator */}
-        <View style={styles.sep} />
+        <View style={[styles.sep, { backgroundColor: theme.dividerColor }]} />
 
-        {/* Select Microphone */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>
-            <FontAwesome5 name="microphone" size={16} color="black" />
-            Select Microphone:
-          </Text>
+        <View style={[styles.formGroup, styles.deviceCard, { backgroundColor: theme.rowBackgroundColor, borderColor: theme.borderColor }]}> 
+          {renderFieldLabel('microphone', 'Microphone')}
           <RNPickerSelect
             onValueChange={(value: string) => handleAudioSwitch(value)}
             items={audioInputs.map((input) => ({
@@ -360,27 +379,23 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
               value: input.deviceId,
             }))}
             value={selectedAudioInput || ''}
-            style={pickerSelectStyles}
+            style={themedPickerSelectStyles}
             placeholder={{ label: 'Select a microphone...', value: '' }}
             useNativeAndroidPickerStyle={false}
           />
         </View>
 
-        {/* Separator */}
-        <View style={styles.sep} />
+        <View style={[styles.sep, { backgroundColor: theme.dividerColor }]} />
 
-        {/* Switch Camera Button */}
         <View style={styles.formGroup}>
           <Pressable
             onPress={handleSwitchCamera}
-            style={styles.switchCameraButton}
+            style={[styles.switchCameraButton, { backgroundColor: theme.buttonBackgroundColor, borderColor: theme.accentColor }]}
             accessibilityRole="button"
             accessibilityLabel="Switch Camera"
           >
-            <Text style={styles.switchCameraButtonText}>
-              <FontAwesome5 name="sync-alt" size={16} color="black" />
-              Switch Camera
-            </Text>
+            <FontAwesome5 name="sync-alt" size={14} color={theme.buttonTextColor} />
+            <Text style={[styles.switchCameraButtonText, { color: theme.buttonTextColor }]}>Switch Camera</Text>
           </Pressable>
         </View>
 
@@ -403,7 +418,7 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
           </Pressable>
         </View> */}
       </View>
-    </>
+    </View>
   );
 
   const content = renderContent
@@ -418,12 +433,20 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
       onRequestClose={onMediaSettingsClose}
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, shouldUseModernTheme ? { borderColor: theme.borderColor } : null, style]}>
           {content}
         </View>
       </View>
     </Modal>
   );
+
+  if (isEmbedded) {
+    return (
+      <View style={[styles.embeddedContainer, { borderColor: theme.borderColor }, style]}>
+        {content}
+      </View>
+    );
+  }
 
   return renderContainer
     ? (renderContainer({ defaultContainer, dimensions }) as JSX.Element)
@@ -443,11 +466,11 @@ const styles = StyleSheet.create({
   },
 
   modalContent: {
-    height: '65%',
+    minHeight: 360,
     backgroundColor: '#83c0e9',
     borderRadius: 10,
-    padding: 10,
-    maxHeight: '65%',
+    padding: 12,
+    maxHeight: '72%',
     maxWidth: '80%',
     overflow: 'scroll',
     borderWidth: 2,
@@ -462,11 +485,38 @@ const styles = StyleSheet.create({
     zIndex: 9,
   },
 
+  embeddedContainer: {
+    flex: 1,
+    width: '100%',
+  },
+
+  contentShell: {
+    flex: 1,
+  },
+
+  embeddedContentShell: {
+    paddingTop: 2,
+  },
+
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
+  },
+
+  modalTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  } as any,
+
+  titleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   modalTitle: {
@@ -491,18 +541,38 @@ const styles = StyleSheet.create({
   },
 
   modalBody: {
-    padding: 10,
+    padding: 4,
   },
 
   formGroup: {
-    marginBottom: 20,
+    marginBottom: 14,
+  },
+
+  deviceCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  } as any,
+
+  labelIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   label: {
-    fontSize: 16,
+    fontSize: 14,
     color: 'black',
-    marginBottom: 5,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
 
   picker: {
@@ -513,15 +583,21 @@ const styles = StyleSheet.create({
 
   switchCameraButton: {
     backgroundColor: '#8cd3ff',
-    paddingHorizontal: 5,
-    paddingVertical: 15,
-    borderRadius: 5,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
 
   switchCameraButtonText: {
     color: 'black',
-    fontSize: 20,
+    fontSize: 14,
+    fontWeight: '800',
   },
 
   virtualBackgroundButton: {
@@ -539,7 +615,7 @@ const styles = StyleSheet.create({
   sep: {
     height: 1,
     backgroundColor: '#ffffff',
-    marginVertical: 5,
+    marginBottom: 14,
   },
 });
 

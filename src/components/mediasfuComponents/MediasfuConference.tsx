@@ -41,6 +41,10 @@ import WelcomePage, {
 
 import PollModal from "../../components/pollsComponents/PollModal";
 import BreakoutRoomsModal from "../../components/breakoutComponents/BreakoutRoomsModal";
+import ConfigureWhiteboardModal from "../../components/whiteboardComponents/ConfigureWhiteboardModal";
+import Whiteboard from "../../components/whiteboardComponents/Whiteboard";
+import Screenboard from "../../components/screenboardComponents/Screenboard";
+import ScreenboardModal from "../../components/screenboardComponents/ScreenboardModal";
 
 // pagination and display of media (samples)
 import Pagination from "../../components/displayComponents/Pagination";
@@ -393,6 +397,10 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
   const ShareEventModalComponent = React.useMemo(() => withOverride(uiOverrides?.shareEventModal, ShareEventModal), [uiOverrides?.shareEventModal]);
   const PollModalComponent = React.useMemo(() => withOverride(uiOverrides?.pollModal, PollModal), [uiOverrides?.pollModal]);
   const BreakoutRoomsModalComponent = React.useMemo(() => withOverride(uiOverrides?.breakoutRoomsModal, BreakoutRoomsModal), [uiOverrides?.breakoutRoomsModal]);
+  const ConfigureWhiteboardModalComponent = React.useMemo(() => withOverride(uiOverrides?.configureWhiteboardModal, ConfigureWhiteboardModal), [uiOverrides?.configureWhiteboardModal]);
+  const WhiteboardComponent = React.useMemo(() => withOverride(uiOverrides?.whiteboard, Whiteboard), [uiOverrides?.whiteboard]);
+  const ScreenboardComponent = React.useMemo(() => withOverride(uiOverrides?.screenboard, Screenboard), [uiOverrides?.screenboard]);
+  const ScreenboardModalComponent = React.useMemo(() => withOverride(uiOverrides?.screenboardModal, ScreenboardModal), [uiOverrides?.screenboardModal]);
 
   const consumerResumeFn = React.useMemo(() => withFunctionOverride(uiOverrides?.consumerResume, consumerResume), [uiOverrides?.consumerResume]);
   const addVideosGridFn = React.useMemo(() => withFunctionOverride(uiOverrides?.addVideosGrid, addVideosGrid), [uiOverrides?.addVideosGrid]);
@@ -1632,6 +1640,7 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
     useState<boolean>(false); // True if the settings modal is visible as boolean
   const [isRequestsModalVisible, setIsRequestsModalVisible] =
     useState<boolean>(false); // True if the requests modal is visible as boolean
+  const [, setRequestUiVersion] = useState<number>(0);
   const [isWaitingModalVisible, setIsWaitingModalVisible] =
     useState<boolean>(false); // True if the waiting room modal is visible as boolean
   const [isCoHostModalVisible, setIsCoHostModalVisible] =
@@ -1862,6 +1871,7 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
 
   const updateRequestCounter = (value: number) => {
     requestCounter.current = value;
+    setRequestUiVersion((current) => current + 1);
   };
 
   const updateRequestFilter = (value: string) => {
@@ -1872,6 +1882,7 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
     requestList.current = value;
     filteredRequestList.current = value;
     requestCounter.current = value.length;
+    setRequestUiVersion((current) => current + 1);
   };
 
   const updateTotalReqWait = (value: number) => {
@@ -1906,6 +1917,8 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
       filteredRequestList.current = requestList.current;
       requestCounter.current = requestList.current.length;
     }
+
+    setRequestUiVersion((current) => current + 1);
   };
 
   const onParticipantsFilterChange = (value: string) => {
@@ -3854,9 +3867,9 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
   const getMediaDevicesList = async (kind: "videoinput" | "audioinput") => {
     //get the list of available media devices
     try {
-      let devices = await mediaDevices.enumerateDevices();
+      const devices = (await mediaDevices.enumerateDevices()) as MediaDeviceInfo[];
 
-      let filtered = devices.filter((device) => device.kind === kind);
+      let filtered = devices.filter((device: MediaDeviceInfo) => device.kind === kind);
 
       return filtered;
     } catch {
@@ -4859,6 +4872,16 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
                   customHeight={componentSizes.current.mainHeight}
                   rows={1}
                   columns={1}
+                  Screenboard={
+                    shared.current ? (
+                      <ScreenboardComponent
+                        parameters={{
+                          ...getAllParams(),
+                          ...mediaSFUFunctions(),
+                        }}
+                      />
+                    ) : null
+                  }
                   componentsToRender={
                     mainGridStream.current ? mainGridStream.current : []
                   }
@@ -4866,6 +4889,15 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
                     mainGridStream.current.length > 0 &&
                     !(whiteboardStarted.current && !whiteboardEnded.current)
                   }
+                />
+
+                <WhiteboardComponent
+                  isVisible={whiteboardStarted.current && !whiteboardEnded.current}
+                  onWhiteboardClose={() => updateIsWhiteboardModalVisible(false)}
+                  parameters={{
+                    ...getAllParams(),
+                    ...mediaSFUFunctions(),
+                  }}
                 />
               </MainGrid>
 
@@ -5209,12 +5241,25 @@ const MediasfuConference: React.FC<MediasfuConferenceOptions> = ({
             }}
           />
 
-          {/* not implemented yet  for React Native */}
-          {/* <ConfigureWhiteboardModal
-      />
+          <ConfigureWhiteboardModalComponent
+            isConfigureWhiteboardModalVisible={isConfigureWhiteboardModalVisible}
+            onConfigureWhiteboardClose={() =>
+              updateIsConfigureWhiteboardModalVisible(false)
+            }
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
 
-      <ScreenboardModal
-      /> */}
+          <ScreenboardModalComponent
+            isScreenboardModalVisible={isScreenboardModalVisible}
+            onScreenboardClose={() => updateIsScreenboardModalVisible(false)}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
 
           <AlertComponentOverride
             visible={alertVisible}

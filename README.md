@@ -1,3 +1,9 @@
+# MediaSFU React Native Expo SDK · [mediasfu-reactnative-expo on npm](https://www.npmjs.com/package/mediasfu-reactnative-expo)
+
+**mediasfu-reactnative-expo** is the Expo-managed React Native WebRTC SDK for video conferencing, webinars, live streaming, broadcast, screen sharing, whiteboard, chat, recording, live subtitles, translation, and AI agent rooms on iOS, Android, and web — powered by MediaSFU Cloud or your self-hosted MediaSFU Open server. Install with `npm install mediasfu-reactnative-expo`.
+
+---
+
 <p align="center">
   <img src="https://www.mediasfu.com/logo192.png" width="100" alt="MediaSFU Logo">
 </p>
@@ -33,36 +39,118 @@
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 </p>
 
-<p align="center">
-  <strong>MediaSFU React Native Expo SDK</strong> provides a comprehensive solution for building real-time communication applications. Part of the MediaSFU ecosystem with cross-platform support for iOS, Android, and Web environments, seamlessly integrating video conferencing, live streaming, and interactive media features into your mobile applications.
-</p>
-
 ---
 
-## 🚨 **BREAKING: AI Phone Agents at $0.10 per 1,000 minutes**
+# MediaSFU React Native Expo SDK
 
-📞 **Call our live AI demos right now:**
-- 🇺🇸 **+1 (785) 369-1724** - Mixed Support Demo  
-- 🇬🇧 **+44 7445 146575** - AI Conversation Demo  
-- 🇨🇦 **+1 (587) 407-1990** - Technical Support Demo  
-- 🇨🇦 **+1 (647) 558-6650** - Friendly AI Chat Demo  
+`mediasfu-reactnative-expo` is the Expo-managed React Native package for shipping MediaSFU-powered calling, conferencing, webinar, broadcast, chat, screen sharing, whiteboard, recording, subtitle, translation, and AI-assisted room experiences on iOS, Android, and web.
 
-**Traditional providers charge $0.05 per minute. We charge $0.10 per 1,000 minutes. That's 500x cheaper.**
+Use this package when you want one of these paths:
 
-✅ **Deploy AI phone agents in 30 minutes**  
-✅ **Works with ANY SIP provider** (Twilio, Telnyx, Zadarma, etc.)  
-✅ **Seamless AI-to-human handoffs**  
-✅ **Real-time call analytics & transcription**  
+- render a prebuilt room with `MediasfuGeneric`, `MediasfuConference`, `MediasfuWebinar`, `MediasfuBroadcast`, or `MediasfuChat`
+- render the same room runtime with the modern themed shell via `ModernMediasfuGeneric`
+- keep the MediaSFU runtime and replace targeted UI surfaces with `uiOverrides`, custom cards, and custom shells
+- run MediaSFU headless with `returnUI={false}` and own the full native experience
+- stay in the Expo-managed workflow while keeping the same product model across the MediaSFU SDK family
+
+## Start Here
+
+**1. Install**
+
+```bash
+npm install mediasfu-reactnative-expo
+```
+
+**2. Import & Render**
+
+```tsx
+import { MediasfuGeneric } from "mediasfu-reactnative-expo";
+
+export default function App() {
+  return (
+    <MediasfuGeneric
+      credentials={{ apiUserName: "your-api-username", apiKey: "your-api-key" }}
+      connectMediaSFU={true}
+    />
+  );
+}
+```
+
+Prefer the themed modern shell? Start with `ModernMediasfuGeneric` instead:
+
+```tsx
+import { ModernMediasfuGeneric } from 'mediasfu-reactnative-expo';
+
+export default function App() {
+  return (
+    <ModernMediasfuGeneric
+      credentials={{ apiUserName: 'your-api-username', apiKey: 'your-api-key' }}
+    />
+  );
+}
+```
+
+**3. Run**
+
+```bash
+npx expo start
+```
+
+> **Want to try without a server?** Use demo mode:
+> ```tsx
+> <MediasfuGeneric
+>   useLocalUIMode={true}
+>   useSeed={true}
+>   seedData={{ member: "DemoUser", eventType: "conference" }}
+> />
+> ```
+
+## Backend Requirement
+
+This SDK needs a MediaSFU-compatible backend for room lifecycle, signaling, and media routing.
+
+| Option | Use it when | What to pass |
+|---|---|---|
+| MediaSFU Cloud | You want managed infrastructure | `credentials={{ apiUserName, apiKey }}` |
+| MediaSFU Open / CE | You want to self-host | `localLink="http://your-server:3000"` and your own server config |
+
+Cloud room helpers target `https://mediasfu.com/v1/rooms/` by default. For self-hosted deployments, pass a non-MediaSFU `localLink`.
+
+## Integration Paths
+
+- Keep the bundled room UI for the fastest route to production on iOS, Android, and web.
+- Use `ModernMediasfuGeneric` when you want the premium themed shell as your default entry point.
+- Replace targeted surfaces with `uiOverrides`, custom cards, and custom shells.
+- Use `customComponent` or `returnUI={false}` when your app should own the entire native experience.
+- Bare React Native users without Expo should use `mediasfu-reactnative` instead.
+
+## Also Available: AI Phone Agents, SIP, and PSTN
+
+MediaSFU supports AI phone agents and telephony workflows on the same platform. Call the live demos:
+
+- 🇺🇸 **+1 (785) 369-1724** — Mixed Support Demo
+- 🇬🇧 **+44 7445 146575** — AI Conversation Demo
+- 🇨🇦 **+1 (587) 407-1990** — Technical Support Demo
+- 🇨🇦 **+1 (647) 558-6650** — Friendly AI Chat Demo
 
 📖 **[Complete SIP/PSTN Documentation →](https://mediasfu.com/telephony)**
 
+## Package Links
+
+- Docs portal: [https://mediasfu.com/documentation](https://mediasfu.com/documentation)
+- User guide: [https://mediasfu.com/user-guide](https://mediasfu.com/user-guide)
+- Storybook: [https://mediasfu.com/storybook](https://mediasfu.com/storybook)
+- Bare React Native variant: [mediasfu-reactnative on npm](https://www.npmjs.com/package/mediasfu-reactnative)
+- Props & overrides reference: [Component Props & UI Overrides ↓](#component-props--ui-overrides-reference)
+- Detailed guide: [Comprehensive React Native Expo Guide ↓](#mediasfu-react-native-expo-module-documentation)
+
 ---
 
-## Quick Reference: Component Props & UI Overrides
+## Component Props & UI Overrides Reference
 
 > **New:** UI override parity now extends across Webinar and Chat layouts, unifying customization for every MediaSFU interface.
 
-Every primary MediaSFU UI export—`MediasfuGeneric`, `MediasfuBroadcast`, `MediasfuConference`, `MediasfuWebinar`, and `MediasfuChat`—now ships with a consistent prop surface and a powerful `uiOverrides` map, so you can bend the bundled experience to match your product without losing MediaSFU's hardened real-time logic.
+Every primary MediaSFU UI export—`MediasfuGeneric`, `ModernMediasfuGeneric`, `MediasfuBroadcast`, `MediasfuConference`, `MediasfuWebinar`, and `MediasfuChat`—now ships with a consistent prop surface and a powerful `uiOverrides` map, so you can bend the bundled experience to match your product without losing MediaSFU's hardened real-time logic.
 
 ### Shared component props (applies to every MediaSFU UI component)
 
@@ -356,14 +444,6 @@ The same override hooks power the newly refreshed `MediasfuWebinar` and `Mediasf
 
 ---
 
-MediaSFU offers a cutting-edge streaming experience that empowers users to customize their recordings and engage their audience with high-quality streams. Whether you're a content creator, educator, or business professional, MediaSFU provides the tools you need to elevate your streaming game.
-
-<div style="text-align: center;">
-
-<img src="https://mediasfu.com/images/header_1.jpg" alt="Preview Page" title="Preview Page" style="max-height: 600px;">
-
-</div>
-
 ---
 
 # MediaSFU React Native (Expo) Module Documentation
@@ -540,7 +620,7 @@ npm install \
 ```
 
 - **Why This Is Important:**  
-  These peer dependencies are critical for `mediasfu-reactjs` to function correctly within React Native.
+  These peer dependencies are critical for `mediasfu-reactnative-expo` to function correctly within React Native.
 
 ---
 
@@ -686,7 +766,7 @@ After completing the above steps, you can proceed to set up and run your project
 
 - **Create a Development Build:**
 
-  Since `react-native-webrtc` does not run on Expo Go, you will need to create a development build to test WebRTC functionalities on an actual device. Follow the [Expo Development Builds documentation](https://docs.expo.dev/development/introduction/) for guidance on creating a development build.
+  Since `react-native-webrtc` does not run on Expo Go, you will need to create a development build to test WebRTC functionalities on an actual device. Follow the [Expo Development Builds documentation](https://docs.expo.dev/develop/development-builds/introduction/) for guidance on creating a development build.
 
 
 # 📱 React Native Expo SDK Comprehensive Guide <a name="sdk-guide"></a>
@@ -3148,7 +3228,7 @@ export default App;
  *       return res.status(401).json({ error: "Invalid or expired credentials" });
  *     }
  *
- *     const response = await fetch("https://mediasfu.com/v1/rooms", {
+ *     const response = await fetch("https://mediasfu.com/v1/rooms/", {
  *       method: "POST",
  *       headers: {
  *         "Content-Type": "application/json",
@@ -3236,7 +3316,7 @@ export default App;
 *     localLink = '',
 * }) => {
 *     try {
-*         let finalLink = 'https://mediasfu.com/v1/rooms/join';
+*         let finalLink = 'https://mediasfu.com/v1/rooms/';
 *
 *         // Update finalLink if using a local server
 *         if (localLink) {
@@ -5691,7 +5771,7 @@ To test your application on a physical device, use the following command:
 npx expo start
 ```
 
-**Note:** `react-native-webrtc` does not run on Expo Go. You will need to create a development build to test WebRTC functionalities on your device. Follow the [Expo Development Builds documentation](https://docs.expo.dev/development/introduction/) for guidance on creating a development build.
+**Note:** `react-native-webrtc` does not run on Expo Go. You will need to create a development build to test WebRTC functionalities on your device. Follow the [Expo Development Builds documentation](https://docs.expo.dev/develop/development-builds/introduction/) for guidance on creating a development build.
 
 ## 2. Resolving Metro Bundler Issues
 
@@ -5776,7 +5856,7 @@ https://github.com/user-attachments/assets/310cb87c-dade-445d-aee7-dea1889d6dc4
 
 # Contributing <a name="contributing"></a>
 
-We welcome contributions from the community to improve the project! If you'd like to contribute, please check out our [GitHub repository](https://github.com/MediaSFU-ReactNative-Expo) and follow the guidelines outlined in the README.
+We welcome contributions from the community to improve the project! If you'd like to contribute, please check out our [GitHub repository](https://github.com/MediaSFU/MediaSFU-ReactNative-Expo) and follow the guidelines outlined in the README.
 
 If you encounter any issues or have suggestions for improvement, please feel free to open an issue on GitHub.
 

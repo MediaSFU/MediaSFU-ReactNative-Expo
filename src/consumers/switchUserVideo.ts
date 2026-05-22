@@ -1,7 +1,8 @@
-import { clickVideo, ClickVideoParameters } from '../methods/streamMethods/clickVideo';
+import { switchUserVideo as sharedSwitchUserVideo } from 'mediasfu-shared';
+import { ClickVideoParameters } from '../methods/streamMethods/clickVideo';
 import {
   ShowAlert, VidCons, RequestPermissionCameraType, StreamSuccessVideoType, SleepType, StreamSuccessVideoParameters,
-  MediaDevices
+  MediaDevices,
 } from '../@types/types';
 
 export interface SwitchUserVideoParameters extends StreamSuccessVideoParameters, ClickVideoParameters {
@@ -86,113 +87,6 @@ export type SwitchUserVideoType = (options: SwitchUserVideoOptions) => Promise<v
  * ```
  */
 
-export async function switchUserVideo({
-  videoPreference,
-  checkoff,
-  parameters,
-}: SwitchUserVideoOptions): Promise<void> {
-  const {
-    audioOnlyRoom,
-    frameRate,
-    vidCons,
-    prevVideoInputDevice,
-    showAlert,
-    mediaDevices,
-    hasCameraPermission,
-    updateVideoSwitching,
-    updateUserDefaultVideoInputDevice,
-
-    // mediasfu functions
-    requestPermissionCamera,
-    streamSuccessVideo,
-    sleep,
-    checkMediaPermission,
-  } = parameters;
-
-  try {
-    // Check if it's an audio-only room
-    if (audioOnlyRoom) {
-      showAlert?.({
-        message: 'You cannot turn on your camera in an audio-only event.',
-        type: 'danger',
-        duration: 3000,
-      });
-
-      return;
-    }
-
-    // If checkoff is not true, trigger a click on the video button to turn off the video
-    if (!checkoff) {
-      await clickVideo({ parameters });
-      updateVideoSwitching(true);
-      await sleep({ ms: 500 });
-      updateVideoSwitching(false);
-    }
-
-    // Check camera permission
-    if (!hasCameraPermission) {
-      if (checkMediaPermission) {
-        const statusCamera = await requestPermissionCamera();
-        if (statusCamera !== 'granted') {
-          showAlert?.({
-            message:
-              'Allow access to your camera or check if your camera is not being used by another application.',
-            type: 'danger',
-            duration: 3000,
-          });
-
-          return;
-        }
-      }
-    }
-
-    let mediaConstraints: MediaStreamConstraints;
-
-    if (vidCons && vidCons.width && vidCons.height) {
-      mediaConstraints = {
-        video: {
-          deviceId: { exact: videoPreference },
-          ...vidCons,
-          frameRate: { ideal: frameRate },
-        },
-        audio: false,
-      };
-    } else {
-      mediaConstraints = {
-        video: {
-          deviceId: { exact: videoPreference },
-          frameRate: { ideal: frameRate },
-        },
-        audio: false,
-      };
-    }
-
-    // Get user media with the defined constraints
-    await mediaDevices
-      .getUserMedia(mediaConstraints)
-      .then(async (stream) => {
-        await streamSuccessVideo({ stream, parameters });
-      })
-      .catch(async () => {
-        // Handle errors and revert to the previous video input device
-        updateUserDefaultVideoInputDevice(prevVideoInputDevice);
-
-        showAlert?.({
-          message:
-            'Error switching; not accessible, might need to turn off your video and turn it back on after switching.',
-          type: 'danger',
-          duration: 3000,
-        });
-      });
-  } catch {
-    // Handle unexpected errors and revert to the previous video input device
-    updateUserDefaultVideoInputDevice(prevVideoInputDevice);
-
-    showAlert?.({
-      message:
-        'Error switching; not accessible, might need to turn off your video and turn it back on after switching.',
-      type: 'danger',
-      duration: 3000,
-    });
-  }
-}
+export const switchUserVideo: SwitchUserVideoType = async (options): Promise<void> => {
+  await (sharedSwitchUserVideo as unknown as SwitchUserVideoType)(options);
+};

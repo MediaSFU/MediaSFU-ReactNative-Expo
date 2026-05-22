@@ -1,13 +1,175 @@
+
+
+import type {
+  ComponentProps,
+  ComponentType,
+  ReactNode,
+} from 'react';
 import { Socket } from 'socket.io-client';
-import React from 'react';
-
+import { Consumer, DtlsParameters, IceCandidate, IceParameters, RtpCapabilities } from 'mediasoup-client/lib/types';
 import {
-  Consumer, DtlsParameters, IceCandidate, IceParameters, RtpCapabilities
-} from 'mediasoup-client/lib/types';
-import { mediaDevices, MediaStreamTrack as MediaStreamTrackType, MediaStream as NativeMediaStream  } from '../methods/utils/webrtc/webrtc';
+  mediaDevices,
+  MediaStream as NativeMediaStream,
+  MediaStreamTrack as MediaStreamTrackType,
+} from '../methods/utils/webrtc/webrtc';
+import type MainContainerComponent from '../components/displayComponents/MainContainerComponent';
+import type MainAspectComponent from '../components/displayComponents/MainAspectComponent';
+import type MainScreenComponent from '../components/displayComponents/MainScreenComponent';
+import type MainGridComponent from '../components/displayComponents/MainGridComponent';
+import type SubAspectComponent from '../components/displayComponents/SubAspectComponent';
+import type OtherGridComponent from '../components/displayComponents/OtherGridComponent';
+import type FlexibleGrid from '../components/displayComponents/FlexibleGrid';
+import type FlexibleVideo from '../components/displayComponents/FlexibleVideo';
+import type AudioGrid from '../components/displayComponents/AudioGrid';
+import type Pagination from '../components/displayComponents/Pagination';
+import type ControlButtonsComponent from '../components/displayComponents/ControlButtonsComponent';
+import type ControlButtonsAltComponent from '../components/displayComponents/ControlButtonsAltComponent';
+import type ControlButtonsComponentTouch from '../components/displayComponents/ControlButtonsComponentTouch';
+import type MiniAudio from '../components/displayComponents/MiniAudio';
+import type MeetingProgressTimer from '../components/displayComponents/MeetingProgressTimer';
+import type VideoCard from '../components/displayComponents/VideoCard';
+import type AudioCard from '../components/displayComponents/AudioCard';
+import type LoadingModal from '../components/displayComponents/LoadingModal';
+import type AlertComponent from '../components/displayComponents/AlertComponent';
+import type MenuModal from '../components/menuComponents/MenuModal';
+import type RecordingModal from '../components/recordingComponents/RecordingModal';
+import type RequestsModal from '../components/requestsComponents/RequestsModal';
+import type WaitingModal from '../components/waitingComponents/WaitingModal';
+import type DisplaySettingsModal from '../components/displaySettingsComponents/DisplaySettingsModal';
+import type EventSettingsModal from '../components/eventSettingsComponents/EventSettingsModal';
+import type CoHostModal from '../components/coHostComponents/CoHostModal';
+import type PanelistsModal from '../components/panelistsComponents/PanelistsModal';
+import type PermissionsModal from '../components/permissionsComponents/PermissionsModal';
+import type ParticipantsModal from '../components/participantsComponents/ParticipantsModal';
+import type MessagesModal from '../components/messageComponents/MessagesModal';
+import type MediaSettingsModal from '../components/mediaSettingsComponents/MediaSettingsModal';
+import type ConfirmExitModal from '../components/exitComponents/ConfirmExitModal';
+import type ConfirmHereModal from '../components/miscComponents/ConfirmHereModal';
+import type ShareEventModal from '../components/miscComponents/ShareEventModal';
+import type WelcomePage from '../components/miscComponents/WelcomePage';
+import type PreJoinPage from '../components/miscComponents/PreJoinPage';
+import type PollModal from '../components/pollsComponents/PollModal';
+import type BackgroundModal from '../components/backgroundComponents/BackgroundModal';
+import type BreakoutRoomsModal from '../components/breakoutComponents/BreakoutRoomsModal';
+import type MiniCard from '../components/displayComponents/MiniCard';
+import type ConfigureWhiteboardModal from '../components/whiteboardComponents/ConfigureWhiteboardModal';
+import type Whiteboard from '../components/whiteboardComponents/Whiteboard';
+import type Screenboard from '../components/screenboardComponents/Screenboard';
+import type ScreenboardModal from '../components/screenboardComponents/ScreenboardModal';
+import type TranslationSettingsModal from '../components/translationComponents/TranslationSettingsModal';
+import type MiniAudioPlayer from '../methods/utils/MiniAudioPlayer/MiniAudioPlayer';
+import type { ConsumerResumeType } from '../consumers/consumerResume';
+import type { AddVideosGridType } from '../consumers/addVideosGrid';
 
+type MainContainerComponentProps = ComponentProps<typeof MainContainerComponent>;
+type MainAspectComponentProps = ComponentProps<typeof MainAspectComponent>;
+type MainScreenComponentProps = ComponentProps<typeof MainScreenComponent>;
+type MainGridComponentProps = ComponentProps<typeof MainGridComponent>;
+type SubAspectComponentProps = ComponentProps<typeof SubAspectComponent>;
+type OtherGridComponentProps = ComponentProps<typeof OtherGridComponent>;
+type FlexibleGridProps = ComponentProps<typeof FlexibleGrid>;
+type FlexibleVideoProps = ComponentProps<typeof FlexibleVideo>;
+type AudioGridProps = ComponentProps<typeof AudioGrid>;
+type PaginationProps = ComponentProps<typeof Pagination>;
+type ControlButtonsComponentProps = ComponentProps<typeof ControlButtonsComponent>;
+type ControlButtonsAltComponentProps = ComponentProps<typeof ControlButtonsAltComponent>;
+type ControlButtonsComponentTouchProps = ComponentProps<typeof ControlButtonsComponentTouch>;
+type MiniAudioProps = ComponentProps<typeof MiniAudio>;
+type MeetingProgressTimerProps = ComponentProps<typeof MeetingProgressTimer>;
+type VideoCardProps = ComponentProps<typeof VideoCard>;
+type AudioCardProps = ComponentProps<typeof AudioCard>;
+type MiniCardProps = ComponentProps<typeof MiniCard>;
+type LoadingModalProps = ComponentProps<typeof LoadingModal>;
+type AlertComponentProps = ComponentProps<typeof AlertComponent>;
+type MenuModalProps = ComponentProps<typeof MenuModal>;
+type RecordingModalProps = ComponentProps<typeof RecordingModal>;
+type RequestsModalProps = ComponentProps<typeof RequestsModal>;
+type WaitingModalProps = ComponentProps<typeof WaitingModal>;
+type DisplaySettingsModalProps = ComponentProps<typeof DisplaySettingsModal>;
+type EventSettingsModalProps = ComponentProps<typeof EventSettingsModal>;
+type CoHostModalProps = ComponentProps<typeof CoHostModal>;
+type PanelistsModalProps = ComponentProps<typeof PanelistsModal>;
+type PermissionsModalProps = ComponentProps<typeof PermissionsModal>;
+type ParticipantsModalProps = ComponentProps<typeof ParticipantsModal>;
+type MessagesModalProps = ComponentProps<typeof MessagesModal>;
+type MediaSettingsModalProps = ComponentProps<typeof MediaSettingsModal>;
+type ConfirmExitModalProps = ComponentProps<typeof ConfirmExitModal>;
+type ConfirmHereModalProps = ComponentProps<typeof ConfirmHereModal>;
+type ShareEventModalProps = ComponentProps<typeof ShareEventModal>;
+type WelcomePageProps = ComponentProps<typeof WelcomePage>;
+type PreJoinPageProps = ComponentProps<typeof PreJoinPage>;
+type PollModalProps = ComponentProps<typeof PollModal>;
+type BackgroundModalProps = ComponentProps<typeof BackgroundModal>;
+type BreakoutRoomsModalProps = ComponentProps<typeof BreakoutRoomsModal>;
+type ConfigureWhiteboardModalProps = ComponentProps<typeof ConfigureWhiteboardModal>;
+type WhiteboardProps = ComponentProps<typeof Whiteboard>;
+type ScreenboardProps = ComponentProps<typeof Screenboard>;
+type ScreenboardModalProps = ComponentProps<typeof ScreenboardModal>;
+type TranslationSettingsModalProps = ComponentProps<typeof TranslationSettingsModal>;
+type MiniAudioPlayerProps = ComponentProps<typeof MiniAudioPlayer>;
 
+export type CustomComponentOverride<Props> = {
+  component?: ComponentType<Props>;
+  render?: (props: Props) => ReactNode;
+};
 
+export type CustomFunctionOverride<Fn extends (...args: any[]) => any> = {
+  implementation?: Fn;
+  wrap?: (defaultImplementation: Fn) => Fn;
+};
+
+export interface MediasfuUICustomOverrides {
+  mainContainer?: CustomComponentOverride<MainContainerComponentProps>;
+  mainAspect?: CustomComponentOverride<MainAspectComponentProps>;
+  mainScreen?: CustomComponentOverride<MainScreenComponentProps>;
+  mainGrid?: CustomComponentOverride<MainGridComponentProps>;
+  subAspect?: CustomComponentOverride<SubAspectComponentProps>;
+  otherGrid?: CustomComponentOverride<OtherGridComponentProps>;
+  flexibleGrid?: CustomComponentOverride<FlexibleGridProps>;
+  flexibleGridAlt?: CustomComponentOverride<FlexibleGridProps>;
+  flexibleVideo?: CustomComponentOverride<FlexibleVideoProps>;
+  audioGrid?: CustomComponentOverride<AudioGridProps>;
+  pagination?: CustomComponentOverride<PaginationProps>;
+  controlButtons?: CustomComponentOverride<ControlButtonsComponentProps>;
+  controlButtonsAlt?: CustomComponentOverride<ControlButtonsAltComponentProps>;
+  controlButtonsTouch?: CustomComponentOverride<ControlButtonsComponentTouchProps>;
+  videoCard?: CustomComponentOverride<VideoCardProps>;
+  audioCard?: CustomComponentOverride<AudioCardProps>;
+  miniCard?: CustomComponentOverride<MiniCardProps>;
+  miniAudio?: CustomComponentOverride<MiniAudioProps>;
+  meetingProgressTimer?: CustomComponentOverride<MeetingProgressTimerProps>;
+  miniAudioPlayer?: CustomComponentOverride<MiniAudioPlayerProps>;
+  loadingModal?: CustomComponentOverride<LoadingModalProps>;
+  alert?: CustomComponentOverride<AlertComponentProps>;
+  menuModal?: CustomComponentOverride<MenuModalProps>;
+  eventSettingsModal?: CustomComponentOverride<EventSettingsModalProps>;
+  requestsModal?: CustomComponentOverride<RequestsModalProps>;
+  waitingRoomModal?: CustomComponentOverride<WaitingModalProps>;
+  coHostModal?: CustomComponentOverride<CoHostModalProps>;
+  panelistsModal?: CustomComponentOverride<PanelistsModalProps>;
+  permissionsModal?: CustomComponentOverride<PermissionsModalProps>;
+  mediaSettingsModal?: CustomComponentOverride<MediaSettingsModalProps>;
+  participantsModal?: CustomComponentOverride<ParticipantsModalProps>;
+  messagesModal?: CustomComponentOverride<MessagesModalProps>;
+  displaySettingsModal?: CustomComponentOverride<DisplaySettingsModalProps>;
+  translationSettingsModal?: CustomComponentOverride<TranslationSettingsModalProps>;
+  confirmExitModal?: CustomComponentOverride<ConfirmExitModalProps>;
+  confirmHereModal?: CustomComponentOverride<ConfirmHereModalProps>;
+  shareEventModal?: CustomComponentOverride<ShareEventModalProps>;
+  recordingModal?: CustomComponentOverride<RecordingModalProps>;
+  pollModal?: CustomComponentOverride<PollModalProps>;
+  backgroundModal?: CustomComponentOverride<BackgroundModalProps>;
+  breakoutRoomsModal?: CustomComponentOverride<BreakoutRoomsModalProps>;
+  configureWhiteboardModal?: CustomComponentOverride<ConfigureWhiteboardModalProps>;
+  whiteboard?: CustomComponentOverride<WhiteboardProps>;
+  screenboard?: CustomComponentOverride<ScreenboardProps>;
+  screenboardModal?: CustomComponentOverride<ScreenboardModalProps>;
+  welcomePage?: CustomComponentOverride<WelcomePageProps>;
+  preJoinPage?: CustomComponentOverride<PreJoinPageProps>;
+  customMenuButtonsRenderer?: CustomComponentOverride<ControlButtonsAltComponentProps>;
+  consumerResume?: CustomFunctionOverride<ConsumerResumeType>;
+  addVideosGrid?: CustomFunctionOverride<AddVideosGridType>;
+}
 
 // //consumers/socketReceiveMethods
 export * from '../consumers/socketReceiveMethods/joinConsumeRoom';
@@ -225,7 +387,7 @@ export * from '../producers/socketReceiveMethods/userWaiting';
 export * from '../sockets/SocketManager';
 
 // Components
-// export * from '../components/backgroundComponents/BackgroundModal';
+export * from '../components/backgroundComponents/BackgroundModal';
 export * from '../components/breakoutComponents/BreakoutRoomsModal';
 export * from '../components/coHostComponents/CoHostModal';
 export * from '../components/displayComponents/AlertComponent';
@@ -264,11 +426,11 @@ export * from '../components/participantsComponents/ParticipantsModal';
 export * from '../components/pollsComponents/PollModal';
 export * from '../components/recordingComponents/RecordingModal';
 export * from '../components/requestsComponents/RequestsModal';
-//export * from '../components/screenboardComponents/Screenboard';
-//export * from '../components/screenboardComponents/ScreenboardModal';
+export * from '../components/screenboardComponents/Screenboard';
+export * from '../components/screenboardComponents/ScreenboardModal';
 export * from '../components/waitingComponents/WaitingModal';
-//export * from '../components/whiteboardComponents/ConfigureWhiteboardModal';
-//export * from '../components/whiteboardComponents/Whiteboard';
+export * from '../components/whiteboardComponents/ConfigureWhiteboardModal';
+export * from '../components/whiteboardComponents/Whiteboard';
 export * from '../components/menuComponents/CustomButtons';
 
 // React Native Exclusive
@@ -291,7 +453,7 @@ export interface Participant {
     name: string;
     muted?: boolean;
     isBanned?: boolean;
-    isSuspended?: boolean; useBoard?: boolean;
+    isSuspended?: boolean;  useBoard?: boolean;
     breakRoom?: number | null;
     [key: string]: any;
   }
@@ -312,6 +474,7 @@ export interface Request {
   username?: string;
   [key: string]: any;
 }
+
 
 export interface RequestResponse {
   id: string;
@@ -352,12 +515,22 @@ export interface ComponentSizes {
   otherHeight: number;
 }
 
-export interface AudioDecibels {
-  name: string;
-  averageLoudness: number
+export interface AudioDecibels { 
+  name: string; 
+  averageLoudness: number 
 }
 
-export type ShowAlert = (options: { message: string; type: 'success' | 'danger'; duration?: number }) =>  void;
+/** Position of the alert on screen */
+export type AlertPosition = 'top' | 'bottom' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center';
+
+export type ShowAlert = (options: {
+  message: string;
+  /** Alert semantics */
+  type: "success" | "danger" | "warning" | "info";
+  duration?: number;
+  /** Position of the alert. Use 'center' for action-triggered alerts that need attention. Default: 'top' */
+  position?: AlertPosition;
+}) => void;
 
 export interface CoHostResponsibility {
   name: string;
@@ -371,6 +544,7 @@ export interface VidCons {
 }
 
 export type Settings = [string, string, string, string];
+
 
 export interface Message {
   sender: string;
@@ -386,7 +560,7 @@ export type MainSpecs = {
   videoOptions: string;
   videoType: string;
   videoOptimized: boolean;
-  recordingDisplayType: 'video' | 'media' | 'all';
+  recordingDisplayType: "video" | "media" | "all";
   addHLS: boolean;
 };
 
@@ -417,8 +591,8 @@ export type AltDomains = {
 export type RequestPermissionAudioType = () => Promise<string>;
 export type RequestPermissionCameraType = () => Promise<string>;
 
-export type ControlsPosition = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-export type InfoPosition = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+export type ControlsPosition = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+export type InfoPosition = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 
 export interface Poll {
   id: string;
@@ -480,7 +654,7 @@ export interface WhiteboardUser {
 
 export interface ShapePayload {
   type: string;
-  x1: number;
+  x1: number; 
   y1: number;
   x2: number;
   y2: number;
@@ -513,6 +687,7 @@ export type SeedData = {
   waitingList?: WaitingRoomParticipant[];
   whiteboardUsers?: WhiteboardUser[];
 };
+
 
 export interface MeetingRoomParams {
   itemPageLimit: number; // Limit for items per page
@@ -571,12 +746,15 @@ export interface CreateRoomOptions {
   autoStartSafeRoom: boolean; // Automatically start the safe room feature
   safeRoomAction: 'warn' | 'kick' | 'ban'; // Action for the safe room
   dataBuffer: boolean; // Whether to return data buffer
-  bufferType: 'images' | 'audio' | 'all'; // Type of buffer data
+  bufferType: 'images' | 'audio' | 'all'; // Type of buffer
   supportSIP: boolean; // Whether to support SIP
   directionSIP: 'inbound' | 'outbound' | 'both'; // Direction of SIP
   preferPCMA: boolean; // Whether to prefer PCMA codec for SIP
+  supportTranslation: boolean; // Whether to support translation
+  translationConfigNickName: string; // Nickname for translation configuration
+  supportFlexRoom: boolean; // Whether to support flex room capacity features
+  supportMaxRoom: boolean; // Whether to support max room capacity features
 }
-
 
 export interface CreateMediaSFURoomOptions {
   action: 'create'; // 'create' action
@@ -597,12 +775,17 @@ export interface CreateMediaSFURoomOptions {
   supportSIP?: boolean; // Whether to support SIP
   directionSIP?: 'inbound' | 'outbound' | 'both'; // Direction of SIP
   preferPCMA?: boolean; // Whether to prefer PCMA codec for SIP
+  supportTranslation?: boolean; // Whether to support translation
+  translationConfigNickName?: string; // Nickname for translation configuration
+  supportFlexRoom?: boolean; // Whether to support flex room capacity features
+  supportMaxRoom?: boolean; // Whether to support max room capacity features
 }
 
 export interface JoinMediaSFURoomOptions {
   action: 'join'; // 'join' action
   meetingID: string; // The meeting ID
   userName: string; // Username of the room host
+  secureCode?: string; // Secure code for the room host; optional and needed for sipOnly rooms
 }
 
 export interface ResponseJoinLocalRoom {
@@ -619,7 +802,6 @@ export interface ResponseJoinLocalRoom {
   apiUserName: string; // API username
   allowRecord: boolean; // Indicates whether recording is allowed.
 }
-
 
 export interface ResponseJoinRoom {
   rtpCapabilities?: RtpCapabilities | null; // Object containing the RTP capabilities
@@ -638,6 +820,8 @@ export interface ResponseJoinRoom {
   banned?: boolean; // Indicates whether the user is banned from the room.
   suspended?: boolean; // Indicates whether the user is suspended from the room.
   noAdmin?: boolean; // Indicates whether the room has no host in it.
+  supportFlexRoom?: boolean; // Indicates whether the room supports flex mode (2x capacity, 25% can produce).
+  supportMaxRoom?: boolean; // Indicates whether the room supports max mode (4x capacity, 5% can produce).
 }
 
 export interface AllMembersData {
@@ -686,23 +870,23 @@ export interface UpdateMediaSettingsData {
 
 export interface ProducerMediaPausedData {
   producerId: string; // The producer ID of the media that was paused.
-  kind: 'audio';
+  kind: "audio";
   name: string; // The name of the media that was paused.
 }
 
 export interface ProducerMediaResumedData {
-  kind: 'audio';
+  kind: "audio";
   name: string; // The name of the media that was resumed.
 }
 
 export interface ProducerMediaClosedData {
   producerId: string; // The producer ID of the media that was stopped.
-  kind: 'audio' | 'video' | 'screenshare';
+  kind: "audio" | "video" | "screenshare";
   name: string; // The name of the media that was stopped.
 }
 
 export interface ControlMediaHostData {
-  type: 'all' | 'audio' | 'video' | 'screenshare'; // The type of media to control.
+  type: "all" | "audio" | "video" | "screenshare"; // The type of media to control.
 }
 
 export interface ReceiveMessageData {
@@ -768,7 +952,7 @@ export interface ImageData {
 }
 
 export interface WhiteboardUpdatedData {
-  status: 'started' | 'ended'; // The status of the whiteboard.
+  status: "started" | "ended"; // The status of the whiteboard.
   whiteboardUsers: WhiteboardUser[]; // Array of objects containing information about the whiteboard users.
   members: Participant[]; // Array of objects containing information about the members.
   whiteboardData: WhiteboardData; // Object containing information about the whiteboard data.
@@ -787,17 +971,25 @@ export type CreateWebRTCTransportResponse = {
   error?: string;
 };
 
-// Custom Component Builder Types for React Native
+// Custom Component Builder Types
 export interface CustomVideoCardOptions {
-  participant: Participant;
-  stream: MediaStream | null;
-  width: number;
-  height: number;
-  imageSize?: number;
+  name: string;
+  stream?: MediaStream | null;
+  width?: number;
+  height?: number;
   doMirror?: boolean;
+  barColor?: string;
+  textColor?: string;
+  imageSource?: string;
+  roundedImage?: boolean;
+  imageStyle?: any;
   showControls?: boolean;
   showInfo?: boolean;
-  name?: string;
+  videoInfoComponent?: ReactNode;
+  videoControlsComponent?: ReactNode;
+  controlsPosition?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+  infoPosition?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+  participant?: Participant;
   backgroundColor?: string;
   onVideoPress?: () => void;
   parameters?: any;
@@ -810,12 +1002,14 @@ export interface CustomAudioCardOptions {
   imageSource?: string;
   roundedImage?: boolean;
   imageStyle?: any;
+  backgroundColor?: string;
   parameters?: any;
 }
 
 export interface CustomMiniCardOptions {
   initials: string;
   fontSize: number;
+  textColor?: string;
   customStyle?: any;
   name: string;
   showVideoIcon?: boolean;
@@ -823,6 +1017,7 @@ export interface CustomMiniCardOptions {
   imageSource?: string;
   roundedImage?: boolean;
   imageStyle?: any;
+  style?: any;
   parameters?: any;
 }
 
@@ -838,104 +1033,12 @@ export interface CustomPreJoinPageOptions {
 }
 
 // Custom Component Builder Function Types
-export type CustomVideoCardType = (options: CustomVideoCardOptions) => JSX.Element;
-export type CustomAudioCardType = (options: CustomAudioCardOptions) => JSX.Element;
-export type CustomMiniCardType = (options: CustomMiniCardOptions) => JSX.Element;
-export type CustomPreJoinPageType = (options: CustomPreJoinPageOptions) => JSX.Element;
+export type CustomVideoCardType = (options: CustomVideoCardOptions) => React.JSX.Element;
+export type CustomAudioCardType = (options: CustomAudioCardOptions) => React.JSX.Element;
+export type CustomMiniCardType = (options: CustomMiniCardOptions) => React.JSX.Element;
+export type CustomPreJoinPageType = (options: CustomPreJoinPageOptions) => React.JSX.Element;
 
 // Custom Full UI Component Type
 export type CustomComponentType = React.FC<{ parameters: any }>;
-
-// Override helper types (from overrideHelpers.tsx)
-export type { CustomComponentOverride, CustomFunctionOverride } from '../components/mediasfuComponents/overrideHelpers';
-
-/**
- * MediasfuUICustomOverrides interface
- * 
- * Comprehensive UI override map for all MediaSFU components and helper functions.
- * Each key accepts a CustomComponentOverride<Props> or CustomFunctionOverride<Fn>
- * allowing you to fully replace or wrap default implementations.
- * 
- * @example
- * ```tsx
- * import { MediasfuUICustomOverrides } from './types';
- * 
- * const uiOverrides: MediasfuUICustomOverrides = {
- *   mainContainer: {
- *     render: (props) => (
- *       <View style={{ borderWidth: 4, borderColor: 'purple' }}>
- *         <MainContainerComponent {...props} />
- *       </View>
- *     )
- *   },
- *   consumerResume: {
- *     wrap: (original) => async (params) => {
- *       const start = Date.now();
- *       const result = await original(params);
- *       console.log('Consumer resume took:', Date.now() - start, 'ms');
- *       return result;
- *     }
- *   }
- * };
- * ```
- */
-export interface MediasfuUICustomOverrides {
-  // Layout & control surfaces
-  mainContainer?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  mainAspect?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  mainScreen?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  mainGrid?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  subAspect?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  otherGrid?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  flexibleGrid?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  flexibleGridAlt?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  flexibleVideo?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  audioGrid?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  pagination?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  controlButtons?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  controlButtonsAlt?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  controlButtonsTouch?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  
-  // Participant cards & widgets
-  videoCard?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  audioCard?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  miniCard?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  miniAudio?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  meetingProgressTimer?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  miniAudioPlayer?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  
-  // Modals & dialogs
-  loadingModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  alert?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  menuModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  eventSettingsModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  requestsModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  waitingRoomModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  coHostModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  mediaSettingsModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  participantsModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  messagesModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  displaySettingsModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  confirmExitModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  confirmHereModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  shareEventModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  recordingModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  pollModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  backgroundModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  breakoutRoomsModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  configureWhiteboardModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  whiteboard?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  screenboard?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  screenboardModal?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  
-  // Entry flows
-  welcomePage?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  preJoinPage?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  customMenuButtonsRenderer?: import('../components/mediasfuComponents/overrideHelpers').CustomComponentOverride<any>;
-  
-  // Function overrides
-  consumerResume?: import('../components/mediasfuComponents/overrideHelpers').CustomFunctionOverride<any>;
-  addVideosGrid?: import('../components/mediasfuComponents/overrideHelpers').CustomFunctionOverride<any>;
-}
 
 

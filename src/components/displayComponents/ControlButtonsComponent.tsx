@@ -35,6 +35,7 @@ export interface Button {
   name?: string;
   icon?: string;
   alternateIcon?: string;
+  accessibilityLabel?: string;
   onPress?: () => void;
   backgroundColor?: {
     default?: string;
@@ -309,53 +310,62 @@ const ControlButtonsComponent: React.FC<ControlButtonsComponentOptions> = ({
 
   const dimensions = { width: 0, height: 0 }; // Dynamic sizing based on button count
 
-  const defaultContent = buttons.map((button, index) => (
-    <Pressable
-      key={index}
-      style={({ pressed }) => [
-        styles.buttonContainer,
-        {
-          backgroundColor: pressed
-            ? buttonBackgroundColor?.pressed || '#444'
-            : buttonBackgroundColor?.default || 'transparent',
-        },
-        vertical && styles.verticalButton,
-      ]}
-      onPress={button.onPress}
-      disabled={button.disabled}
-    >
-      {button.icon ? (
-        button.active ? (
-          button.alternateIconComponent ? (
-            button.alternateIconComponent
-          ) : button.alternateIcon ? (
-            <FontAwesome5
-              name={button.alternateIcon}
-              size={24}
-              color={button.activeColor || '#ffffff'}
-            />
-          ) : null
-        ) : button.iconComponent ? (
-          button.iconComponent
-        ) : button.icon ? (
+  const defaultContent = buttons.filter((button) => button.show !== false).map((button, index) => {
+    const iconNode = button.icon ? (
+      button.active ? (
+        button.alternateIconComponent ? (
+          button.alternateIconComponent
+        ) : button.alternateIcon ? (
           <FontAwesome5
-            name={button.icon}
+            name={button.alternateIcon}
             size={24}
-            color={button.inActiveColor || '#ffffff'}
+            color={button.activeColor || '#ffffff'}
           />
         ) : null
-      ) : (
-        button.customComponent
-      )}
-      {button.name && (
-        <Text
-          style={[styles.buttonText, { color: button.color || '#ffffff' }]}
-        >
-          {button.name}
-        </Text>
-      )}
-    </Pressable>
-  ));
+      ) : button.iconComponent ? (
+        button.iconComponent
+      ) : button.icon ? (
+        <FontAwesome5
+          name={button.icon}
+          size={24}
+          color={button.inActiveColor || '#ffffff'}
+        />
+      ) : null
+    ) : (
+      button.customComponent
+    );
+
+    return (
+      <Pressable
+        key={index}
+        style={({ pressed }) => [
+          styles.buttonContainer,
+          {
+            backgroundColor: pressed
+              ? buttonBackgroundColor?.pressed || '#444'
+              : buttonBackgroundColor?.default || 'transparent',
+          },
+          vertical && styles.verticalButton,
+        ]}
+        onPress={button.onPress}
+        disabled={button.disabled}
+        accessibilityRole="button"
+        accessibilityLabel={button.accessibilityLabel || button.name}
+      >
+        <View style={styles.buttonContent}>
+          {iconNode}
+          {button.name && (
+            <Text
+              numberOfLines={1}
+              style={[styles.buttonText, { color: button.color || '#ffffff' }]}
+            >
+              {button.name}
+            </Text>
+          )}
+        </View>
+      </Pressable>
+    );
+  });
 
   const content = renderContent 
     ? renderContent({ defaultContent, dimensions }) 
@@ -383,20 +393,34 @@ const ControlButtonsComponent: React.FC<ControlButtonsComponentOptions> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginVertical: 10,
+    marginVertical: 6,
+    width: '100%',
+    maxWidth: '100%',
+    alignItems: 'center',
   },
   buttonContainer: {
     alignItems: 'center',
-    padding: 6,
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     borderRadius: 5,
-    marginHorizontal: 4,
+    marginHorizontal: 2,
+    minWidth: 32,
+    flexShrink: 0,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: '100%',
   },
   verticalButton: {
     flexDirection: 'column',
   },
   buttonText: {
     fontSize: 12,
-    marginTop: 2,
+    marginLeft: 6,
+    lineHeight: 14,
   },
 });
 

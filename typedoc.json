@@ -12,6 +12,7 @@
       "readme": "none"
     },
     "out": "docs",
+    "tsconfig": "tsconfig.build.json",
     "sidebarLinks": {
       "MediaSFU": "https://mediasfu.com",
     },

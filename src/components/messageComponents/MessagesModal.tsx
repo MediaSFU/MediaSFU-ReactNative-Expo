@@ -19,6 +19,7 @@ import {
   Participant,
   ShowAlert,
 } from '../../@types/types';
+import { getModalBodyTheme } from '../../components_modern/core/modalBodyTheme';
 
 /**
  * Interface defining the props for the MessagesModal component.
@@ -105,6 +106,7 @@ export interface MessagesModalOptions {
    * @default '#f5f5f5'
    */
   backgroundColor?: string;
+  isDarkMode?: boolean;
 
   /**
    * Background color of the active tab.
@@ -339,6 +341,7 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
   onSendMessagePress = sendMessage,
   position = 'topRight',
   backgroundColor = '#f5f5f5',
+  isDarkMode,
   activeTabBackgroundColor = '#7AD2DCFF',
   eventType,
   member,
@@ -434,6 +437,9 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
   }, [reRender]);
 
   const dimensions = { width: modalWidth, height: 0 };
+  const theme = getModalBodyTheme(isDarkMode);
+  const shouldUseModernTheme = typeof isDarkMode === 'boolean';
+  const activeTabColor = shouldUseModernTheme ? theme.buttonBackgroundColor : activeTabBackgroundColor;
 
   const defaultContent = (
     <>
@@ -445,13 +451,14 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
               style={[
                 styles.tab,
                 activeTab.current === 'direct' && styles.activeTab,
-                activeTab.current === 'direct' && { backgroundColor: activeTabBackgroundColor },
+                activeTab.current === 'direct' && { backgroundColor: activeTabColor },
               ]}
             >
               <Text
                 style={[
                   styles.tabText,
                   activeTab.current === 'direct' && styles.activeTabText,
+                  { color: activeTab.current === 'direct' ? theme.buttonTextColor : theme.textColor },
                 ]}
               >
                 Direct
@@ -462,13 +469,14 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
               style={[
                 styles.tab,
                 activeTab.current === 'group' && styles.activeTab,
-                activeTab.current === 'group' && { backgroundColor: activeTabBackgroundColor },
+                activeTab.current === 'group' && { backgroundColor: activeTabColor },
               ]}
             >
               <Text
                 style={[
                   styles.tabText,
                   activeTab.current === 'group' && styles.activeTabText,
+                  { color: activeTab.current === 'group' ? theme.buttonTextColor : theme.textColor },
                 ]}
               >
                 Group
@@ -479,11 +487,11 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
 
         {/* Close Button */}
         <Pressable onPress={onMessagesClose} style={styles.closeButton}>
-          <FontAwesome5 name="times" size={24} color="black" />
+          <FontAwesome5 name="times" size={24} color={theme.iconColor} />
         </Pressable>
       </View>
 
-      <View style={styles.separator} />
+      <View style={[styles.separator, { backgroundColor: theme.dividerColor }]} />
 
       <View style={styles.modalBody}>
         {activeTab.current === 'direct'
@@ -495,6 +503,7 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
               onSendMessagePress={onSendMessagePress}
               username={member}
               backgroundColor={backgroundColor}
+              isDarkMode={isDarkMode}
               focusedInput={focusedInput}
               showAlert={showAlert}
               eventType={eventType}
@@ -520,6 +529,7 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
             onSendMessagePress={onSendMessagePress}
             username={member}
             backgroundColor={backgroundColor}
+            isDarkMode={isDarkMode}
             focusedInput={false}
             showAlert={showAlert}
             eventType={eventType}
@@ -552,7 +562,7 @@ const MessagesModal: React.FC<MessagesModalOptions> = ({
       onRequestClose={onMessagesClose}
     >
       <View style={[styles.modalContainer, getModalPosition({ position })]}>
-        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, style]}>
+        <View style={[styles.modalContent, { backgroundColor, width: modalWidth }, shouldUseModernTheme ? { borderColor: theme.borderColor, borderWidth: 1 } : null, style]}>
           {content}
         </View>
       </View>

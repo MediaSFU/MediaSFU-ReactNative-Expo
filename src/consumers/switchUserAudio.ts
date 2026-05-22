@@ -1,6 +1,7 @@
+import { switchUserAudio as sharedSwitchUserAudio } from 'mediasfu-shared';
 import {
   ShowAlert, StreamSuccessAudioSwitchType, RequestPermissionAudioType, StreamSuccessAudioSwitchParameters,
-  MediaDevices
+  MediaDevices,
 } from '../@types/types';
 
 export interface SwitchUserAudioParameters extends StreamSuccessAudioSwitchParameters {
@@ -64,73 +65,6 @@ export type SwitchUserAudioType = (options: SwitchUserAudioOptions) => Promise<v
  * ```
  */
 
-export async function switchUserAudio({ audioPreference, parameters }: SwitchUserAudioOptions): Promise<void> {
-  const {
-    mediaDevices,
-    prevAudioInputDevice,
-    showAlert,
-    hasAudioPermission,
-    updateUserDefaultAudioInputDevice,
-
-    // Media functions
-    streamSuccessAudioSwitch,
-    requestPermissionAudio,
-    checkMediaPermission,
-  } = parameters;
-
-  try {
-    // Check if audio permission is granted
-    if (!hasAudioPermission) {
-      if (checkMediaPermission) {
-        const statusMic = await requestPermissionAudio();
-        if (statusMic !== 'granted') {
-          showAlert?.({
-            message:
-              'Allow access to your microphone or check if your microphone is not being used by another application.',
-            type: 'danger',
-            duration: 3000,
-          });
-          return;
-        }
-      }
-    }
-
-    const mediaConstraints: MediaStreamConstraints = {
-      audio: {
-        deviceId: { exact: audioPreference },
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-      video: false,
-    };
-
-    // Get user media with the defined audio constraints
-    await mediaDevices
-      .getUserMedia(mediaConstraints)
-      .then(async (stream) => {
-        await streamSuccessAudioSwitch({ stream, parameters });
-      })
-      .catch((error) => {
-        console.log('Error switching audio A', error);
-        // Handle errors and revert to the previous audio input device
-        updateUserDefaultAudioInputDevice(prevAudioInputDevice);
-
-        showAlert?.({
-          message: 'Error switching; the specified microphone could not be accessed.',
-          type: 'danger',
-          duration: 3000,
-        });
-      });
-  } catch (error) {
-    console.log('Error switching audio', error);
-    // Handle unexpected errors and revert to the previous audio input device
-    updateUserDefaultAudioInputDevice(prevAudioInputDevice);
-
-    showAlert?.({
-      message: 'Error switching; the specified microphone could not be accessed.',
-      type: 'danger',
-      duration: 3000,
-    });
-  }
-}
+export const switchUserAudio: SwitchUserAudioType = async (options): Promise<void> => {
+  await (sharedSwitchUserAudio as unknown as SwitchUserAudioType)(options);
+};

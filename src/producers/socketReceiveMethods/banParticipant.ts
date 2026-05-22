@@ -3,6 +3,7 @@ import {
   ReorderStreamsType,
   ReorderStreamsParameters,
 } from '../../@types/types';
+import { banParticipant as sharedBanParticipant } from 'mediasfu-shared';
 
 export interface BanParticipantParameters extends ReorderStreamsParameters {
   activeNames: string[];
@@ -60,26 +61,9 @@ export type BanParticipantType = (options: BanParticipantOptions) => Promise<voi
 export const banParticipant = async ({
   name,
   parameters,
-}: BanParticipantOptions) => {
-  const {
-    activeNames,
-    dispActiveNames,
-    participants,
-    updateParticipants,
-    reorderStreams,
-  } = parameters;
-
-  // Check if the participant is in the active or display names array
-  if (activeNames.includes(name) || dispActiveNames.includes(name)) {
-    // Filter out the banned participant from the participants array
-    const updatedParticipants = participants.filter(
-      (participant) => participant.name !== name,
-    );
-
-    // Update the participants array
-    updateParticipants(updatedParticipants);
-
-    // Reorder streams after participant removal
-    await reorderStreams({ add: false, screenChanged: true, parameters });
-  }
+}: BanParticipantOptions): Promise<void> => {
+  return sharedBanParticipant({
+    name,
+    parameters,
+  });
 };

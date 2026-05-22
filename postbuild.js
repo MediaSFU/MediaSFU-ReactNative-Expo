@@ -1,15 +1,14 @@
-// scripts/postbuild.js
-// const fs = require('fs');
-// const packageJson = require('./package.json');
+(async () => {
+	const fs = typeof require === 'function'
+		? require('fs')
+		: (await import('node:fs')).default;
 
-import fs from 'fs';
-import packageJson from './package.json';
+	const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
 
-// Set main entry to "dist/main.js" after build
-packageJson.main = "index.tsx";
-//remove the type field from package.json
-packageJson.type = "commonjs";
+	// Restore package metadata after the build artifacts are produced.
+	packageJson.main = 'index.tsx';
+	packageJson.type = 'commonjs';
 
-
-fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2), 'utf-8');
+	fs.writeFileSync('package.json', `${JSON.stringify(packageJson, null, 2)}\n`, 'utf-8');
+})();
 

@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState, useRef } from "react";
-import { Text, View, Platform, Dimensions } from "react-native";
+import { Text, View, Pressable, Platform, Dimensions, StyleSheet } from "react-native";
 import Orientation from "react-native-orientation-locker";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Constants from "expo-constants";
@@ -23,6 +23,9 @@ import MainGridComponent from "../../components/displayComponents/MainGridCompon
 import SubAspectComponent from "../../components/displayComponents/SubAspectComponent";
 import MainContainerComponent from "../../components/displayComponents/MainContainerComponent";
 import AlertComponent from "../../components/displayComponents/AlertComponent";
+import VideoCard from "../../components/displayComponents/VideoCard";
+import AudioCard from "../../components/displayComponents/AudioCard";
+import MiniCard from "../../components/displayComponents/MiniCard";
 import MiniAudio from "../../components/displayComponents/MiniAudio";
 import MiniAudioPlayer from "../../methods/utils/MiniAudioPlayer/MiniAudioPlayer";
 import MenuModal from "../../components/menuComponents/MenuModal";
@@ -43,7 +46,15 @@ import WelcomePage, {
 } from "../../components/miscComponents/WelcomePage";
 
 import PollModal from "../../components/pollsComponents/PollModal";
+import BackgroundModal from "../../components/backgroundComponents/BackgroundModal";
 import BreakoutRoomsModal from "../../components/breakoutComponents/BreakoutRoomsModal";
+import PanelistsModal from "../../components/panelistsComponents/PanelistsModal";
+import PermissionsModal from "../../components/permissionsComponents/PermissionsModal";
+import TranslationSettingsModal from "../../components/translationComponents/TranslationSettingsModal";
+import ConfigureWhiteboardModal from "../../components/whiteboardComponents/ConfigureWhiteboardModal";
+import Whiteboard from "../../components/whiteboardComponents/Whiteboard";
+import Screenboard from "../../components/screenboardComponents/Screenboard";
+import ScreenboardModal from "../../components/screenboardComponents/ScreenboardModal";
 
 // Override helpers for UI customization
 import { withOverride, withFunctionOverride } from "./overrideHelpers";
@@ -53,6 +64,10 @@ import Pagination from "../../components/displayComponents/Pagination";
 import FlexibleGrid from "../../components/displayComponents/FlexibleGrid";
 import FlexibleVideo from "../../components/displayComponents/FlexibleVideo";
 import AudioGrid from "../../components/displayComponents/AudioGrid";
+import MeetingProgressTimer from "../../components/displayComponents/MeetingProgressTimer";
+import { ParticipantsCounterBadge } from "../../components_modern/display_components/ParticipantsCounterBadge";
+import { createModernExpoOverrides } from "../../components_modern/modernOverrides";
+import { LiveSubtitleProvider } from "../../contexts/LiveSubtitleContext";
 
 // import methods for control (samples)
 import { launchMenuModal } from "../../methods/menuMethods/launchMenuModal";
@@ -71,6 +86,10 @@ import { launchConfirmExit } from "../../methods/exitMethods/launchConfirmExit";
 
 import { launchPoll } from "../../methods/pollsMethods/launchPoll";
 import { launchBreakoutRooms } from "../../methods/breakoutRoomsMethods/launchBreakoutRooms";
+import { launchBackground } from "../../methods/backgroundMethods/launchBackground";
+import { launchConfigureWhiteboard } from "../../methods/whiteboardMethods/launchConfigureWhiteboard";
+import { launchPanelists } from "../../methods/panelistsMethods/launchPanelists";
+import { launchPermissions } from "../../methods/permissionsMethods/launchPermissions";
 
 // Import the platform-specific WebRTC module (options are for ios, android, web)
 import {
@@ -188,10 +207,50 @@ import { hostRequestResponse } from "../../producers/socketReceiveMethods/hostRe
 import { allMembers } from "../../producers/socketReceiveMethods/allMembers";
 import { allMembersRest } from "../../producers/socketReceiveMethods/allMembersRest";
 import { disconnect } from "../../producers/socketReceiveMethods/disconnect";
+import {
+  addedAsPanelist,
+  controlMedia as panelistControlMedia,
+  panelistFocusChanged,
+  panelistsUpdated,
+  removedFromPanelists,
+} from "../../producers/socketReceiveMethods/panelistReceiveMethods";
+import {
+  permissionConfigUpdated,
+  permissionUpdated,
+  PermissionConfig,
+} from "../../producers/socketReceiveMethods/permissionReceiveMethods";
+import {
+  translationChannelsAvailable,
+  translationConfigUpdated,
+  translationError,
+  translationLanguageSet,
+  translationMemberState,
+  translationProducerClosed,
+  translationProducerReady,
+  translationRoomConfig,
+  translationSpeakerOutputChanged,
+  translationSubscribed,
+  translationTranscript,
+  translationUnsubscribed,
+  TranslationMemberStateData,
+  TranslationProducerMap,
+  TranslationRoomConfig,
+  TranslationTranscriptData,
+} from "../../producers/socketReceiveMethods/translationReceiveMethods";
+import {
+  pruneExpiredSubtitles,
+  type LiveSubtitle,
+  updateLiveSubtitlesFromTranscript,
+} from "mediasfu-shared";
 
 import { captureCanvasStream } from "../../methods/whiteboardMethods/captureCanvasStream";
 import { resumePauseAudioStreams } from "../../consumers/resumePauseAudioStreams";
 import { processConsumerTransportsAudio } from "../../consumers/processConsumerTransportsAudio";
+import {
+  pauseOriginalProducer,
+  resumeOriginalProducer,
+  stopConsumingTranslation,
+} from "../../consumers/translationConsumerSwitch";
 
 import { Socket } from "socket.io-client";
 import {
@@ -254,6 +313,28 @@ import {
 } from "mediasoup-client/lib/types";
 import { createResponseJoinRoom } from "../../methods/utils/createResponseJoinRoom";
 
+type NativeSidebarContent =
+  | "none"
+  | "menu"
+  | "participants"
+  | "messages"
+  | "requests"
+  | "waiting"
+  | "coHost"
+  | "mediaSettings"
+  | "displaySettings"
+  | "eventSettings"
+  | "recording"
+  | "polls"
+  | "breakout"
+  | "shareEvent"
+  | "background"
+  | "translation"
+  | "panelists"
+  | "permissions"
+  | "configureWhiteboard"
+  | "screenboard";
+
 export type MediasfuGenericOptions = {
   PrejoinPage?: (
     options: PreJoinPageOptions | WelcomePageOptions
@@ -269,6 +350,7 @@ export type MediasfuGenericOptions = {
   updateSourceParameters?: (data: { [key: string]: any }) => void;
   returnUI?: boolean;
   noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
+  autoProceedPreJoin?: boolean;
   joinMediaSFURoom?: JoinRoomOnMediaSFUType;
   createMediaSFURoom?: CreateRoomOnMediaSFUType;
   customVideoCard?: CustomVideoCardType;
@@ -276,6 +358,7 @@ export type MediasfuGenericOptions = {
   customMiniCard?: CustomMiniCardType;
   customComponent?: React.FC<{ parameters: any }>;
   containerStyle?: object; // React Native ViewStyle
+  useModernUI?: boolean;
   uiOverrides?: import("../../@types/types").MediasfuUICustomOverrides;
 };
 
@@ -355,6 +438,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   updateSourceParameters,
   returnUI = true,
   noUIPreJoinOptions,
+  autoProceedPreJoin,
   joinMediaSFURoom,
   createMediaSFURoom,
   customVideoCard,
@@ -362,8 +446,61 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   customMiniCard,
   customComponent,
   containerStyle,
-  uiOverrides,
+  useModernUI = true,
+  uiOverrides: providedUIOverrides,
 }) => {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const updateIsDarkMode = (value: boolean) => setIsDarkMode(value);
+  const themedSurfaceColor = React.useMemo(
+    () => (isDarkMode ? "rgba(15, 23, 42, 0.98)" : "rgba(248, 250, 252, 0.98)"),
+    [isDarkMode]
+  );
+  const themedMenuColor = React.useMemo(
+    () => (isDarkMode ? "rgba(15, 23, 42, 0.98)" : "rgba(248, 250, 252, 0.98)"),
+    [isDarkMode]
+  );
+  const neutralControlIconColor = isDarkMode ? "#f8fafc" : "#0f172a";
+  const [windowWidth, setWindowWidth] = useState<number>(
+    Dimensions.get("window").width
+  );
+  const [windowHeight, setWindowHeight] = useState<number>(
+    Dimensions.get("window").height
+  );
+  const uiOverrides = React.useMemo(
+    () =>
+      useModernUI
+        ? createModernExpoOverrides(providedUIOverrides)
+        : providedUIOverrides,
+    [providedUIOverrides, useModernUI]
+  );
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener("change", ({ window }) => {
+      setWindowWidth(window.width);
+      setWindowHeight(window.height);
+    });
+
+    return () => {
+      subscription?.remove?.();
+    };
+  }, []);
+
+  const shouldAttachSidebar =
+    (Platform.OS === "web" && windowWidth >= 768)
+    || (Platform.OS !== "web" && windowWidth >= 1200 && windowWidth > windowHeight);
+  const shouldUseSidebar = true;
+  const sidebarPanelWidth = React.useMemo(
+    () =>
+      shouldAttachSidebar
+        ? Math.min(Math.max(windowWidth * 0.2, 280), 420)
+        : Math.max(Math.min(windowWidth - 24, 520), 280),
+    [shouldAttachSidebar, windowWidth]
+  );
+  const showButtonLabels = React.useMemo(
+    () => windowWidth >= 576,
+    [windowWidth]
+  );
+
   // Apply UI overrides using useMemo for performance
   const MainContainer = React.useMemo(
     () => withOverride(uiOverrides?.mainContainer, MainContainerComponent),
@@ -393,10 +530,28 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     () => withOverride(uiOverrides?.flexibleGrid, FlexibleGrid),
     [uiOverrides?.flexibleGrid]
   );
+  const FlexibleGridAlt = React.useMemo(
+    () => withOverride(uiOverrides?.flexibleGridAlt, FlexibleGrid),
+    [uiOverrides?.flexibleGridAlt]
+  );
   const FlexibleVideoComponent = React.useMemo(
     () => withOverride(uiOverrides?.flexibleVideo, FlexibleVideo),
     [uiOverrides?.flexibleVideo]
   );
+  const MeetingProgressTimerComponentBase = React.useMemo(
+    () => withOverride(uiOverrides?.meetingProgressTimer, MeetingProgressTimer),
+    [uiOverrides?.meetingProgressTimer]
+  );
+  const MeetingProgressTimerComponent = React.useMemo(() => {
+    const TimerComponent = MeetingProgressTimerComponentBase as React.ComponentType<any>;
+    return (props: any) => (
+      <TimerComponent
+        {...props}
+        isDarkMode={isDarkMode}
+        parameters={{ ...(props?.parameters || {}), isDarkModeValue: isDarkMode, updateIsDarkMode }}
+      />
+    );
+  }, [MeetingProgressTimerComponentBase, isDarkMode]);
   const AudioGridComponent = React.useMemo(
     () => withOverride(uiOverrides?.audioGrid, AudioGrid),
     [uiOverrides?.audioGrid]
@@ -481,9 +636,57 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     () => withOverride(uiOverrides?.pollModal, PollModal),
     [uiOverrides?.pollModal]
   );
+  const BackgroundModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.backgroundModal, BackgroundModal),
+    [uiOverrides?.backgroundModal]
+  );
+  const TranslationSettingsModalComponent = React.useMemo(
+    () =>
+      withOverride(
+        uiOverrides?.translationSettingsModal,
+        TranslationSettingsModal
+      ),
+    [uiOverrides?.translationSettingsModal]
+  );
   const BreakoutRoomsModalComponent = React.useMemo(
     () => withOverride(uiOverrides?.breakoutRoomsModal, BreakoutRoomsModal),
     [uiOverrides?.breakoutRoomsModal]
+  );
+  const PanelistsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.panelistsModal, PanelistsModal),
+    [uiOverrides?.panelistsModal]
+  );
+  const PermissionsModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.permissionsModal, PermissionsModal),
+    [uiOverrides?.permissionsModal]
+  );
+  const ConfigureWhiteboardModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.configureWhiteboardModal, ConfigureWhiteboardModal),
+    [uiOverrides?.configureWhiteboardModal]
+  );
+  const WhiteboardComponent = React.useMemo(
+    () => withOverride(uiOverrides?.whiteboard, Whiteboard),
+    [uiOverrides?.whiteboard]
+  );
+  const ScreenboardComponent = React.useMemo(
+    () => withOverride(uiOverrides?.screenboard, Screenboard),
+    [uiOverrides?.screenboard]
+  );
+  const ScreenboardModalComponent = React.useMemo(
+    () => withOverride(uiOverrides?.screenboardModal, ScreenboardModal),
+    [uiOverrides?.screenboardModal]
+  );
+  const VideoCardComponentOverride = React.useMemo(
+    () => withOverride(uiOverrides?.videoCard, VideoCard),
+    [uiOverrides?.videoCard]
+  );
+  const AudioCardComponentOverride = React.useMemo(
+    () => withOverride(uiOverrides?.audioCard, AudioCard),
+    [uiOverrides?.audioCard]
+  );
+  const MiniCardComponentOverride = React.useMemo(
+    () => withOverride(uiOverrides?.miniCard, MiniCard),
+    [uiOverrides?.miniCard]
   );
 
   // Function overrides
@@ -812,6 +1015,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   const chatRefStreams = useRef<(Participant | Stream)[]>([]); // Array of chat ref streams
 
   const [controlHeight, setControlHeight] = useState<number>(0); // Control height as number
+  const [measuredControlBarHeightPx, setMeasuredControlBarHeightPx] =
+    useState<number>(0);
   const isWideScreen = useRef<boolean>(false); // True if the screen is wide
   const isMediumScreen = useRef<boolean>(false); // True if the screen is medium
   const isSmallScreen = useRef<boolean>(false); // True if the screen is small
@@ -843,6 +1048,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     altGridWidth: 0,
     altGridHeight: 0,
   }); // Grid sizes with type GridSizes
+  const [, setGridSizesVersion] = useState<number>(0);
 
   const screenForceFullDisplay = useRef<boolean>(false); // True if the screen should be forced to full display
   const mainGridStream = useRef<JSX.Element[]>([]); // Array of main grid streams as JSX.Element[]
@@ -851,6 +1057,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     [],
   ]); // Other grid streams as 2D array of JSX.Element[]
   const audioOnlyStreams = useRef<JSX.Element[]>([]); // Array of audio-only streams
+  const [translationStreams, setTranslationStreams] = useState<JSX.Element[]>([]); // Array of translation audio streams
 
   const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]); // Video inputs as array of MediaDeviceInfo
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([]); // Audio inputs as array of MediaDeviceInfo
@@ -1511,7 +1718,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   };
 
   const updateMainHeightWidth = (value: number) => {
-    setMainHeightWidth(value);
+    setMainHeightWidth((current) => (current === value ? current : value));
   };
 
   const updatePrevMainHeightWidth = (value: number) => {
@@ -1627,7 +1834,18 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   };
 
   const updateGridSizes = (value: GridSizes) => {
+    const previous = gridSizes.current;
+    if (
+      previous.gridWidth === value.gridWidth &&
+      previous.gridHeight === value.gridHeight &&
+      previous.altGridWidth === value.altGridWidth &&
+      previous.altGridHeight === value.altGridHeight
+    ) {
+      return;
+    }
+
     gridSizes.current = value;
+    setGridSizesVersion((version) => version + 1);
   };
 
   const updateScreenForceFullDisplay = (value: boolean) => {
@@ -1644,6 +1862,18 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const updateAudioOnlyStreams = (value: JSX.Element[]) => {
     audioOnlyStreams.current = value;
+  };
+
+  const updateTranslationStreams = (value: JSX.Element[]) => {
+    setTranslationStreams(value);
+  };
+
+  const addTranslationStream = (element: JSX.Element) => {
+    setTranslationStreams((prev) => [...prev, element]);
+  };
+
+  const removeTranslationStream = (producerId: string) => {
+    setTranslationStreams((prev) => prev.filter((element) => element.key !== `translation-${producerId}`));
   };
 
   const updateVideoInputs = (value: MediaDeviceInfo[]) => {
@@ -1741,6 +1971,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     useState<boolean>(false); // True if the settings modal is visible as boolean
   const [isRequestsModalVisible, setIsRequestsModalVisible] =
     useState<boolean>(false); // True if the requests modal is visible as boolean
+  const [, setRequestUiVersion] = useState<number>(0);
   const [isWaitingModalVisible, setIsWaitingModalVisible] =
     useState<boolean>(false); // True if the waiting room modal is visible as boolean
   const [isCoHostModalVisible, setIsCoHostModalVisible] =
@@ -1749,6 +1980,19 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     useState<boolean>(false); // True if the media settings modal is visible as boolean
   const [isDisplaySettingsModalVisible, setIsDisplaySettingsModalVisible] =
     useState<boolean>(false); // True if the display settings modal is visible as boolean
+  const [activeSidebarContent, setActiveSidebarContent] =
+    useState<NativeSidebarContent>("none");
+  const [sidebarNavigationStack, setSidebarNavigationStack] = useState<
+    NativeSidebarContent[]
+  >([]);
+  const attachedSidebarVisible = shouldAttachSidebar && activeSidebarContent !== "none";
+  const mainContentWidthFraction = React.useMemo(
+    () =>
+      attachedSidebarVisible
+        ? Math.max((windowWidth - sidebarPanelWidth) / Math.max(windowWidth, 1), 0.45)
+        : 1,
+    [attachedSidebarVisible, sidebarPanelWidth, windowWidth]
+  );
 
   // Other Modals
   const [isParticipantsModalVisible, setIsParticipantsModalVisible] =
@@ -1808,11 +2052,68 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     mainWidth: 0,
     otherWidth: 0,
   }); // Component sizes
+  const [componentSizesVersion, setComponentSizesVersion] = useState<number>(0);
 
   // Permissions-related variables
   const [hasCameraPermission, setHasCameraPermission] =
     useState<boolean>(false); // True if the user has camera permission
   const [hasAudioPermission, setHasAudioPermission] = useState<boolean>(false); // True if the user has audio permission
+  const permissionConfig = useRef<PermissionConfig | null>(null); // Permission configuration for level-based controls
+  const [isPermissionsModalVisible, setIsPermissionsModalVisible] =
+    useState<boolean>(false); // True if the permissions modal should be shown
+
+  // Panelists-related variables
+  const panelists = useRef<Participant[]>([]); // Current list of panelists
+  const panelistsFocused = useRef<boolean>(false); // True when focus mode is active
+  const [isPanelistsModalVisible, setIsPanelistsModalVisible] =
+    useState<boolean>(false); // True if the panelists modal should be shown
+
+  // Translation-related variables
+  const translationConfig = useRef<TranslationRoomConfig | null>(null);
+  const translationSupported = useRef<boolean>(false);
+  const [translationSupportedState, setTranslationSupportedState] =
+    useState<boolean>(false);
+  const [translationUiVersion, setTranslationUiVersion] = useState(0);
+  const mySpokenLanguage = useRef<string>("en");
+  const mySpokenLanguageEnabled = useRef<boolean>(false);
+  const myDefaultOutputLanguage = useRef<string | null>(null);
+  const listenPreferences = useRef<Map<string, string>>(new Map());
+  const translationProducerMap = useRef<TranslationProducerMap>({});
+  const activeTranslationProducerIds = useRef<Set<string>>(new Set());
+  const availableTranslationChannels = useRef<
+    Record<string, { languages: string[]; originalProducerId: string }>
+  >({});
+  const participantTranslationStates = useRef<
+    Map<string, TranslationMemberStateData["state"]>
+  >(new Map());
+  const translationTranscripts = useRef<TranslationTranscriptData[]>([]);
+  const showSubtitlesOnCards = useRef<boolean>(true);
+  const speakerTranslationStates = useRef<
+    Map<
+      string,
+      {
+        speakerId: string;
+        speakerName: string;
+        inputLanguage: string;
+        outputLanguage: string;
+        originalProducerId: string;
+        enabled: boolean;
+      }
+    >
+  >(new Map());
+  const listenerTranslationPreferences = useRef<{
+    perSpeaker: Map<
+      string,
+      { speakerId: string; language: string | null; wantOriginal: boolean }
+    >;
+    globalLanguage: string | null;
+  }>({
+    perSpeaker: new Map(),
+    globalLanguage: null,
+  });
+  const listenerTranslationOverrides = useRef<
+    Map<string, { speakerId: string; wantOriginal: boolean; preferredLanguage?: string }>
+  >(new Map());
 
   // Transports-related variables
   const transportCreated = useRef<boolean>(false); // True if the transport has been created
@@ -1839,6 +2140,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   ); // Polls as array of Poll
   const poll = useRef<Poll | null>(null); // Single poll as Poll or null
   const [isPollModalVisible, setIsPollModalVisible] = useState<boolean>(false); // True if the poll modal should be shown
+  const [pollUiVersion, setPollUiVersion] = useState<number>(0);
+  const lastAutoOpenedPollId = useRef<string>("");
 
   // Background-related variables
   const customImage = useRef<string>(""); // Custom image as string or null
@@ -1855,6 +2158,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   const appliedBackground = useRef<boolean>(false); // Applied background as boolean
   const [isBackgroundModalVisible, setIsBackgroundModalVisible] =
     useState<boolean>(false); // True if the background modal should be shown
+  const [isTranslationSettingsModalVisible, setIsTranslationSettingsModalVisible] =
+    useState<boolean>(false); // True if the translation settings modal should be shown
   const autoClickBackground = useRef<boolean>(false); // Auto click background as boolean
 
   // Breakout rooms-related variables
@@ -1880,6 +2185,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   const canStartWhiteboard = useRef<boolean>(false); // True if the whiteboard can be started
   const whiteboardStarted = useRef<boolean>(false); // True if the whiteboard has started
   const whiteboardEnded = useRef<boolean>(false); // True if the whiteboard has ended
+  const [whiteboardActive, setWhiteboardActive] = useState<boolean>(false);
   const whiteboardLimit = useRef<number>(itemPageLimit.current); // Whiteboard limit as number
   const [isWhiteboardModalVisible, setIsWhiteboardModalVisible] =
     useState<boolean>(false); // True if the whiteboard modal should be shown
@@ -1947,6 +2253,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     forceFullDisplay.current = value;
   };
 
+  const updateShowSubtitlesOnCards = (value: boolean) => {
+    showSubtitlesOnCards.current = value;
+    setTranslationUiVersion((current) => current + 1);
+  };
+
   const updatePrevForceFullDisplay = (value: boolean) => {
     prevForceFullDisplay.current = value;
   };
@@ -1971,6 +2282,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const updateRequestCounter = (value: number) => {
     requestCounter.current = value;
+    setRequestUiVersion((current) => current + 1);
   };
 
   const updateRequestFilter = (value: string) => {
@@ -1981,6 +2293,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     requestList.current = value;
     filteredRequestList.current = value;
     requestCounter.current = value.length;
+    setRequestUiVersion((current) => current + 1);
   };
 
   const updateTotalReqWait = (value: number) => {
@@ -2015,6 +2328,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       filteredRequestList.current = requestList.current;
       requestCounter.current = requestList.current.length;
     }
+
+    setRequestUiVersion((current) => current + 1);
   };
 
   const onParticipantsFilterChange = (value: string) => {
@@ -2216,7 +2531,18 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   };
 
   const updateComponentSizes = (sizes: ComponentSizes) => {
+    const previous = componentSizes.current;
+    if (
+      previous.mainHeight === sizes.mainHeight &&
+      previous.otherHeight === sizes.otherHeight &&
+      previous.mainWidth === sizes.mainWidth &&
+      previous.otherWidth === sizes.otherWidth
+    ) {
+      return;
+    }
+
     componentSizes.current = sizes;
+    setComponentSizesVersion((version) => version + 1);
   };
 
   const updateHasCameraPermission = (value: boolean) => {
@@ -2225,6 +2551,449 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const updateHasAudioPermission = (value: boolean) => {
     setHasAudioPermission(value);
+  };
+
+  const updatePermissionConfig = (value: PermissionConfig | null) => {
+    permissionConfig.current = value;
+  };
+
+  const updateIsPermissionsModalVisible = (value: boolean) => {
+    setIsPermissionsModalVisible(value);
+  };
+
+  const updatePanelists = (value: Participant[]) => {
+    panelists.current = value;
+  };
+
+  const updatePanelistsFocused = (value: boolean) => {
+    panelistsFocused.current = value;
+  };
+
+  const updateIsPanelistsModalVisible = (value: boolean) => {
+    setIsPanelistsModalVisible(value);
+  };
+
+  const updateTranslationConfig = (value: TranslationRoomConfig | null) => {
+    translationConfig.current = value;
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateTranslationSupported = (value: boolean) => {
+    translationSupported.current = value;
+    setTranslationSupportedState(value);
+  };
+
+  const updateMySpokenLanguage = (value: string) => {
+    mySpokenLanguage.current = value;
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateMySpokenLanguageEnabled = (value: boolean) => {
+    mySpokenLanguageEnabled.current = value;
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateMyDefaultOutputLanguage = (value: string | null) => {
+    myDefaultOutputLanguage.current = value;
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateMyDefaultListenLanguage = (value: string | null) => {
+    updateListenerTranslationPreferences({
+      ...listenerTranslationPreferences.current,
+      globalLanguage: value,
+    });
+  };
+
+  const updateListenPreferences = (
+    updater:
+      | Map<string, string>
+      | ((prev: Map<string, string>) => Map<string, string>)
+  ) => {
+    listenPreferences.current =
+      updater instanceof Map ? updater : updater(listenPreferences.current);
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateTranslationProducerMap = (
+    updater: (prev: TranslationProducerMap) => TranslationProducerMap
+  ) => {
+    translationProducerMap.current = updater(translationProducerMap.current);
+  };
+
+  const updateAvailableTranslationChannels = (
+    speakerId: string,
+    languages: string[],
+    originalProducerId: string
+  ) => {
+    availableTranslationChannels.current = {
+      ...availableTranslationChannels.current,
+      [speakerId]: {
+        languages,
+        originalProducerId,
+      },
+    };
+  };
+
+  const updateParticipantTranslationState = (
+    memberId: string,
+    state: TranslationMemberStateData["state"]
+  ) => {
+    const next = new Map(participantTranslationStates.current);
+    next.set(memberId, state);
+    participantTranslationStates.current = next;
+  };
+
+  const updateTranscripts = (
+    updater: (
+      prev: TranslationTranscriptData[]
+    ) => TranslationTranscriptData[]
+  ) => {
+    translationTranscripts.current = updater(translationTranscripts.current);
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateSpeakerTranslationState = (
+    speakerId: string,
+    outputLanguage: string | null,
+    originalProducerId: string
+  ) => {
+    const next = new Map(speakerTranslationStates.current);
+    const prev = next.get(speakerId);
+    next.set(speakerId, {
+      speakerId,
+      speakerName: prev?.speakerName || speakerId,
+      inputLanguage: prev?.inputLanguage || "auto",
+      outputLanguage: outputLanguage || "",
+      originalProducerId,
+      enabled: !!outputLanguage,
+    });
+    speakerTranslationStates.current = next;
+  };
+
+  const updateListenerTranslationPreferences = (
+    value: {
+      perSpeaker: Map<
+        string,
+        { speakerId: string; language: string | null; wantOriginal: boolean }
+      >;
+      globalLanguage: string | null;
+    }
+  ) => {
+    listenerTranslationPreferences.current = value;
+    setTranslationUiVersion((current) => current + 1);
+  };
+
+  const updateListenerTranslationOverrides = (
+    value: Map<
+      string,
+      { speakerId: string; wantOriginal: boolean; preferredLanguage?: string }
+    >
+  ) => {
+    listenerTranslationOverrides.current = value;
+  };
+
+  const liveSubtitles = React.useMemo(() => {
+    const now = Date.now();
+    let next = new Map<string, LiveSubtitle>();
+
+    for (const transcript of translationTranscripts.current) {
+      if (!transcript?.speakerId) {
+        continue;
+      }
+
+      const subtitleText = transcript.translatedText || transcript.originalText;
+      const transcriptTimestamp = transcript.timestamp ?? now;
+
+      if (!subtitleText || transcriptTimestamp < now - 12000) {
+        continue;
+      }
+
+      next = updateLiveSubtitlesFromTranscript({
+        currentSubtitles: next,
+        transcript: {
+          ...transcript,
+          timestamp: transcriptTimestamp,
+          language: transcript.language || transcript.targetLanguage || "en",
+          translatedText: transcript.translatedText || transcript.originalText,
+        },
+      });
+    }
+
+    return pruneExpiredSubtitles(next, now);
+  }, [translationUiVersion]);
+
+  const getTranslationSwitchParams = () => ({
+    consumerTransports: consumerTransports.current,
+    roomName: roomName.current,
+    member: member.current,
+    updateConsumerTransports,
+    breakOutRoomStarted: breakOutRoomStarted.current,
+    breakOutRoomEnded: breakOutRoomEnded.current,
+    breakoutRooms: breakoutRooms.current,
+    limitedBreakRoom: limitedBreakRoom.current,
+    participants: participants.current,
+    ref_participants: ref_participants.current,
+    islevel: islevel.current,
+    eventType: eventType.current,
+    hostNewRoom: hostNewRoom.current,
+  });
+
+  const startConsumingTranslation = async (
+    producerId: string,
+    speakerId: string,
+    language: string,
+    originalProducerId?: string,
+    nsock?: Socket
+  ) => {
+    const consumeSocket = nsock || socket.current;
+    if (!consumeSocket) return;
+
+    if (originalProducerId) {
+      await pauseOriginalProducer({
+        originalProducerId,
+        speakerId,
+        parameters: getTranslationSwitchParams(),
+      });
+    }
+
+    activeTranslationProducerIds.current.add(producerId);
+
+    await signalNewConsumerTransport({
+      remoteProducerId: producerId,
+      islevel: islevel.current,
+      nsock: consumeSocket,
+      parameters: {
+        ...getAllParams(),
+        ...mediaSFUFunctions(),
+        activeTranslationProducerIds: activeTranslationProducerIds.current,
+      },
+    });
+
+    if (originalProducerId) {
+      updateTranslationProducerMap((prev) => ({
+        ...prev,
+        [originalProducerId]: {
+          ...(prev[originalProducerId] || {}),
+          [language]: producerId,
+        },
+      }));
+    }
+  };
+
+  const setListenerPreferenceForSpeaker = async (
+    speakerId: string,
+    language: string | null,
+    wantOriginal: boolean = false,
+  ) => {
+    const normalizedLang = language?.toLowerCase() || null;
+    const nextPreferences = {
+      ...listenerTranslationPreferences.current,
+      perSpeaker: new Map(listenerTranslationPreferences.current.perSpeaker).set(
+        speakerId,
+        {
+          speakerId,
+          language: normalizedLang,
+          wantOriginal,
+        }
+      ),
+    };
+
+    updateListenerTranslationPreferences(nextPreferences);
+    updateListenerTranslationOverrides(
+      new Map(listenerTranslationOverrides.current).set(speakerId, {
+        speakerId,
+        wantOriginal,
+        preferredLanguage: normalizedLang || undefined,
+      })
+    );
+
+    const speakerState = speakerTranslationStates.current.get(speakerId);
+    if (speakerState?.originalProducerId) {
+      const existingTranslations =
+        translationProducerMap.current[speakerState.originalProducerId];
+
+      if (existingTranslations) {
+        for (const [existingLang, existingTranslationProducerId] of Object.entries(
+          existingTranslations
+        )) {
+          const shouldClose =
+            wantOriginal ||
+            (!!normalizedLang && existingLang.toLowerCase() !== normalizedLang);
+
+          if (!shouldClose) continue;
+
+          const transportIndex = consumerTransports.current.findIndex(
+            (transport) => transport.producerId === existingTranslationProducerId
+          );
+
+          if (transportIndex === -1) continue;
+
+          const transport = consumerTransports.current[transportIndex];
+
+          if (transport.socket_ && transport.serverConsumerTransportId) {
+            transport.socket_.emit(
+              'consumer-close',
+              { serverConsumerId: transport.serverConsumerTransportId },
+              () => {}
+            );
+          }
+
+          transport.consumer?.close();
+          activeTranslationProducerIds.current.delete(existingTranslationProducerId);
+          removeTranslationStream(existingTranslationProducerId);
+          consumerTransports.current.splice(transportIndex, 1);
+          updateConsumerTransports([...consumerTransports.current]);
+        }
+      }
+
+      if (wantOriginal) {
+        await resumeOriginalProducer({
+          originalProducerId: speakerState.originalProducerId,
+          speakerId,
+          parameters: getTranslationSwitchParams(),
+        });
+      }
+    }
+
+    const targetSocket = socket.current;
+    targetSocket?.emit?.(
+      'translation:setListenerPreferences',
+      {
+        roomName: roomName.current,
+        preferences: {
+          perSpeaker: {
+            [speakerId]: { language, wantOriginal },
+          },
+        },
+      },
+      (response: { success: boolean; error?: string }) => {
+        if (!response?.success) {
+          console.warn(
+            `[Translation] Failed to sync listener preference: ${response?.error}`
+          );
+        }
+      }
+    );
+  };
+
+  const setListenerGlobalPreference = async (language: string | null) => {
+    const normalizedLang = language?.toLowerCase() || null;
+
+    updateListenerTranslationPreferences({
+      ...listenerTranslationPreferences.current,
+      globalLanguage: normalizedLang,
+    });
+
+    for (const [speakerId, speakerState] of speakerTranslationStates.current) {
+      const perSpeakerPref =
+        listenerTranslationPreferences.current.perSpeaker?.get(speakerId);
+      if (perSpeakerPref) continue;
+
+      if (!speakerState?.originalProducerId) continue;
+
+      const existingTranslations =
+        translationProducerMap.current[speakerState.originalProducerId];
+      if (!existingTranslations) continue;
+
+      for (const [existingLang, existingTranslationProducerId] of Object.entries(
+        existingTranslations
+      )) {
+        const shouldClose =
+          !!normalizedLang && existingLang.toLowerCase() !== normalizedLang;
+        if (!shouldClose) continue;
+
+        const transportIndex = consumerTransports.current.findIndex(
+          (transport) => transport.producerId === existingTranslationProducerId
+        );
+
+        if (transportIndex === -1) continue;
+
+        const transport = consumerTransports.current[transportIndex];
+
+        if (transport.socket_ && transport.serverConsumerTransportId) {
+          transport.socket_.emit(
+            'consumer-close',
+            { serverConsumerId: transport.serverConsumerTransportId },
+            () => {}
+          );
+        }
+
+        transport.consumer?.close();
+        activeTranslationProducerIds.current.delete(existingTranslationProducerId);
+        removeTranslationStream(existingTranslationProducerId);
+        consumerTransports.current.splice(transportIndex, 1);
+        updateConsumerTransports([...consumerTransports.current]);
+      }
+    }
+
+    const targetSocket = socket.current;
+    targetSocket?.emit?.(
+      'translation:setListenerPreferences',
+      {
+        roomName: roomName.current,
+        preferences: {
+          global: language,
+        },
+      },
+      (response: { success: boolean; error?: string }) => {
+        if (!response?.success) {
+          console.warn(
+            `[Translation] Failed to sync global preference: ${response?.error}`
+          );
+        }
+      }
+    );
+  };
+
+  const clearListenerPreferenceForSpeaker = async (speakerId: string) => {
+    const nextPerSpeaker = new Map(listenerTranslationPreferences.current.perSpeaker);
+    nextPerSpeaker.delete(speakerId);
+    updateListenerTranslationPreferences({
+      ...listenerTranslationPreferences.current,
+      perSpeaker: nextPerSpeaker,
+    });
+
+    const nextOverrides = new Map(listenerTranslationOverrides.current);
+    nextOverrides.delete(speakerId);
+    updateListenerTranslationOverrides(nextOverrides);
+
+    const targetSocket = socket.current;
+    targetSocket?.emit?.('translation:setListenerPreferences', {
+      roomName: roomName.current,
+      preferences: {
+        perSpeaker: { [speakerId]: null },
+      },
+    });
+  };
+
+  const setListenerOverrideToOriginal = (speakerId: string) => {
+    updateListenerTranslationOverrides(
+      new Map(listenerTranslationOverrides.current).set(speakerId, {
+        speakerId,
+        wantOriginal: true,
+        preferredLanguage: undefined,
+      })
+    );
+  };
+
+  const setListenerOverrideLanguage = (
+    speakerId: string,
+    preferredLanguage: string,
+  ) => {
+    updateListenerTranslationOverrides(
+      new Map(listenerTranslationOverrides.current).set(speakerId, {
+        speakerId,
+        wantOriginal: false,
+        preferredLanguage,
+      })
+    );
+  };
+
+  const clearListenerOverride = (speakerId: string) => {
+    const nextOverrides = new Map(listenerTranslationOverrides.current);
+    nextOverrides.delete(speakerId);
+    updateListenerTranslationOverrides(nextOverrides);
   };
 
   const requestPermissionCamera = async () => {
@@ -2321,10 +3090,12 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const updatePolls = (value: Poll[]) => {
     polls.current = value;
+    setPollUiVersion((previous) => previous + 1);
   };
 
   const updatePoll = (value: Poll | null) => {
     poll.current = value;
+    setPollUiVersion((previous) => previous + 1);
   };
 
   const updateIsPollModalVisible = (value: boolean) => {
@@ -2382,6 +3153,10 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const updateIsBackgroundModalVisible = (value: boolean) => {
     setIsBackgroundModalVisible(value);
+  };
+
+  const updateIsTranslationSettingsModalVisible = (value: boolean) => {
+    setIsTranslationSettingsModalVisible(value);
   };
 
   const updateAutoClickBackground = (value: boolean) => {
@@ -2442,10 +3217,12 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const updateWhiteboardStarted = (value: boolean) => {
     whiteboardStarted.current = value;
+    setWhiteboardActive(value && !whiteboardEnded.current);
   };
 
   const updateWhiteboardEnded = (value: boolean) => {
     whiteboardEnded.current = value;
+    setWhiteboardActive(whiteboardStarted.current && !value);
   };
 
   const updateWhiteboardLimit = (value: number) => {
@@ -2607,6 +3384,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       switchVideoAlt,
       requestPermissionCamera,
       requestPermissionAudio,
+      updateIsDarkMode,
       
       getMediaDevicesList,
       getParticipantMedia,
@@ -2619,6 +3397,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
     return {
       localUIMode: localUIMode.current, // Local UI mode
+      isDarkModeValue: isDarkMode,
+      updateIsDarkMode,
 
       //Room Details
       roomName: roomName.current,
@@ -2917,6 +3697,41 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       //permissions
       hasCameraPermission: hasCameraPermission,
       hasAudioPermission: hasAudioPermission,
+      permissionConfig: permissionConfig.current,
+      isPermissionsModalVisible: isPermissionsModalVisible,
+      panelists: panelists.current,
+      panelistsFocused: panelistsFocused.current,
+      isPanelistsModalVisible: isPanelistsModalVisible,
+
+      //translation
+      translationConfig: translationConfig.current,
+      translationSupported: translationSupported.current,
+      mySpokenLanguage: mySpokenLanguage.current,
+      mySpokenLanguageEnabled: mySpokenLanguageEnabled.current,
+      myDefaultOutputLanguage: myDefaultOutputLanguage.current,
+      myDefaultListenLanguage: listenerTranslationPreferences.current.globalLanguage,
+      listenPreferences: listenPreferences.current,
+      translationProducerMap: translationProducerMap.current,
+      activeTranslationProducerIds: activeTranslationProducerIds.current,
+      translationSubscriptions: new Map(
+        Array.from(listenPreferences.current.entries()).map(
+          ([speakerId, language]) => [
+            `${speakerId}_${language}`,
+            { speakerId, language },
+          ]
+        )
+      ),
+        translationStreams,
+      addTranslationStream,
+      removeTranslationStream,
+      startConsumingTranslation,
+      listenerTranslationPreferences: listenerTranslationPreferences.current,
+      listenerTranslationOverrides: listenerTranslationOverrides.current,
+      availableTranslationChannels: availableTranslationChannels.current,
+      participantTranslationStates: participantTranslationStates.current,
+      translationTranscripts: translationTranscripts.current,
+      showSubtitlesOnCards: showSubtitlesOnCards.current,
+      speakerTranslationStates: speakerTranslationStates.current,
 
       //transports
       transportCreated: transportCreated.current,
@@ -3200,6 +4015,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       updateMainGridStream,
       updateOtherGridStreams,
       updateAudioOnlyStreams,
+        updateTranslationStreams,
       updateVideoInputs,
       updateAudioInputs,
       updateMeetingProgressTime,
@@ -3220,6 +4036,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       updateDisplayOption,
       updateAutoWave,
       updateForceFullDisplay,
+      updateShowSubtitlesOnCards,
       updatePrevForceFullDisplay,
       updatePrevMeetingDisplayType,
 
@@ -3285,6 +4102,33 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       //permissions
       updateHasCameraPermission,
       updateHasAudioPermission,
+      updatePermissionConfig,
+      updateIsPermissionsModalVisible,
+      updatePanelists,
+      updatePanelistsFocused,
+      updateIsPanelistsModalVisible,
+
+      //translation
+      updateTranslationConfig,
+      updateTranslationSupported,
+      updateMySpokenLanguage,
+      updateMySpokenLanguageEnabled,
+      updateMyDefaultOutputLanguage,
+      updateMyDefaultListenLanguage,
+      updateListenPreferences,
+      updateTranslationProducerMap,
+      updateAvailableTranslationChannels,
+      updateParticipantTranslationState,
+      updateTranscripts,
+      updateSpeakerTranslationState,
+      updateListenerTranslationPreferences,
+      updateListenerTranslationOverrides,
+      setListenerPreferenceForSpeaker,
+      setListenerGlobalPreference,
+      clearListenerPreferenceForSpeaker,
+      setListenerOverrideToOriginal,
+      setListenerOverrideLanguage,
+      clearListenerOverride,
 
       //transports
       updateTransportCreated,
@@ -3375,9 +4219,13 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       customVideoCard,
       customAudioCard,
       customMiniCard,
+      videoCardComponent: VideoCardComponentOverride,
+      audioCardComponent: AudioCardComponentOverride,
+      miniCardComponent: MiniCardComponentOverride,
       customComponent,
       miniAudioComponent: MiniAudioComponentOverride,
       miniAudioPlayerComponent: MiniAudioPlayerComponent,
+      meetingProgressTimerComponent: MeetingProgressTimerComponent,
     };
   };
 
@@ -3387,14 +4235,375 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     duration = 3000,
   }: {
     message: string;
-    type: "success" | "danger";
+    type: "success" | "danger" | "warning" | "info";
     duration?: number;
   }) => {
-    // Show an alert message, type is 'danger', 'success', duration is in milliseconds
+    // AlertComponent supports success/danger only; map warning/info to success styling.
+    const normalizedType = type === "danger" ? "danger" : "success";
     setAlertMessage(message);
-    setAlertType(type);
+    setAlertType(normalizedType);
     setAlertDuration(duration);
     setAlertVisible(true);
+  };
+
+  const closeSidebarManagedModals = () => {
+    updateIsMenuModalVisible(false);
+    updateIsParticipantsModalVisible(false);
+    updateIsMessagesModalVisible(false);
+    updateIsRequestsModalVisible(false);
+    updateIsWaitingModalVisible(false);
+    updateIsCoHostModalVisible(false);
+    updateIsMediaSettingsModalVisible(false);
+    updateIsDisplaySettingsModalVisible(false);
+    updateIsSettingsModalVisible(false);
+    updateIsRecordingModalVisible(false);
+    updateIsPollModalVisible(false);
+    updateIsBreakoutRoomsModalVisible(false);
+    updateIsShareEventModalVisible(false);
+    updateIsBackgroundModalVisible(false);
+    updateIsTranslationSettingsModalVisible(false);
+    updateIsPanelistsModalVisible(false);
+    updateIsPermissionsModalVisible(false);
+    updateIsConfigureWhiteboardModalVisible(false);
+    updateIsScreenboardModalVisible(false);
+  };
+
+  const prepareSidebarContent = async (
+    content: NativeSidebarContent
+  ): Promise<boolean> => {
+    let opened = false;
+    const markOpened = (updateVisible: (value: boolean) => void) =>
+      (value: boolean) => {
+        opened = value;
+        updateVisible(value);
+      };
+
+    switch (content) {
+      case "menu":
+        updateIsMenuModalVisible(true);
+        return true;
+      case "participants":
+        launchParticipants({
+          updateIsParticipantsModalVisible: markOpened(updateIsParticipantsModalVisible),
+          isParticipantsModalVisible: false,
+        });
+        return opened;
+      case "messages":
+        launchMessages({
+          updateIsMessagesModalVisible: markOpened(updateIsMessagesModalVisible),
+          isMessagesModalVisible: false,
+        });
+        return opened;
+      case "requests":
+        launchRequests({
+          updateIsRequestsModalVisible: markOpened(updateIsRequestsModalVisible),
+          isRequestsModalVisible: false,
+        });
+        return opened;
+      case "waiting":
+        launchWaiting({
+          updateIsWaitingModalVisible: markOpened(updateIsWaitingModalVisible),
+          isWaitingModalVisible: false,
+        });
+        return opened;
+      case "coHost":
+        launchCoHost({
+          updateIsCoHostModalVisible: markOpened(updateIsCoHostModalVisible),
+          isCoHostModalVisible: false,
+        });
+        return opened;
+      case "mediaSettings":
+        await launchMediaSettings({
+          updateIsMediaSettingsModalVisible: markOpened(updateIsMediaSettingsModalVisible),
+          isMediaSettingsModalVisible: false,
+          audioInputs,
+          videoInputs,
+          updateAudioInputs,
+          updateVideoInputs,
+          mediaDevices,
+        });
+        return opened;
+      case "displaySettings":
+        launchDisplaySettings({
+          updateIsDisplaySettingsModalVisible: markOpened(updateIsDisplaySettingsModalVisible),
+          isDisplaySettingsModalVisible: false,
+        });
+        return opened;
+      case "eventSettings":
+        launchSettings({
+          updateIsSettingsModalVisible: markOpened(updateIsSettingsModalVisible),
+          isSettingsModalVisible: false,
+        });
+        return opened;
+      case "recording":
+        launchRecording({
+          updateIsRecordingModalVisible: markOpened(updateIsRecordingModalVisible),
+          isRecordingModalVisible: false,
+          showAlert,
+          stopLaunchRecord: stopLaunchRecord.current,
+          canLaunchRecord: canLaunchRecord.current,
+          recordingAudioSupport: recordingAudioSupport.current,
+          recordingVideoSupport: recordingVideoSupport.current,
+          updateCanRecord,
+          updateClearedToRecord,
+          recordStarted: recordStarted.current,
+          recordPaused: recordPaused.current,
+          localUIMode: localUIMode.current,
+        });
+        return opened;
+      case "polls":
+        launchPoll({
+          updateIsPollModalVisible: markOpened(updateIsPollModalVisible),
+          isPollModalVisible: false,
+        });
+        return opened;
+      case "breakout":
+        launchBreakoutRooms({
+          updateIsBreakoutRoomsModalVisible: markOpened(updateIsBreakoutRoomsModalVisible),
+          isBreakoutRoomsModalVisible: false,
+        });
+        return opened;
+      case "shareEvent":
+        updateIsShareEventModalVisible(true);
+        return true;
+      case "background":
+        launchBackground({
+          updateIsBackgroundModalVisible: markOpened(updateIsBackgroundModalVisible),
+          isBackgroundModalVisible: false,
+        });
+        return opened;
+      case "translation":
+        if (!translationSupported.current) {
+          return false;
+        }
+
+        updateIsTranslationSettingsModalVisible(true);
+        return true;
+      case "panelists":
+        launchPanelists({
+          updateIsPanelistsModalVisible: markOpened(updateIsPanelistsModalVisible),
+          isPanelistsModalVisible: false,
+        });
+        return opened;
+      case "permissions":
+        launchPermissions({
+          updateIsPermissionsModalVisible: markOpened(updateIsPermissionsModalVisible),
+          isPermissionsModalVisible: false,
+        });
+        return opened;
+      case "configureWhiteboard":
+        launchConfigureWhiteboard({
+          updateIsConfigureWhiteboardModalVisible: markOpened(updateIsConfigureWhiteboardModalVisible),
+          isConfigureWhiteboardModalVisible: false,
+        });
+        return opened;
+      case "screenboard":
+        updateIsScreenboardModalVisible(true);
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  const showSidebarContent = async (content: NativeSidebarContent) => {
+    closeSidebarManagedModals();
+    const opened = await prepareSidebarContent(content);
+
+    if (opened) {
+      setActiveSidebarContent(content);
+    }
+
+    return opened;
+  };
+
+  const openSidebarContent = async (
+    content: NativeSidebarContent,
+    pushToStack = false
+  ) => {
+    if (!shouldUseSidebar) {
+      return false;
+    }
+
+    const previousContent = activeSidebarContent;
+    const opened = await showSidebarContent(content);
+
+    if (opened) {
+      if (pushToStack && previousContent !== "none" && previousContent !== content) {
+        setSidebarNavigationStack((previousStack) => [
+          ...previousStack,
+          previousContent,
+        ]);
+      } else if (!pushToStack) {
+        setSidebarNavigationStack([]);
+      }
+    }
+
+    return opened;
+  };
+
+  const openSidebarContentFromMenu = (content: NativeSidebarContent) => {
+    if (!shouldUseSidebar) {
+      return false;
+    }
+
+    void openSidebarContent(content, activeSidebarContent !== "none");
+    return true;
+  };
+
+  const closeSidebar = () => {
+    closeSidebarManagedModals();
+    setActiveSidebarContent("none");
+    setSidebarNavigationStack([]);
+  };
+
+  const updatePollSurfaceVisibility = (value: boolean) => {
+    if (!shouldUseSidebar) {
+      updateIsPollModalVisible(value);
+      return;
+    }
+
+    if (value) {
+      if (activeSidebarContent === "polls") {
+        updateIsPollModalVisible(true);
+        return;
+      }
+
+      void openSidebarContent("polls", activeSidebarContent !== "none");
+      return;
+    }
+
+    if (activeSidebarContent === "polls") {
+      closeSidebar();
+      return;
+    }
+
+    updateIsPollModalVisible(false);
+  };
+
+  useEffect(() => {
+    const activePoll = (
+      poll.current?.status === "active"
+        ? poll.current
+        : polls.current.find((existingPoll) => existingPoll?.status === "active") || null
+    );
+
+    if (!activePoll?.id) {
+      lastAutoOpenedPollId.current = "";
+      return;
+    }
+
+    const hasVoted = Boolean(activePoll.voters?.[member.current]);
+    const pollSurfaceVisible = shouldUseSidebar
+      ? activeSidebarContent === "polls"
+      : isPollModalVisible;
+
+    if (islevel.current === "2" || hasVoted || pollSurfaceVisible) {
+      lastAutoOpenedPollId.current = activePoll.id;
+      return;
+    }
+
+    if (lastAutoOpenedPollId.current === activePoll.id) {
+      return;
+    }
+
+    lastAutoOpenedPollId.current = activePoll.id;
+    updatePollSurfaceVisibility(true);
+  }, [activeSidebarContent, isPollModalVisible, pollUiVersion, shouldUseSidebar]);
+
+  useEffect(() => {
+    closeSidebarManagedModals();
+    setActiveSidebarContent("none");
+    setSidebarNavigationStack([]);
+  }, [validated]);
+
+  const sidebarNavigateBack = () => {
+    setSidebarNavigationStack((previousStack) => {
+      const nextStack = [...previousStack];
+      const previousContent = nextStack.pop();
+
+      if (previousContent) {
+        void showSidebarContent(previousContent);
+      } else {
+        closeSidebar();
+      }
+
+      return nextStack;
+    });
+  };
+
+  const renderSidebarContainer = ({
+    defaultContainer,
+  }: {
+    defaultContainer: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => {
+    if (!React.isValidElement(defaultContainer)) {
+      return defaultContainer;
+    }
+
+    const overlay = React.Children.toArray((defaultContainer as any).props.children)[0];
+    if (!React.isValidElement(overlay)) {
+      return defaultContainer;
+    }
+
+    const content = React.Children.toArray((overlay as any).props.children)[0];
+    if (!React.isValidElement(content)) {
+      return defaultContainer;
+    }
+
+    // Inject flex: 1 into any ScrollView child so it fills the space between
+    // the header and footer when embedded in the sidebar panel.
+    const mappedChildren = React.Children.map(
+      (content as any).props.children,
+      (child: React.ReactNode) => {
+        if (!React.isValidElement(child)) return child;
+        const c = child as React.ReactElement<any>;
+        // ScrollView has contentContainerStyle; FlatList additionally has a data prop
+        if (c.props.contentContainerStyle !== undefined && c.props.data === undefined) {
+          return React.cloneElement(c, {
+            style: [c.props.style, { flex: 1 }],
+          });
+        }
+        return child;
+      }
+    );
+
+    return React.cloneElement(content as React.ReactElement<any>, {
+      style: [
+        (content as React.ReactElement<any>).props.style,
+        nativeSidebarStyles.embeddedModalContent,
+      ],
+      children: mappedChildren,
+    });
+  };
+
+  const renderSidebarWithinMainAspect = ({
+    defaultContent,
+  }: {
+    defaultContent: React.ReactNode;
+    dimensions: { width: number; height: number };
+  }) => {
+    if (!shouldUseSidebar || activeSidebarContent === "none") {
+      return defaultContent;
+    }
+
+    if (attachedSidebarVisible) {
+      return (
+        <View style={nativeSidebarStyles.aspectRow}>
+          <View style={nativeSidebarStyles.aspectMainColumn}>
+            {defaultContent}
+          </View>
+          {renderNativeSidebar()}
+        </View>
+      );
+    }
+
+    return (
+      <View style={nativeSidebarStyles.detachedOverlayHost}>
+        {defaultContent}
+        {renderNativeSidebar()}
+      </View>
+    );
   };
 
   //state variables for the control buttons
@@ -3415,6 +4624,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "record-vinyl",
       text: "Record",
       onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("recording");
+          return;
+        }
+
         // Action for the Record button
         launchRecording({
           updateIsRecordingModalVisible: updateIsRecordingModalVisible,
@@ -3431,8 +4645,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           localUIMode: localUIMode.current,
         });
       },
-      activeColor: "black",
-      inActiveColor: "black",
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       show: true,
     },
   ];
@@ -3452,8 +4666,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           parameters: { ...getAllParams(), ...mediaSFUFunctions() },
         });
       },
-      activeColor: "black",
-      inActiveColor: "black",
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       alternateIcon: "pause-circle",
       show: true,
     },
@@ -3467,7 +4681,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         });
       },
       activeColor: "green",
-      inActiveColor: "black",
+      inActiveColor: neutralControlIconColor,
       show: true,
     },
     {
@@ -3500,7 +4714,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "dot-circle",
       active: false,
       onPress: () => console.log("Status pressed"),
-      activeColor: "black",
+      activeColor: neutralControlIconColor,
       inActiveColor: recordPaused.current === false ? "red" : "yellow",
       show: true,
     },
@@ -3509,6 +4723,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "cog",
       active: false,
       onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("recording", activeSidebarContent !== "none");
+          return;
+        }
+
         launchRecording({
           updateIsRecordingModalVisible: updateIsRecordingModalVisible,
           isRecordingModalVisible: isRecordingModalVisible,
@@ -3525,7 +4744,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         });
       },
       activeColor: "green",
-      inActiveColor: "black",
+      inActiveColor: neutralControlIconColor,
       show: true,
     },
   ];
@@ -3537,9 +4756,17 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     // Refer to customButtons for more details on how to add custom buttons
 
     {
+      icon: isDarkMode ? "sun" : "moon",
+      text: isDarkMode ? "Light Mode" : "Dark Mode",
+      action: () => updateIsDarkMode(!isDarkMode),
+      show: true,
+    },
+
+    {
       icon: "record-vinyl",
       text: "Record",
       action: () => {
+        if (openSidebarContentFromMenu("recording")) return;
         // Action for the Record button
         launchRecording({
           updateIsRecordingModalVisible: updateIsRecordingModalVisible,
@@ -3575,6 +4802,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "cog", // Use any Font Awesome 5 icon here
       text: "Event Settings",
       action: () => {
+        if (openSidebarContentFromMenu("eventSettings")) return;
         // Action for the Event Settings button
         launchSettings({
           updateIsSettingsModalVisible: updateIsSettingsModalVisible,
@@ -3587,6 +4815,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "users",
       text: "Requests",
       action: () => {
+        if (openSidebarContentFromMenu("requests")) return;
         // Action for the Requests button
         launchRequests({
           updateIsRequestsModalVisible: updateIsRequestsModalVisible,
@@ -3595,16 +4824,16 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       },
       show:
         islevel.current === "2" ||
-        (coHostResponsibility.current &&
-          coHost.current &&
+        !!(coHost.current &&
           coHost.current === member.current &&
           coHostResponsibility.current.find((item) => item.name === "media")
-            .value === true),
+            ?.value === true),
     },
     {
       icon: "clock",
       text: "Waiting",
       action: () => {
+        if (openSidebarContentFromMenu("waiting")) return;
         // Action for the Waiting button
         launchWaiting({
           updateIsWaitingModalVisible: updateIsWaitingModalVisible,
@@ -3613,16 +4842,16 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       },
       show:
         islevel.current === "2" ||
-        (coHostResponsibility.current &&
-          coHost.current &&
+        !!(coHost.current &&
           coHost.current === member.current &&
           coHostResponsibility.current.find((item) => item.name === "waiting")
-            .value === true),
+            ?.value === true),
     },
     {
       icon: "user-plus",
       text: "Co-host",
       action: () => {
+        if (openSidebarContentFromMenu("coHost")) return;
         // Action for the Co-host button
         launchCoHost({
           updateIsCoHostModalVisible: updateIsCoHostModalVisible,
@@ -3635,6 +4864,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "tools",
       text: "Set Media",
       action: () => {
+        if (openSidebarContentFromMenu("mediaSettings")) return;
         // Action for the Set Media button
         launchMediaSettings({
           updateIsMediaSettingsModalVisible: updateIsMediaSettingsModalVisible,
@@ -3652,6 +4882,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "desktop",
       text: "Display",
       action: () => {
+        if (openSidebarContentFromMenu("displaySettings")) return;
         // Action for the Display button
         launchDisplaySettings({
           updateIsDisplaySettingsModalVisible:
@@ -3665,6 +4896,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "poll",
       text: "Poll",
       action: () => {
+        if (openSidebarContentFromMenu("polls")) return;
         // Action for the Poll button
         launchPoll({
           updateIsPollModalVisible: updateIsPollModalVisible,
@@ -3678,10 +4910,56 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "user-friends",
       text: "Breakout Rooms",
       action: () => {
+        if (openSidebarContentFromMenu("breakout")) return;
         // Action for the Breakout Rooms button
         launchBreakoutRooms({
           updateIsBreakoutRoomsModalVisible: updateIsBreakoutRoomsModalVisible,
           isBreakoutRoomsModalVisible: isBreakoutRoomsModalVisible,
+        });
+      },
+      show: islevel.current === "2",
+    },
+    {
+      icon: "chalkboard-teacher",
+      text: "Panelists",
+      action: () => {
+        if (openSidebarContentFromMenu("panelists")) return;
+        launchPanelists({
+          updateIsPanelistsModalVisible,
+          isPanelistsModalVisible,
+        });
+      },
+      show: islevel.current === "2",
+    },
+    {
+      icon: "user-cog",
+      text: "Permissions",
+      action: () => {
+        if (openSidebarContentFromMenu("permissions")) return;
+        launchPermissions({
+          updateIsPermissionsModalVisible,
+          isPermissionsModalVisible,
+        });
+      },
+      show: islevel.current === "2",
+    },
+    {
+      icon: "globe",
+      text: "Translation",
+      action: () => {
+        if (openSidebarContentFromMenu("translation")) return;
+        updateIsTranslationSettingsModalVisible(true);
+      },
+      show: translationSupportedState,
+    },
+    {
+      icon: "pen",
+      text: "Whiteboard",
+      action: () => {
+        if (openSidebarContentFromMenu("configureWhiteboard")) return;
+        launchConfigureWhiteboard({
+          updateIsConfigureWhiteboardModalVisible,
+          isConfigureWhiteboardModalVisible,
         });
       },
       show: islevel.current === "2",
@@ -3695,18 +4973,32 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     // Refer to ControlButtonsComponentTouch.js for more details on how to add custom buttons
 
     {
+      // theme toggle button
+      customComponent: (
+        <FontAwesome5 name={isDarkMode ? "sun" : "moon"} size={24} color={neutralControlIconColor} />
+      ),
+      onPress: () => updateIsDarkMode(!isDarkMode),
+      show: true,
+    },
+
+    {
       // users button
       icon: "users",
       active: true,
       alternateIcon: "users",
       onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("participants");
+          return;
+        }
+
         launchParticipants({
           updateIsParticipantsModalVisible,
           isParticipantsModalVisible: isParticipantsModalVisible,
         });
       },
-      activeColor: "black",
-      inActiveColor: "black",
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       show: islevel.current === "2",
     },
 
@@ -3715,16 +5007,23 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "share-alt",
       active: true,
       alternateIcon: "share-alt",
-      onPress: () => updateIsShareEventModalVisible(!isShareEventModalVisible),
-      activeColor: "black",
-      inActiveColor: "black",
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("shareEvent");
+          return;
+        }
+
+        updateIsShareEventModalVisible(!isShareEventModalVisible);
+      },
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       show: true,
     },
     {
       customComponent: (
         <View style={{ position: "relative" }}>
           {/* Your icon */}
-          <FontAwesome5 name="comments" size={24} color="black" />
+          <FontAwesome5 name="comments" size={24} color={isDarkMode ? "white" : "black"} />
           {/* Conditionally render a badge */}
           {showMessagesBadge && (
             <View
@@ -3754,11 +5053,17 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         </View>
       ),
       show: true,
-      onPress: () =>
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("messages");
+          return;
+        }
+
         launchMessages({
           updateIsMessagesModalVisible,
           isMessagesModalVisible: isMessagesModalVisible,
-        }),
+        });
+      },
     },
     {
       // switch camera button
@@ -3772,15 +5077,16 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             ...mediaSFUFunctions(),
           },
         }),
-      activeColor: "black",
-      inActiveColor: "black",
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       show: islevel.current === "2",
     },
     {
-      // name: 'Video',
+      name: showButtonLabels ? (videoActive ? "Video Off" : "Video On") : undefined,
       icon: "video-slash",
       alternateIcon: "video",
       active: videoActive,
+      color: neutralControlIconColor,
       onPress: () =>
         clickVideo({
           parameters: {
@@ -3793,10 +5099,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       inActiveColor: "red",
     },
     {
-      // name: 'Microphone',
+      name: showButtonLabels ? (micActive ? "Mute" : "Unmute") : undefined,
       icon: "microphone-slash",
       alternateIcon: "microphone",
       active: micActive,
+      color: neutralControlIconColor,
       onPress: () =>
         clickAudio({
           parameters: {
@@ -3807,34 +5114,6 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       activeColor: "green",
       inActiveColor: "red",
       show: islevel.current === "2",
-    },
-    {
-      customComponent: (
-        <View
-          style={{
-            backgroundColor: "transparent",
-            borderWidth: 0,
-            padding: 0,
-            margin: 5,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <FontAwesome5 name="chart-bar" size={24} color="black" />
-          <Text
-            style={{
-              backgroundColor: "transparent",
-              borderWidth: 0,
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            {participantsCounter.current}
-          </Text>
-        </View>
-      ),
-      show: true,
     },
     {
       // name: 'End Call',
@@ -3872,16 +5151,23 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       icon: "share-alt",
       active: true,
       alternateIcon: "share-alt",
-      onPress: () => updateIsShareEventModalVisible(!isShareEventModalVisible),
-      activeColor: "black",
-      inActiveColor: "black",
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("shareEvent");
+          return;
+        }
+
+        updateIsShareEventModalVisible(!isShareEventModalVisible);
+      },
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       show: true,
     },
     {
       customComponent: (
         <View style={{ position: "relative" }}>
           {/* Your icon */}
-          <FontAwesome5 name="comments" size={24} color="black" />
+          <FontAwesome5 name="comments" size={24} color={isDarkMode ? "white" : "black"} />
           {/* Conditionally render a badge */}
           {showMessagesBadge && (
             <View
@@ -3911,11 +5197,17 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         </View>
       ),
 
-      onPress: () =>
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("messages");
+          return;
+        }
+
         launchMessages({
           updateIsMessagesModalVisible,
           isMessagesModalVisible: isMessagesModalVisible,
-        }),
+        });
+      },
       show: true,
     },
     {
@@ -3930,16 +5222,17 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             ...mediaSFUFunctions(),
           },
         }),
-      activeColor: "black",
-      inActiveColor: "black",
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       show: true,
     },
 
     {
-      // name: 'Video',
+      name: showButtonLabels ? (videoActive ? "Video Off" : "Video On") : undefined,
       icon: "video-slash",
       alternateIcon: "video",
       active: videoActive,
+      color: neutralControlIconColor,
       onPress: () =>
         clickVideo({
           parameters: {
@@ -3953,10 +5246,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     },
 
     {
-      // name: 'Microphone',
+      name: showButtonLabels ? (micActive ? "Mute" : "Unmute") : undefined,
       icon: "microphone-slash",
       alternateIcon: "microphone",
       active: micActive,
+      color: neutralControlIconColor,
       onPress: () =>
         clickAudio({
           parameters: {
@@ -3991,10 +5285,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     // Refer to ControlButtonsComponent.js for more details on how to add custom buttons
 
     {
-      // name: 'Microphone',
+      name: showButtonLabels ? (micActive ? "Mute" : "Unmute") : undefined,
       icon: "microphone-slash",
       alternateIcon: "microphone",
       active: micActive,
+      color: neutralControlIconColor,
       onPress: () =>
         clickAudio({
           parameters: {
@@ -4009,10 +5304,11 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     },
 
     {
-      // name: 'Video',
+      name: showButtonLabels ? (videoActive ? "Video Off" : "Video On") : undefined,
       icon: "video-slash",
       alternateIcon: "video",
       active: videoActive,
+      color: neutralControlIconColor,
       onPress: () =>
         clickVideo({
           parameters: {
@@ -4026,12 +5322,33 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       show: true,
     },
     {
-      // name: 'Screen Share',
-      icon: "desktop",
-      alternateIconComponent: (
-        <MaterialIcons name="desktop-access-disabled" size={24} color="red" />
+      name: showButtonLabels ? (screenShareActive ? "Stop Share" : "Share Screen") : undefined,
+      color: neutralControlIconColor,
+      customComponent: (
+        <View
+          style={{
+            position: "relative",
+            width: 24,
+            height: 24,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <FontAwesome5
+            name="desktop"
+            size={24}
+            color={screenShareActive ? "#22c55e" : neutralControlIconColor}
+          />
+          {!screenShareActive && (
+            <FontAwesome5
+              name="ban"
+              size={18}
+              color="#ef4444"
+              style={{ position: "absolute", top: 3, left: 3 }}
+            />
+          )}
+        </View>
       ),
-      active: screenShareActive,
       onPress: () => {
         clickScreenShare({
           parameters: {
@@ -4040,15 +5357,13 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           },
         });
       },
-      activeColor: "green",
-      inActiveColor: "red",
-      disabled: false,
       show: true,
     },
     {
-      // name: 'End Call',
+      name: showButtonLabels ? "End" : undefined,
       icon: "phone",
       active: endCallActive,
+      color: neutralControlIconColor,
       onPress: () =>
         launchConfirmExit({
           updateIsConfirmExitModalVisible,
@@ -4060,23 +5375,30 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       show: true,
     },
     {
-      // name: 'Participants',
+      name: showButtonLabels ? "People" : undefined,
       icon: "users",
       active: participantsActive,
-      onPress: () =>
+      color: neutralControlIconColor,
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("participants");
+          return;
+        }
+
         launchParticipants({
           updateIsParticipantsModalVisible,
           isParticipantsModalVisible: isParticipantsModalVisible,
-        }),
-      activeColor: "black",
-      inActiveColor: "black",
+        });
+      },
+      activeColor: neutralControlIconColor,
+      inActiveColor: neutralControlIconColor,
       disabled: false,
       show: true,
     },
     {
       customComponent: (
         <View style={{ position: "relative" }}>
-          <FontAwesome5 name="bars" size={24} color="black" />
+          <FontAwesome5 name="bars" size={24} color={isDarkMode ? "white" : "black"} />
           <View
             style={{
               position: "absolute",
@@ -4104,18 +5426,27 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           </View>
         </View>
       ),
-      onPress: () =>
+      accessibilityLabel: "Menu",
+      name: showButtonLabels ? "Menu" : undefined,
+      color: neutralControlIconColor,
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("menu");
+          return;
+        }
+
         launchMenuModal({
           updateIsMenuModalVisible,
           isMenuModalVisible: isMenuModalVisible,
-        }),
+        });
+      },
       show: true,
     },
     {
       customComponent: (
         <View style={{ position: "relative" }}>
           {/* Your icon */}
-          <FontAwesome5 name="comments" size={24} color="black" />
+          <FontAwesome5 name="comments" size={24} color={isDarkMode ? "white" : "black"} />
           {/* Conditionally render a badge */}
           {showMessagesBadge && (
             <View
@@ -4146,14 +5477,153 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           )}
         </View>
       ),
+      accessibilityLabel: "Chat",
+      name: showButtonLabels ? "Chat" : undefined,
+      color: neutralControlIconColor,
 
-      onPress: () =>
+      onPress: () => {
+        if (shouldUseSidebar) {
+          void openSidebarContent("messages");
+          return;
+        }
+
         launchMessages({
           updateIsMessagesModalVisible,
           isMessagesModalVisible: isMessagesModalVisible,
-        }),
+        });
+      },
       show: true,
     },
+    ...(shouldAttachSidebar
+      ? [
+          ...(islevel.current === "2"
+            ? [
+                {
+                  icon: "record-vinyl",
+                  active: recordStarted.current && !recordStopped.current,
+                  name: showButtonLabels
+                    ? (
+                        recordStarted.current && !recordStopped.current
+                          ? (recordPaused.current ? "Paused" : "Recording")
+                          : "Record"
+                      )
+                    : undefined,
+                  color: neutralControlIconColor,
+                  onPress: () => {
+                    openSidebarContentFromMenu("recording");
+                  },
+                  activeColor: recordPaused.current ? "#facc15" : "#ef4444",
+                  inActiveColor: neutralControlIconColor,
+                  disabled: false,
+                  show: true,
+                },
+              ]
+            : []),
+          {
+            icon: "cog",
+            active: false,
+            name: showButtonLabels ? "Media" : undefined,
+            color: neutralControlIconColor,
+            onPress: () => {
+              openSidebarContentFromMenu("mediaSettings");
+            },
+            activeColor: "#22c55e",
+            inActiveColor: neutralControlIconColor,
+            disabled: false,
+            show: true,
+          },
+          {
+            icon: "th-large",
+            active: false,
+            name: showButtonLabels ? "Display" : undefined,
+            color: neutralControlIconColor,
+            onPress: () => {
+              openSidebarContentFromMenu("displaySettings");
+            },
+            activeColor: "#22c55e",
+            inActiveColor: neutralControlIconColor,
+            disabled: false,
+            show: true,
+          },
+          ...((islevel.current === "2" || youAreCoHost.current)
+            ? [
+                {
+                  customComponent: (
+                    <View style={{ position: "relative" }}>
+                      <FontAwesome5 name="hand-paper" size={24} color={neutralControlIconColor} />
+                      {requestCounter.current > 0 && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: -6,
+                            right: -6,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <View
+                            style={{
+                              backgroundColor: "#ef4444",
+                              borderRadius: 12,
+                              paddingHorizontal: 4,
+                              paddingVertical: 4,
+                            }}
+                          >
+                            <Text
+                              style={{ color: "white", fontSize: 8, fontWeight: "bold" }}
+                            >
+                              {requestCounter.current}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  ),
+                  name: showButtonLabels ? "Requests" : undefined,
+                  color: neutralControlIconColor,
+                  onPress: () => {
+                    openSidebarContentFromMenu("requests");
+                  },
+                  show: true,
+                },
+              ]
+            : []),
+          ...((islevel.current === "2" || polls.current.length > 0)
+            ? [
+                {
+                  icon: "poll",
+                  active: false,
+                  name: showButtonLabels ? "Polls" : undefined,
+                  color: neutralControlIconColor,
+                  onPress: () => {
+                    openSidebarContentFromMenu("polls");
+                  },
+                  activeColor: "#22c55e",
+                  inActiveColor: neutralControlIconColor,
+                  disabled: false,
+                  show: true,
+                },
+              ]
+            : []),
+          ...(islevel.current === "2"
+            ? [
+                {
+                  icon: "object-ungroup",
+                  active: false,
+                  name: showButtonLabels ? "Rooms" : undefined,
+                  color: neutralControlIconColor,
+                  onPress: () => {
+                    openSidebarContentFromMenu("breakout");
+                  },
+                  activeColor: "#22c55e",
+                  inActiveColor: neutralControlIconColor,
+                  disabled: false,
+                  show: true,
+                },
+              ]
+            : []),
+        ]
+      : []),
   ];
 
   useEffect(() => {
@@ -4169,6 +5639,448 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       setRecordState("green");
     }
   }, [recordStarted, recordPaused, recordStopped]);
+
+  const renderSidebarContent = () => {
+    const commonSidebarProps = {
+      renderContainer: renderSidebarContainer,
+      renderMode: "sidebar" as const,
+      isDarkMode,
+    };
+
+    switch (activeSidebarContent) {
+      case "menu":
+        return (
+          <MenuModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedMenuColor}
+            isVisible={isMenuModalVisible}
+            onClose={closeSidebar}
+            customButtons={customMenuButtons}
+            roomName={roomName.current}
+            adminPasscode={adminPasscode.current}
+            islevel={islevel.current}
+            eventType={eventType.current}
+            localLink={localLink}
+          />
+        );
+      case "participants":
+        return (
+          <ParticipantsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isParticipantsModalVisible={isParticipantsModalVisible}
+            onParticipantsClose={closeSidebar}
+            participantsCounter={participantsCounter.current}
+            onParticipantsFilterChange={onParticipantsFilterChange}
+            parameters={{
+              updateParticipants,
+              updateIsParticipantsModalVisible,
+              updateDirectMessageDetails,
+              updateStartDirectMessage,
+              updateIsMessagesModalVisible,
+              showAlert,
+              filteredParticipants: filteredParticipants.current,
+              participants: filteredParticipants.current,
+              roomName: roomName.current,
+              islevel: islevel.current,
+              member: member.current,
+              coHostResponsibility: coHostResponsibility.current,
+              coHost: coHost.current,
+              eventType: eventType.current,
+              startDirectMessage: startDirectMessage.current,
+              directMessageDetails: directMessageDetails.current,
+              socket: socket.current,
+              getUpdatedAllParams: getAllParams,
+            }}
+          />
+        );
+      case "messages":
+        return (
+          <MessagesModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isMessagesModalVisible={isMessagesModalVisible}
+            onMessagesClose={closeSidebar}
+            messages={messages.current}
+            eventType={eventType.current}
+            member={member.current}
+            islevel={islevel.current}
+            coHostResponsibility={coHostResponsibility.current}
+            coHost={coHost.current}
+            startDirectMessage={startDirectMessage.current}
+            directMessageDetails={directMessageDetails.current}
+            updateStartDirectMessage={updateStartDirectMessage}
+            updateDirectMessageDetails={updateDirectMessageDetails}
+            showAlert={showAlert}
+            roomName={roomName.current}
+            socket={socket.current}
+            chatSetting={chatSetting.current}
+          />
+        );
+      case "requests":
+        return (
+          <RequestsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isRequestsModalVisible={isRequestsModalVisible}
+            onRequestClose={closeSidebar}
+            requestCounter={requestCounter.current}
+            onRequestFilterChange={onRequestFilterChange}
+            updateRequestList={updateRequestList}
+            requestList={filteredRequestList.current}
+            roomName={roomName.current}
+            socket={socket.current}
+            parameters={{
+              updateRequestCounter,
+              updateRequestFilter,
+              updateRequestList,
+              getUpdatedAllParams,
+            }}
+          />
+        );
+      case "waiting":
+        return (
+          <WaitingRoomModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isWaitingModalVisible={isWaitingModalVisible}
+            onWaitingRoomClose={closeSidebar}
+            waitingRoomCounter={waitingRoomCounter.current}
+            onWaitingRoomFilterChange={onWaitingRoomFilterChange}
+            waitingRoomList={filteredWaitingRoomList.current}
+            updateWaitingList={updateWaitingRoomList}
+            roomName={roomName.current}
+            socket={socket.current}
+            parameters={{
+              filteredWaitingRoomList: filteredWaitingRoomList.current,
+              getUpdatedAllParams,
+            }}
+          />
+        );
+      case "coHost":
+        return (
+          <CoHostModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isCoHostModalVisible={isCoHostModalVisible}
+            updateIsCoHostModalVisible={updateIsCoHostModalVisible}
+            onCoHostClose={closeSidebar}
+            coHostResponsibility={coHostResponsibility.current}
+            participants={participants.current}
+            currentCohost={coHost.current}
+            roomName={roomName.current}
+            showAlert={showAlert}
+            updateCoHostResponsibility={updateCoHostResponsibility}
+            updateCoHost={updateCoHost}
+            socket={socket.current}
+          />
+        );
+      case "mediaSettings":
+        return (
+          <MediaSettingsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedMenuColor}
+            isMediaSettingsModalVisible={isMediaSettingsModalVisible}
+            onMediaSettingsClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "displaySettings":
+        return (
+          <DisplaySettingsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isDisplaySettingsModalVisible={isDisplaySettingsModalVisible}
+            onDisplaySettingsClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "eventSettings":
+        return (
+          <EventSettingsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isEventSettingsModalVisible={isSettingsModalVisible}
+            updateIsSettingsModalVisible={updateIsSettingsModalVisible}
+            onEventSettingsClose={closeSidebar}
+            audioSetting={audioSetting.current}
+            videoSetting={videoSetting.current}
+            screenshareSetting={screenshareSetting.current}
+            chatSetting={chatSetting.current}
+            updateAudioSetting={updateAudioSetting}
+            updateVideoSetting={updateVideoSetting}
+            updateScreenshareSetting={updateScreenshareSetting}
+            updateChatSetting={updateChatSetting}
+            roomName={roomName.current}
+            socket={socket.current}
+          />
+        );
+      case "recording":
+        return (
+          <RecordingModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isRecordingModalVisible={isRecordingModalVisible}
+            onClose={closeSidebar}
+            startRecording={startRecording}
+            confirmRecording={confirmRecording}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "polls":
+        return (
+          <PollModalComponent
+            {...commonSidebarProps}
+            isPollModalVisible={isPollModalVisible}
+            onClose={closeSidebar}
+            member={member.current}
+            islevel={islevel.current}
+            polls={polls.current}
+            poll={poll.current}
+            socket={socket.current}
+            roomName={roomName.current}
+            showAlert={showAlert}
+            updateIsPollModalVisible={updatePollSurfaceVisibility}
+            handleCreatePoll={handleCreatePoll}
+            handleEndPoll={handleEndPoll}
+            handleVotePoll={handleVotePoll}
+          />
+        );
+      case "breakout":
+        return (
+          <BreakoutRoomsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isVisible={isBreakoutRoomsModalVisible}
+            onBreakoutRoomsClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "shareEvent":
+        return (
+          <ShareEventModalComponent
+            {...commonSidebarProps}
+            isShareEventModalVisible={isShareEventModalVisible}
+            onShareEventClose={closeSidebar}
+            roomName={roomName.current}
+            islevel={islevel.current}
+            adminPasscode={adminPasscode.current}
+            eventType={eventType.current}
+            localLink={localLink}
+          />
+        );
+      case "background":
+        return (
+          <BackgroundModalComponent
+            {...commonSidebarProps}
+            isBackgroundModalVisible={isBackgroundModalVisible}
+            onBackgroundClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "translation":
+        return (
+          <TranslationSettingsModalComponent
+            {...commonSidebarProps}
+            backgroundColor={themedSurfaceColor}
+            isTranslationSettingsModalVisible={isTranslationSettingsModalVisible}
+            onTranslationSettingsClose={closeSidebar}
+            translationConfig={translationConfig.current}
+            member={member.current}
+            participants={participants.current}
+            audioProducerId={audioProducer.current?.id ?? localAudioProducer.current?.id ?? null}
+            mySpokenLanguage={mySpokenLanguage.current}
+            mySpokenLanguageEnabled={mySpokenLanguageEnabled.current}
+            myDefaultOutputLanguage={myDefaultOutputLanguage.current}
+            myDefaultListenLanguage={listenerTranslationPreferences.current.globalLanguage}
+            listenPreferences={new Map(
+              Array.from(listenerTranslationPreferences.current.perSpeaker.entries())
+                .filter(([, preference]) => Boolean(preference.language) && !preference.wantOriginal)
+                .map(([speakerId, preference]) => [speakerId, preference.language as string])
+            )}
+            updateMySpokenLanguage={updateMySpokenLanguage}
+            updateMySpokenLanguageEnabled={updateMySpokenLanguageEnabled}
+            updateMyDefaultOutputLanguage={updateMyDefaultOutputLanguage}
+            applyGlobalListenLanguage={setListenerGlobalPreference}
+            applySpeakerListenPreference={setListenerPreferenceForSpeaker}
+            clearSpeakerListenPreference={clearListenerPreferenceForSpeaker}
+            showSubtitlesOnCards={showSubtitlesOnCards.current}
+            updateShowSubtitlesOnCards={updateShowSubtitlesOnCards}
+            roomName={roomName.current}
+            socket={socket.current}
+            showAlert={showAlert}
+          />
+        );
+      case "panelists":
+        return (
+          <PanelistsModalComponent
+            {...commonSidebarProps}
+            isPanelistsModalVisible={isPanelistsModalVisible}
+            onPanelistsClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "permissions":
+        return (
+          <PermissionsModalComponent
+            {...commonSidebarProps}
+            isPermissionsModalVisible={isPermissionsModalVisible}
+            onPermissionsClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "configureWhiteboard":
+        return (
+          <ConfigureWhiteboardModalComponent
+            {...commonSidebarProps}
+            isConfigureWhiteboardModalVisible={isConfigureWhiteboardModalVisible}
+            onConfigureWhiteboardClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      case "screenboard":
+        return (
+          <ScreenboardModalComponent
+            {...commonSidebarProps}
+            isScreenboardModalVisible={isScreenboardModalVisible}
+            onScreenboardClose={closeSidebar}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderNativeSidebar = () => {
+    if (!shouldUseSidebar || activeSidebarContent === "none") {
+      return null;
+    }
+
+    const hasBackTarget = sidebarNavigationStack.length > 0;
+    const panelBorderColor = isDarkMode
+      ? "rgba(148,163,184,0.28)"
+      : "rgba(71,85,105,0.18)";
+
+    return (
+      <View
+        style={[
+          nativeSidebarStyles.panel,
+          shouldAttachSidebar
+            ? nativeSidebarStyles.inlineAttachedPanel
+            : nativeSidebarStyles.detachedPanel,
+          {
+            width: sidebarPanelWidth,
+            bottom:
+              !shouldAttachSidebar && measuredControlBarHeightPx > 0
+                ? measuredControlBarHeightPx + 16
+                : undefined,
+            // Inline attached mode: explicitly cap panel height to exclude the
+            // SubAspect control bar so content is never obscured behind it.
+            ...(shouldAttachSidebar && measuredControlBarHeightPx > 0
+              ? {
+                  height:
+                    Dimensions.get("window").height - measuredControlBarHeightPx,
+                  maxHeight:
+                    Dimensions.get("window").height - measuredControlBarHeightPx,
+                }
+              : {}),
+            backgroundColor: themedSurfaceColor,
+            borderColor: panelBorderColor,
+            borderLeftColor: panelBorderColor,
+          },
+        ]}
+      >
+        {hasBackTarget && (
+          <View
+            style={[
+              nativeSidebarStyles.header,
+              {
+                borderBottomColor: isDarkMode
+                  ? "rgba(148,163,184,0.22)"
+                  : "rgba(71,85,105,0.16)",
+              },
+            ]}
+          >
+            <Pressable
+              onPress={sidebarNavigateBack}
+              style={nativeSidebarStyles.headerButton}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Menu"
+            >
+              <FontAwesome5
+                name="arrow-left"
+                size={14}
+                color={isDarkMode ? "#f8fafc" : "#0f172a"}
+              />
+              <Text
+                style={[
+                  nativeSidebarStyles.headerButtonText,
+                  { color: isDarkMode ? "#f8fafc" : "#0f172a" },
+                ]}
+              >
+                Back to Menu
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={closeSidebar}
+              style={nativeSidebarStyles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel="Close sidebar"
+            >
+              <FontAwesome5
+                name="times"
+                size={14}
+                color={isDarkMode ? "#cbd5e1" : "#475569"}
+              />
+            </Pressable>
+          </View>
+        )}
+        <View style={nativeSidebarStyles.body}>{renderSidebarContent()}</View>
+      </View>
+    );
+  };
+
+  const handleControlStripLayout = React.useCallback((event: any) => {
+    const rawHeight = Math.ceil(event?.nativeEvent?.layout?.height ?? 0);
+    const minimumHeight = showButtonLabels ? 58 : 40;
+    const nextHeight = Math.max(rawHeight, minimumHeight);
+
+    if (nextHeight <= 0) {
+      return;
+    }
+
+    setMeasuredControlBarHeightPx((current) =>
+      current === nextHeight ? current : nextHeight
+    );
+  }, [showButtonLabels]);
 
   const computeDimensionsMethod = ({
     containerWidthFraction = 1,
@@ -4227,31 +6139,48 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
   const handleResize = async () => {
     let fraction = 0.0;
+    const controlBarHeightPx =
+      measuredControlBarHeightPx > 0
+        ? measuredControlBarHeightPx
+        : showButtonLabels
+        ? 58
+        : 40;
 
     if (eventType.current === "webinar" || eventType.current === "conference") {
       const currentHeight = Dimensions.get("window").height;
-      fraction = Number((40 / currentHeight).toFixed(3));
+      fraction = Number((controlBarHeightPx / currentHeight).toFixed(3));
       if (fraction !== controlHeight) {
         updateControlHeight(fraction);
       }
     } else {
       // Set default control button height for portrait mode or other event types
       const currentHeight = Dimensions.get("window").height;
-      fraction = Number((40 / currentHeight).toFixed(3));
+      fraction = Number((controlBarHeightPx / currentHeight).toFixed(3));
       if (fraction !== controlHeight) {
         updateControlHeight(fraction);
       }
     }
 
+    let effectiveMainHeightWidth = mainHeightWidth;
+    const screenFlowActive =
+      shared.current ||
+      shareScreenStarted.current ||
+      (whiteboardStarted.current && !whiteboardEnded.current);
+
+    if (screenFlowActive) {
+      effectiveMainHeightWidth = 84;
+      updateMainHeightWidth(84);
+    }
+
     const { mainHeight, otherHeight, mainWidth, otherWidth } =
       computeDimensionsMethod({
-        containerWidthFraction: 1,
+        containerWidthFraction: mainContentWidthFraction,
         containerHeightFraction: 1,
-        mainSize: mainHeightWidth,
+        mainSize: effectiveMainHeightWidth,
         doStack: true,
         defaultFraction:
           eventType.current === "webinar" || eventType.current === "conference"
-            ? 1 - controlHeight
+            ? 1 - fraction
             : 1,
       });
 
@@ -4266,7 +6195,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     const orientation = checkOrientation();
     if (orientation === "portrait") {
       if (!isWideScreen.current) {
-        if (shareScreenStarted.current || shared.current) {
+        if (screenFlowActive) {
           updateScreenForceFullDisplay(true);
         }
       }
@@ -4292,9 +6221,9 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   const getMediaDevicesList = async (kind: "videoinput" | "audioinput") => {
     //get the list of available media devices
     try {
-      let devices = await mediaDevices.enumerateDevices();
+      const devices = (await mediaDevices.enumerateDevices()) as MediaDeviceInfo[];
 
-      let filtered = devices.filter((device) => device.kind === kind);
+      let filtered = devices.filter((device: MediaDeviceInfo) => device.kind === kind);
 
       return filtered;
     } catch {
@@ -4364,6 +6293,15 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   }, [onResize]);
 
   useEffect(() => {
+    handleResize();
+  }, [
+    attachedSidebarVisible,
+    mainContentWidthFraction,
+    measuredControlBarHeightPx,
+    showButtonLabels,
+  ]);
+
+  useEffect(() => {
     //listen to changes in dimensions and update the main video size accordingly
 
     if (!lock_screen && !shared) {
@@ -4380,6 +6318,46 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       }
     }
   }, [mainHeightWidth]);
+
+  useEffect(() => {
+    if (screenShareActive || whiteboardActive || shared.current || shareScreenStarted.current) {
+      updateMainHeightWidth(84);
+    }
+  }, [screenShareActive, whiteboardActive]);
+
+  useEffect(() => {
+    if (!validated) {
+      return;
+    }
+
+    prepopulateUserMedia({
+      name: hostLabel.current,
+      parameters: { ...getAllParams(), ...mediaSFUFunctions() },
+    });
+    onScreenChanges({
+      changed: true,
+      parameters: { ...getAllParams(), ...mediaSFUFunctions() },
+    });
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    if (!validated) {
+      return;
+    }
+
+    if (componentSizes.current.otherWidth <= 0 || componentSizes.current.otherHeight <= 0) {
+      return;
+    }
+
+    prepopulateUserMedia({
+      name: hostLabel.current,
+      parameters: { ...getAllParams(), ...mediaSFUFunctions() },
+    });
+    onScreenChanges({
+      changed: true,
+      parameters: { ...getAllParams(), ...mediaSFUFunctions() },
+    });
+  }, [componentSizesVersion]);
 
   async function join_Room({
     socket,
@@ -4547,7 +6525,17 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         !isLocal
       ) {
         // join local room only
-        await updateAndComplete(roomData.current!);
+        if (!roomData.current) {
+          updateIsLoadingModalVisible(false);
+          showAlert?.({
+            message: data?.reason || "Unable to complete room setup.",
+            type: "danger",
+            duration: 3000,
+          });
+          return;
+        }
+
+        await updateAndComplete(roomData.current);
         return;
       }
 
@@ -4612,8 +6600,29 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     updateIsPollModalVisible(false);
     updateIsBreakoutRoomsModalVisible(false);
     updateIsBackgroundModalVisible(false);
+    updateIsPanelistsModalVisible(false);
+    updateIsPermissionsModalVisible(false);
     updateIsLoadingModalVisible(false);
     updateIsConfirmHereModalVisible(false);
+    updateTranslationSupported(false);
+    updateTranslationConfig(null);
+    updateMySpokenLanguage("en");
+    updateMySpokenLanguageEnabled(false);
+    updateMyDefaultOutputLanguage(null);
+    updateListenPreferences(() => new Map());
+    updateTranslationProducerMap(() => ({}));
+    activeTranslationProducerIds.current.clear();
+    availableTranslationChannels.current = {};
+    participantTranslationStates.current = new Map();
+    setTranslationStreams([]);
+    translationTranscripts.current = [];
+    setTranslationUiVersion((current) => current + 1);
+    speakerTranslationStates.current = new Map();
+    updateListenerTranslationPreferences({
+      perSpeaker: new Map(),
+      globalLanguage: null,
+    });
+    updateListenerTranslationOverrides(new Map());
 
     setTimeout(async function () {
       updateValidated(false);
@@ -4807,6 +6816,343 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           }
         );
 
+        socketDefault.on("panelistsUpdated", async (data: any) => {
+          await panelistsUpdated({
+            data,
+            updatePanelists,
+          });
+        });
+
+        socketDefault.on("panelistFocusChanged", async (data: any) => {
+          await panelistFocusChanged({
+            data,
+            updatePanelistsFocused,
+            updatePanelists,
+            currentPanelistsFocused: panelistsFocused.current,
+            currentPanelists: panelists.current,
+          });
+        });
+
+        socketDefault.on("addedAsPanelist", async (data: any) => {
+          await addedAsPanelist({
+            data,
+            showAlert,
+          });
+        });
+
+        socketDefault.on("removedFromPanelists", async (data: any) => {
+          await removedFromPanelists({
+            data,
+            showAlert,
+          });
+        });
+
+        socketDefault.on("controlMedia", async (data: any) => {
+          await panelistControlMedia({
+            data,
+            showAlert,
+            clickAudio: async () => {
+              await clickAudio({ parameters: { ...getAllParams(), ...mediaSFUFunctions() } });
+            },
+            clickVideo: async () => {
+              await clickVideo({ parameters: { ...getAllParams(), ...mediaSFUFunctions() } });
+            },
+            audioAlreadyOn: audioAlreadyOn.current,
+            videoAlreadyOn: videoAlreadyOn.current,
+          });
+        });
+
+        socketDefault.on("permissionUpdated", async (data: any) => {
+          await permissionUpdated({
+            data,
+            showAlert,
+            updateIslevel,
+          });
+        });
+
+        socketDefault.on("permissionConfigUpdated", async (data: any) => {
+          await permissionConfigUpdated({
+            data,
+            updatePermissionConfig,
+          });
+        });
+
+        socketDefault.on(
+          "translation:roomConfig",
+          async (data: { config: TranslationRoomConfig }) => {
+            await translationRoomConfig({
+              data,
+              updateTranslationConfig,
+              updateTranslationSupported,
+            });
+          }
+        );
+
+        socketDefault.on(
+          "translation:configUpdated",
+          async (data: { config: TranslationRoomConfig }) => {
+            await translationConfigUpdated({
+              data,
+              updateTranslationConfig,
+              showAlert,
+            });
+          }
+        );
+
+        socketDefault.on(
+          "translation:languageSet",
+          async (data: {
+            success: boolean;
+            language: string;
+            enabled: boolean;
+            error?: string;
+          }) => {
+            await translationLanguageSet({
+              data,
+              updateMySpokenLanguage,
+              updateMySpokenLanguageEnabled,
+              showAlert,
+            });
+          }
+        );
+
+        socketDefault.on("translation:subscribed", async (data: any) => {
+          const translationSwitchParams = getTranslationSwitchParams();
+
+          await translationSubscribed({
+            data,
+            updateListenPreferences,
+            updateTranslationProducerMap,
+            startConsumingTranslation:
+              data?.producerId && data?.speakerId
+                ? async (
+                    producerId: string,
+                    speakerId: string,
+                    language: string
+                  ) => {
+                    await startConsumingTranslation(
+                      producerId,
+                      speakerId,
+                      language,
+                      data?.originalProducerId,
+                      socketDefault
+                    );
+                  }
+                : undefined,
+            showAlert,
+          });
+        });
+
+        socketDefault.on("translation:unsubscribed", async (data: any) => {
+          const translationSwitchParams = getTranslationSwitchParams();
+
+          await translationUnsubscribed({
+            data,
+            updateListenPreferences,
+            stopConsumingTranslation: async (
+              speakerId: string,
+              language: string
+            ) => {
+              const originalProducerId = await stopConsumingTranslation({
+                speakerId,
+                language,
+                translationProducerMap: translationProducerMap.current,
+                parameters: translationSwitchParams,
+              });
+
+              if (originalProducerId) {
+                await resumeOriginalProducer({
+                  originalProducerId,
+                  speakerId,
+                  parameters: translationSwitchParams,
+                });
+              }
+            },
+          });
+        });
+
+        socketDefault.on("translation:producerReady", async (data: any) => {
+          const translationSwitchParams = getTranslationSwitchParams();
+
+          await translationProducerReady({
+            data,
+            updateTranslationProducerMap,
+            pauseOriginalProducer: async (originalProducerId: string) => {
+              await pauseOriginalProducer({
+                originalProducerId,
+                speakerId: data?.speakerId,
+                parameters: translationSwitchParams,
+              });
+            },
+          });
+        });
+
+        socketDefault.on("translation:producerClosed", async (data: any) => {
+          const translationSwitchParams = getTranslationSwitchParams();
+
+          await translationProducerClosed({
+            data,
+            updateTranslationProducerMap,
+            stopConsumingTranslation: async (producerId: string) => {
+              const transport = consumerTransports.current.find(
+                (item) => item.producerId === producerId
+              );
+
+              if (!transport) return;
+
+              transport.socket_?.emit(
+                "consumer-close",
+                { serverConsumerId: transport.serverConsumerTransportId },
+                () => {
+                  // acknowledged
+                }
+              );
+
+              transport.consumer?.close();
+
+              updateConsumerTransports(
+                consumerTransports.current.filter(
+                  (item) => item.producerId !== producerId
+                )
+              );
+            },
+            resumeOriginalProducer: async (speakerId: string) => {
+              const speakerState = speakerTranslationStates.current.get(speakerId);
+              if (!speakerState?.originalProducerId) return;
+
+              await resumeOriginalProducer({
+                originalProducerId: speakerState.originalProducerId,
+                speakerId,
+                parameters: translationSwitchParams,
+              });
+            },
+            showAlert,
+          });
+        });
+
+        socketDefault.on("translation:channelsAvailable", async (data: any) => {
+          await translationChannelsAvailable({
+            data,
+            updateAvailableTranslationChannels,
+            socket: socketDefault,
+            roomName: roomName.current,
+          });
+        });
+
+        socketDefault.on("translation:memberState", async (data: any) => {
+          await translationMemberState({
+            data,
+            updateParticipantTranslationState,
+          });
+        });
+
+        socketDefault.on("translation:error", async (data: any) => {
+          await translationError({
+            data,
+            showAlert,
+          });
+        });
+
+        socketDefault.on("translation:transcript", async (data: any) => {
+          await translationTranscript({
+            data,
+            updateTranscripts,
+          });
+        });
+
+        socketDefault.on("translation:speakerOutputChanged", async (data: any) => {
+          const translationSwitchParams = getTranslationSwitchParams();
+
+          await translationSpeakerOutputChanged({
+            data,
+            pauseOriginalProducer: async (
+              originalProducerId: string,
+              speakerId: string
+            ) => {
+              await pauseOriginalProducer({
+                originalProducerId,
+                speakerId,
+                parameters: translationSwitchParams,
+              });
+            },
+            resumeOriginalProducer: async (
+              originalProducerId: string,
+              speakerId: string
+            ) => {
+              await resumeOriginalProducer({
+                originalProducerId,
+                speakerId,
+                parameters: translationSwitchParams,
+              });
+            },
+            stopConsumingTranslationForSpeaker: async (speakerId: string) => {
+              const mappings = Object.entries(translationProducerMap.current).filter(
+                ([originalProducerId]) => {
+                  const state = speakerTranslationStates.current.get(speakerId);
+                  return state?.originalProducerId === originalProducerId;
+                }
+              );
+
+              for (const [originalProducerId, langMap] of mappings) {
+                const languages = Object.keys(langMap || {});
+                Object.values(langMap || {}).forEach((translationProducerId) => {
+                  activeTranslationProducerIds.current.delete(translationProducerId);
+                  removeTranslationStream(translationProducerId);
+                });
+
+                for (const language of languages) {
+                  await stopConsumingTranslation({
+                    speakerId,
+                    language,
+                    translationProducerMap: translationProducerMap.current,
+                    parameters: translationSwitchParams,
+                  });
+                }
+
+                updateTranslationProducerMap((prev) => {
+                  const next = { ...prev };
+                  delete next[originalProducerId];
+                  return next;
+                });
+              }
+            },
+            updateSpeakerTranslationState,
+            showAlert,
+            listenerOverride:
+              listenerTranslationOverrides.current.get(data?.speakerId) || null,
+          });
+        });
+
+        socketDefault.on(
+          "translation:speakerDisabled",
+          async (data: { speakerId: string; speakerName?: string }) => {
+            const translationSwitchParams = getTranslationSwitchParams();
+            const state = speakerTranslationStates.current.get(data.speakerId);
+            const originalProducerId = state?.originalProducerId;
+
+            if (!originalProducerId) return;
+
+            await resumeOriginalProducer({
+              originalProducerId,
+              speakerId: data.speakerId,
+              parameters: translationSwitchParams,
+            });
+
+            updateSpeakerTranslationState(data.speakerId, null, originalProducerId);
+            Object.values(translationProducerMap.current[originalProducerId] || {}).forEach(
+              (translationProducerId) => {
+                activeTranslationProducerIds.current.delete(translationProducerId);
+                removeTranslationStream(translationProducerId);
+              }
+            );
+            updateTranslationProducerMap((prev) => {
+              const next = { ...prev };
+              delete next[originalProducerId];
+              return next;
+            });
+          }
+        );
+
         socketDefault.on(
           "producer-media-paused",
           async ({
@@ -4993,7 +7339,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
               showAlert,
               updatePolls,
               updatePoll,
-              updateIsPollModalVisible,
+              updateIsPollModalVisible: updatePollSurfaceVisibility,
             });
           } catch {
             // Handle error
@@ -5032,7 +7378,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           socketDefault.off(event);
           socketAlt.off(event);
         });
-      }
+        }
 
       socketAlt.on(
         "roomRecordParams",
@@ -5153,6 +7499,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           });
         }
 
+        updateIsLoadingModalVisible(false);
+
         return socketDefault;
       }
     } else {
@@ -5211,6 +7559,14 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     }
   }, [validated]);
 
+  const screenFlowActive =
+    screenShareActive ||
+    shared.current ||
+    shareScreenStarted.current ||
+    whiteboardActive ||
+    (whiteboardStarted.current && !whiteboardEnded.current);
+  const effectiveMainHeightWidth = screenFlowActive ? 84 : mainHeightWidth;
+
   return (
     <SafeAreaProvider
       style={{
@@ -5251,6 +7607,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           connectMediaSFU={connectMediaSFU}
           returnUI={returnUI}
           noUIPreJoinOptions={noUIPreJoinOptions}
+          autoProceedPreJoin={autoProceedPreJoin}
           joinMediaSFURoom={joinMediaSFURoom}
           createMediaSFURoom={createMediaSFURoom}
         />
@@ -5260,7 +7617,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         <MainContainer style={containerStyle}>
           {/* Main aspect component containsa ll but the control buttons (as used for webinar and conference) */}
           <MainAspect
-            backgroundColor="rgba(217, 227, 234, 0.99)"
+            backgroundColor={themedSurfaceColor}
+            containerWidthFraction={1}
             defaultFraction={1 - controlHeight}
             updateIsWideScreen={updateIsWideScreen}
             updateIsMediumScreen={updateIsMediumScreen}
@@ -5269,19 +7627,25 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
               eventType.current === "webinar" ||
               eventType.current === "conference"
             }
+            renderContent={renderSidebarWithinMainAspect}
           >
             {/* MainScreenComponent contains the main grid view and the minor grid view */}
-            <MainScreen
-              doStack={true}
-              mainSize={mainHeightWidth}
-              updateComponentSizes={updateComponentSizes}
-              defaultFraction={1 - controlHeight}
-              componentSizes={componentSizes.current}
-              showControls={
-                eventType.current === "webinar" ||
-                eventType.current === "conference"
-              }
+            <LiveSubtitleProvider
+              liveSubtitles={liveSubtitles}
+              showSubtitlesOnCards={showSubtitlesOnCards.current}
             >
+              <MainScreen
+                doStack={true}
+                mainSize={effectiveMainHeightWidth}
+                containerWidthFraction={mainContentWidthFraction}
+                updateComponentSizes={updateComponentSizes}
+                defaultFraction={1 - controlHeight}
+                componentSizes={componentSizes.current}
+                showControls={
+                  eventType.current === "webinar" ||
+                  eventType.current === "conference"
+                }
+              >
               {/* MainGridComponent shows the main grid view - not used at all in chat event type  and conference event type when screenshare is not active*/}
               {/* MainGridComponent becomes the dominant grid view in broadcast and webinar event types */}
               {/* MainGridComponent becomes the dominant grid view in conference event type when screenshare is active */}
@@ -5289,23 +7653,47 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
               <MainGrid
                 height={componentSizes.current.mainHeight}
                 width={componentSizes.current.mainWidth}
-                backgroundColor="rgba(217, 227, 234, 0.99)"
-                showAspect={mainHeightWidth > 0 ? true : false}
+                backgroundColor={themedSurfaceColor}
+                showAspect={effectiveMainHeightWidth > 0 ? true : false}
                 timeBackgroundColor={recordState}
                 meetingProgressTime={meetingProgressTime}
+                timerComponent={MeetingProgressTimerComponent}
               >
                 <FlexibleVideoComponent
                   customWidth={componentSizes.current.mainWidth}
                   customHeight={componentSizes.current.mainHeight}
+                  backgroundColor={themedSurfaceColor}
                   rows={1}
                   columns={1}
+                  Screenboard={
+                    shared.current ? (
+                      <ScreenboardComponent
+                        parameters={{
+                          ...getAllParams(),
+                          ...mediaSFUFunctions(),
+                        }}
+                      />
+                    ) : null
+                  }
                   componentsToRender={
                     mainGridStream.current ? mainGridStream.current : []
                   }
                   showAspect={
                     mainGridStream.current.length > 0 &&
-                    !(whiteboardStarted.current && !whiteboardEnded.current)
+                    !screenFlowActive
                   }
+                />
+
+                <WhiteboardComponent
+                  customWidth={componentSizes.current.mainWidth}
+                  customHeight={componentSizes.current.mainHeight}
+                  isVisible={whiteboardActive}
+                  onWhiteboardClose={() => updateIsWhiteboardModalVisible(false)}
+                  showAspect={whiteboardStarted.current && !whiteboardEnded.current}
+                  parameters={{
+                    ...getAllParams(),
+                    ...mediaSFUFunctions(),
+                  }}
                 />
 
                 <ControlButtonsTouch
@@ -5341,6 +7729,13 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   location="bottom"
                   position="middle"
                 />
+
+                <ParticipantsCounterBadge
+                  participantsCount={participantsCounter.current}
+                  position="bottomLeft"
+                  showBadge={effectiveMainHeightWidth > 0}
+                  isDarkMode={isDarkMode}
+                />
               </MainGrid>
 
               {/* OthergridComponent shows the minor grid view - not used at all in broadcast event type */}
@@ -5348,11 +7743,12 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
               <OtherGrid
                 height={componentSizes.current.otherHeight}
                 width={componentSizes.current.otherWidth}
-                backgroundColor={"rgba(217, 227, 234, 0.99)"}
-                showAspect={mainHeightWidth === 100 ? false : true}
+                backgroundColor={themedSurfaceColor}
+                showAspect={effectiveMainHeightWidth === 100 ? false : true}
                 timeBackgroundColor={recordState}
-                showTimer={mainHeightWidth === 0 ? true : false}
+                showTimer={effectiveMainHeightWidth === 0 ? true : false}
                 meetingProgressTime={meetingProgressTime}
+                timerComponent={MeetingProgressTimerComponent}
               >
                 {/* Pagination is only used in conference and webinar event types */}
                 <View
@@ -5392,7 +7788,10 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 {/* If webinar and you are the host, the audio only streams (just one), are displayed in the main grid view */}
                 <AudioGridComponent
                   componentsToRender={
-                    audioOnlyStreams.current ? audioOnlyStreams.current : []
+                    [
+                      ...(audioOnlyStreams.current || []),
+                      ...(translationStreams || []),
+                    ]
                   }
                 />
 
@@ -5410,45 +7809,59 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                   rows={gridRows}
                   columns={gridCols}
                   componentsToRender={otherGridStreams[0]}
-                  backgroundColor={"rgba(217, 227, 234, 0.99)"}
+                  backgroundColor={themedSurfaceColor}
                 />
 
-                <FlexibleGridPrimary
+                <FlexibleGridAlt
                   customWidth={gridSizes.current.altGridWidth!}
                   customHeight={gridSizes.current.altGridHeight!}
                   rows={altGridRows}
                   columns={altGridCols}
                   componentsToRender={otherGridStreams[1]}
-                  backgroundColor={"rgba(217, 227, 234, 0.99)"}
+                  backgroundColor={themedSurfaceColor}
+                />
+
+                <ParticipantsCounterBadge
+                  participantsCount={participantsCounter.current}
+                  position="topRight"
+                  showBadge={effectiveMainHeightWidth === 0}
+                  isDarkMode={isDarkMode}
                 />
               </OtherGrid>
-            </MainScreen>
+              </MainScreen>
+            </LiveSubtitleProvider>
           </MainAspect>
 
           {/* SubAspectComponent is used for webinar and conference events only to display fixed control buttons */}
           <SubAspect
-            backgroundColor="rgba(217, 227, 234, 0.99)"
+            backgroundColor={themedSurfaceColor}
+            containerWidthFraction={1}
             showControls={
               eventType.current === "webinar" ||
               eventType.current === "conference"
             }
             defaultFractionSub={controlHeight}
           >
-            <ControlButtons
-              buttons={controlButtons}
-              buttonColor="black" // Set the background color for buttons
-              buttonBackgroundColor={{
-                default: "transparent",
-                pressed: "transparent",
-              }} // Set background color options
-              alignment="space-between"
-              vertical // Set to true for vertical layout
-              buttonsContainerStyle={{
-                marginTop: 2,
-                marginBottom: 2,
-                backgroundColor: "transparent",
-              }} // Set styles for the buttons container
-            />
+            <View
+              onLayout={handleControlStripLayout}
+              style={nativeSidebarStyles.controlStripMeasureHost}
+            >
+              <ControlButtons
+                buttons={controlButtons}
+                buttonColor={isDarkMode ? "white" : "black"} // Set the background color for buttons
+                buttonBackgroundColor={{
+                  default: "transparent",
+                  pressed: "transparent",
+                }} // Set background color options
+                alignment="space-between"
+                vertical // Set to true for vertical layout
+                buttonsContainerStyle={{
+                  marginTop: 2,
+                  marginBottom: 2,
+                  backgroundColor: "transparent",
+                }} // Set styles for the buttons container
+              />
+            </View>
           </SubAspect>
         </MainContainer>
       ) : (
@@ -5458,8 +7871,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
       {returnUI && !customComponent && (
         <>
           <MenuModalComponent
-            backgroundColor="rgba(181, 233, 229, 0.97)"
-            isVisible={isMenuModalVisible}
+            backgroundColor={themedMenuColor}
+            isVisible={!shouldUseSidebar && isMenuModalVisible}
             onClose={() => updateIsMenuModalVisible(false)}
             customButtons={customMenuButtons}
             roomName={roomName.current}
@@ -5470,8 +7883,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <EventSettingsModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isEventSettingsModalVisible={isSettingsModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isEventSettingsModalVisible={!shouldUseSidebar && isSettingsModalVisible}
             updateIsSettingsModalVisible={updateIsSettingsModalVisible}
             onEventSettingsClose={() => updateIsSettingsModalVisible(false)}
             audioSetting={audioSetting.current}
@@ -5487,8 +7900,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <RequestsModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isRequestsModalVisible={isRequestsModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isRequestsModalVisible={!shouldUseSidebar && isRequestsModalVisible}
             onRequestClose={() => updateIsRequestsModalVisible(false)}
             requestCounter={requestCounter.current}
             onRequestFilterChange={onRequestFilterChange}
@@ -5505,8 +7918,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <WaitingRoomModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isWaitingModalVisible={isWaitingModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isWaitingModalVisible={!shouldUseSidebar && isWaitingModalVisible}
             onWaitingRoomClose={() => updateIsWaitingModalVisible(false)}
             waitingRoomCounter={waitingRoomCounter.current}
             onWaitingRoomFilterChange={onWaitingRoomFilterChange}
@@ -5521,8 +7934,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <CoHostModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isCoHostModalVisible={isCoHostModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isCoHostModalVisible={!shouldUseSidebar && isCoHostModalVisible}
             updateIsCoHostModalVisible={updateIsCoHostModalVisible}
             onCoHostClose={() => updateIsCoHostModalVisible(false)}
             coHostResponsibility={coHostResponsibility.current}
@@ -5536,8 +7949,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <MediaSettingsModalComponent
-            backgroundColor="rgba(181, 233, 229, 0.97)"
-            isMediaSettingsModalVisible={isMediaSettingsModalVisible}
+            backgroundColor={themedMenuColor}
+            isMediaSettingsModalVisible={!shouldUseSidebar && isMediaSettingsModalVisible}
             onMediaSettingsClose={() =>
               updateIsMediaSettingsModalVisible(false)
             }
@@ -5548,8 +7961,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <ParticipantsModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isParticipantsModalVisible={isParticipantsModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isParticipantsModalVisible={!shouldUseSidebar && isParticipantsModalVisible}
             onParticipantsClose={() => updateIsParticipantsModalVisible(false)}
             participantsCounter={participantsCounter.current}
             onParticipantsFilterChange={onParticipantsFilterChange}
@@ -5582,8 +7995,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <DisplaySettingsModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isDisplaySettingsModalVisible={isDisplaySettingsModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isDisplaySettingsModalVisible={!shouldUseSidebar && isDisplaySettingsModalVisible}
             onDisplaySettingsClose={() =>
               updateIsDisplaySettingsModalVisible(false)
             }
@@ -5594,8 +8007,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <RecordingModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isRecordingModalVisible={isRecordingModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isRecordingModalVisible={!shouldUseSidebar && isRecordingModalVisible}
             onClose={() => updateIsRecordingModalVisible(false)}
             startRecording={startRecording}
             confirmRecording={confirmRecording}
@@ -5612,7 +8025,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
                 ? "#f5f5f5"
                 : "rgba(255, 255, 255, 0.25)"
             }
-            isMessagesModalVisible={isMessagesModalVisible}
+            isMessagesModalVisible={!shouldUseSidebar && isMessagesModalVisible}
             onMessagesClose={() => updateIsMessagesModalVisible(false)}
             messages={messages.current}
             eventType={eventType.current}
@@ -5631,7 +8044,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <ConfirmExitModalComponent
-            backgroundColor="rgba(181, 233, 229, 0.97)"
+            backgroundColor={themedMenuColor}
             isConfirmExitModalVisible={isConfirmExitModalVisible}
             onConfirmExitClose={() => updateIsConfirmExitModalVisible(false)}
             member={member.current}
@@ -5641,7 +8054,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <ConfirmHereModalComponent
-            backgroundColor="rgba(181, 233, 229, 0.97)"
+            backgroundColor={themedMenuColor}
             isConfirmHereModalVisible={isConfirmHereModalVisible}
             onConfirmHereClose={() => updateIsConfirmHereModalVisible(false)}
             member={member.current}
@@ -5650,7 +8063,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <ShareEventModalComponent
-            isShareEventModalVisible={isShareEventModalVisible}
+            isShareEventModalVisible={!shouldUseSidebar && isShareEventModalVisible}
             onShareEventClose={() => updateIsShareEventModalVisible(false)}
             roomName={roomName.current}
             islevel={islevel.current}
@@ -5660,8 +8073,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           />
 
           <PollModalComponent
-            isPollModalVisible={isPollModalVisible}
-            onClose={() => setIsPollModalVisible(false)}
+            isPollModalVisible={!shouldUseSidebar && isPollModalVisible}
+            onClose={() => updatePollSurfaceVisibility(false)}
             member={member.current}
             islevel={islevel.current}
             polls={polls.current}
@@ -5669,19 +8082,76 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             socket={socket.current}
             roomName={roomName.current}
             showAlert={showAlert}
-            updateIsPollModalVisible={setIsPollModalVisible}
+            updateIsPollModalVisible={updatePollSurfaceVisibility}
             handleCreatePoll={handleCreatePoll}
             handleEndPoll={handleEndPoll}
             handleVotePoll={handleVotePoll}
           />
 
-          {/* not implemented yet  for React Native */}
-          {/* <BackgroundModal
-      /> */}
+          <BackgroundModalComponent
+            isBackgroundModalVisible={!shouldUseSidebar && isBackgroundModalVisible}
+            onBackgroundClose={() => updateIsBackgroundModalVisible(false)}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+
+          <TranslationSettingsModalComponent
+            isTranslationSettingsModalVisible={
+              !shouldUseSidebar && isTranslationSettingsModalVisible
+            }
+            onTranslationSettingsClose={() =>
+              updateIsTranslationSettingsModalVisible(false)
+            }
+            backgroundColor={themedSurfaceColor}
+            translationConfig={translationConfig.current}
+            member={member.current}
+            participants={participants.current}
+            audioProducerId={audioProducer.current?.id ?? localAudioProducer.current?.id ?? null}
+            mySpokenLanguage={mySpokenLanguage.current}
+            mySpokenLanguageEnabled={mySpokenLanguageEnabled.current}
+            myDefaultOutputLanguage={myDefaultOutputLanguage.current}
+            myDefaultListenLanguage={listenerTranslationPreferences.current.globalLanguage}
+            listenPreferences={new Map(
+              Array.from(listenerTranslationPreferences.current.perSpeaker.entries())
+                .filter(([, preference]) => Boolean(preference.language) && !preference.wantOriginal)
+                .map(([speakerId, preference]) => [speakerId, preference.language as string])
+            )}
+            updateMySpokenLanguage={updateMySpokenLanguage}
+            updateMySpokenLanguageEnabled={updateMySpokenLanguageEnabled}
+            updateMyDefaultOutputLanguage={updateMyDefaultOutputLanguage}
+            applyGlobalListenLanguage={setListenerGlobalPreference}
+            applySpeakerListenPreference={setListenerPreferenceForSpeaker}
+            clearSpeakerListenPreference={clearListenerPreferenceForSpeaker}
+            showSubtitlesOnCards={showSubtitlesOnCards.current}
+            updateShowSubtitlesOnCards={updateShowSubtitlesOnCards}
+            roomName={roomName.current}
+            socket={socket.current}
+            showAlert={showAlert}
+          />
+
+          <PanelistsModalComponent
+            isPanelistsModalVisible={!shouldUseSidebar && isPanelistsModalVisible}
+            onPanelistsClose={() => updateIsPanelistsModalVisible(false)}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
+
+          <PermissionsModalComponent
+            isPermissionsModalVisible={!shouldUseSidebar && isPermissionsModalVisible}
+            onPermissionsClose={() => updateIsPermissionsModalVisible(false)}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
 
           <BreakoutRoomsModalComponent
-            backgroundColor="rgba(217, 227, 234, 0.99)"
-            isVisible={isBreakoutRoomsModalVisible}
+            backgroundColor={themedSurfaceColor}
+            isVisible={!shouldUseSidebar && isBreakoutRoomsModalVisible}
             onBreakoutRoomsClose={() =>
               updateIsBreakoutRoomsModalVisible(false)
             }
@@ -5691,12 +8161,25 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
             }}
           />
 
-          {/* not implemented yet  for React Native */}
-          {/* <ConfigureWhiteboardModal
-      />
+          <ConfigureWhiteboardModalComponent
+            isConfigureWhiteboardModalVisible={!shouldUseSidebar && isConfigureWhiteboardModalVisible}
+            onConfigureWhiteboardClose={() =>
+              updateIsConfigureWhiteboardModalVisible(false)
+            }
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
 
-      <ScreenboardModal
-      /> */}
+          <ScreenboardModalComponent
+            isScreenboardModalVisible={!shouldUseSidebar && isScreenboardModalVisible}
+            onScreenboardClose={() => updateIsScreenboardModalVisible(false)}
+            parameters={{
+              ...getAllParams(),
+              ...mediaSFUFunctions(),
+            }}
+          />
 
           <AlertComponentOverride
             visible={alertVisible}
@@ -5709,7 +8192,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
 
           <LoadingModalComponent
             isVisible={isLoadingModalVisible}
-            backgroundColor="rgba(217, 227, 234, 0.99)"
+            backgroundColor={themedSurfaceColor}
             displayColor="black"
           />
         </>
@@ -5717,5 +8200,115 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     </SafeAreaProvider>
   );
 };
+
+const nativeSidebarStyles = StyleSheet.create({
+  controlStripMeasureHost: {
+    width: "100%",
+    alignSelf: "stretch",
+  },
+  aspectRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minWidth: 0,
+    minHeight: 0,
+  },
+  aspectMainColumn: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+  },
+  detachedOverlayHost: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    position: 'relative',
+  },
+  panel: {
+    position: "absolute",
+    zIndex: 2000,
+    elevation: 20,
+    shadowColor: "#000000",
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    shadowOffset: { width: -8, height: 0 },
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  inlineAttachedPanel: {
+    position: "relative",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    alignSelf: "stretch",
+    borderLeftWidth: 1,
+    flexShrink: 0,
+    height: '100%',
+    maxHeight: '100%',
+    minHeight: 0,
+  },
+  attachedPanel: {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    borderLeftWidth: 1,
+  },
+  detachedPanel: {
+    top: 16,
+    right: 8,
+    bottom: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  header: {
+    minHeight: 52,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerButton: {
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  } as any,
+  headerButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  iconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  body: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  embeddedModalContent: {
+    width: "100%",
+    maxWidth: "100%",
+    height: "100%",
+    maxHeight: "100%",
+    alignSelf: "stretch",
+    margin: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    flex: 1,
+    flexShrink: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+});
 
 export default MediasfuGeneric;

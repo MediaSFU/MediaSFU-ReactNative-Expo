@@ -20,6 +20,7 @@ import {
 } from "../../methods/requestsMethods/respondToRequests";
 import { Request } from "../../@types/types";
 import { getModalPosition } from "../../methods/utils/getModalPosition";
+import { getModalBodyTheme } from "../../components_modern/core/modalBodyTheme";
 
 /**
  * Configuration parameters for requests modal.
@@ -121,13 +122,18 @@ export interface RequestsModalOptions {
    * Component to render each request item.
    * Defaults to RenderRequestComponent.
    */
-  renderRequestComponent?: React.FC<RenderRequestComponentOptions>;
+  renderRequestComponent?: (options: RenderRequestComponentOptions) => React.ReactNode;
 
   /**
    * Background color of the modal.
    * Defaults to '#83c0e9'.
    */
   backgroundColor?: string;
+
+  /**
+   * Whether to render the modal body with the modern dark/light theme.
+   */
+  isDarkMode?: boolean;
 
   /**
    * Position of the modal on the screen.
@@ -281,6 +287,7 @@ const RequestsModal: React.FC<RequestsModalOptions> = ({
   socket,
   renderRequestComponent = RenderRequestComponent,
   backgroundColor = "#83c0e9",
+  isDarkMode,
   position = "topRight",
   parameters,
   style,
@@ -294,35 +301,57 @@ const RequestsModal: React.FC<RequestsModalOptions> = ({
   const [filterText, setFilterText] = useState<string>("");
 
   useEffect(() => {
+    if (!isRequestsModalVisible) {
+      return;
+    }
+
     const { getUpdatedAllParams } = parameters;
     const updatedParams = getUpdatedAllParams();
     setFilteredRequestList(updatedParams.filteredRequestList);
     setLocalRequestCounter(updatedParams.filteredRequestList.length);
-  }, [requestList, parameters]);
+  }, [isRequestsModalVisible, requestList, parameters]);
+
+  if (!isRequestsModalVisible) {
+    return null;
+  }
 
   const modalWidth = 0.8 * Dimensions.get("window").width > 350 ? 350 : 0.8 * Dimensions.get("window").width;
   const dimensions = { width: modalWidth, height: 0 };
+  const theme = getModalBodyTheme(isDarkMode);
+  const shouldUseModernTheme = typeof isDarkMode === "boolean";
+
+  const requestRenderer = renderRequestComponent as (
+    options: RenderRequestComponentOptions
+  ) => React.ReactNode;
 
   const defaultContent = (
     <>
       {/* Header */}
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>
-          Requests <Text style={styles.badge}>{localRequestCounter}</Text>
+        <Text style={[styles.modalTitle, { color: theme.textColor }]}>
+          Requests <Text style={[styles.badge, { backgroundColor: theme.badgeBackgroundColor, color: theme.badgeTextColor }]}>{localRequestCounter}</Text>
         </Text>
         <Pressable onPress={onRequestClose} style={styles.closeButton}>
-          <FontAwesome name="times" size={20} color="black" />
+          <FontAwesome name="times" size={20} color={theme.iconColor} />
         </Pressable>
       </View>
 
-      <View style={styles.separator} />
+      <View style={[styles.separator, { backgroundColor: theme.dividerColor }]} />
 
       {/* Filter Input */}
       <View style={styles.modalBody}>
         <View style={styles.filterContainer}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackgroundColor,
+                borderColor: theme.borderColor,
+                color: theme.inputTextColor,
+              },
+            ]}
             placeholder="Search ..."
+            placeholderTextColor={theme.placeholderTextColor}
             value={filterText}
             onChangeText={(text) => {
               setFilterText(text);
@@ -338,18 +367,19 @@ const RequestsModal: React.FC<RequestsModalOptions> = ({
           {filteredRequestList && filteredRequestList.length > 0 ? (
             filteredRequestList.map((requestItem, index) => (
               <View key={index} style={styles.requestItem}>
-                {renderRequestComponent({
+                {requestRenderer({
                   request: requestItem,
                   onRequestItemPress,
                   requestList: filteredRequestList,
                   updateRequestList,
                   roomName,
                   socket,
+                  isDarkMode,
                 })}
               </View>
             ))
           ) : (
-            <Text style={styles.noRequestsText}>No requests found.</Text>
+            <Text style={[styles.noRequestsText, { color: theme.mutedTextColor }]}>No requests found.</Text>
           )}
         </View>
       </ScrollView>
@@ -367,11 +397,12 @@ const RequestsModal: React.FC<RequestsModalOptions> = ({
       visible={isRequestsModalVisible}
       onRequestClose={onRequestClose}
     >
-      <View style={[styles.modalContainer, getModalPosition({ position })]}>
+      <View style={[styles.modalContainer, getModalPosition({ position }), shouldUseModernTheme ? { borderColor: theme.borderColor } : null]}>
         <View
           style={[
             styles.modalContent,
             { backgroundColor, width: modalWidth },
+            shouldUseModernTheme ? { borderColor: theme.borderColor } : null,
             style,
           ]}
         >
