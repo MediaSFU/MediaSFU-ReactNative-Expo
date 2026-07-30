@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera'; 
 import { FontAwesome5 } from '@expo/vector-icons';
-import Orientation from 'react-native-orientation-locker';
+import Orientation from '../../methods/utils/orientation/orientation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Socket } from 'socket.io-client';
 import { ConnectSocketType } from '../../sockets/SocketManager';
@@ -713,7 +713,7 @@ const WelcomePage: React.FC<WelcomePageOptions> = ({ parameters }) => {
                   barcodeScannerSettings={{
                     barcodeTypes: ['qr', 'pdf417'],
                   }}
-                  style={StyleSheet.absoluteFillObject}
+                  style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
                 />
                 <Pressable
                   style={styles.closeScannerButton}

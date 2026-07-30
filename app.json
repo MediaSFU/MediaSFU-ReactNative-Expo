@@ -5,15 +5,9 @@
     "scheme": "mediasfuexpo",
     "version": "1.0.0",
     "icon": "./assets/logo512.png",
-    "splash": {
-      "image": "./assets/logo512.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#4893AAFF"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
-    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.MediaSFU",
       "bitcode": false,
@@ -54,7 +48,15 @@
     },
     "plugins": [
       [
-        "@config-plugins/react-native-webrtc",
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo512.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#4893AAFF"
+        }
+      ],
+      [
+        "./plugins/withMediaSFUWebRTC",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"

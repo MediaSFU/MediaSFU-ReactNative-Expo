@@ -111,7 +111,7 @@ export interface InitialValuesStateType {
   canRecord: boolean;
   startReport: boolean;
   endReport: boolean;
-  recordTimerInterval: NodeJS.Timeout | null;
+  recordTimerInterval: ReturnType<typeof setInterval> | null;
   recordStartTime: number;
   recordElapsedTime: number;
   isTimerRunning: boolean;

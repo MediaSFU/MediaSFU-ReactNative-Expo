@@ -4,9 +4,8 @@ import { ProducerOptions } from 'mediasoup-client/lib/types';
 import {
   Participant, PrepopulateUserMediaParameters, ShowAlert, CreateSendTransportParameters, ConnectSendTransportAudioParameters,
   ResumeSendTransportAudioParameters, PrepopulateUserMediaType, CreateSendTransportType, ConnectSendTransportAudioType,
-  ResumeSendTransportAudioType,
+  ResumeSendTransportAudioType, MediaStream,
 } from '../@types/types';
-import { MediaStream } from '../methods/utils/webrtc/webrtc';
 
 export interface StreamSuccessAudioParameters extends CreateSendTransportParameters, ConnectSendTransportAudioParameters, ResumeSendTransportAudioParameters, PrepopulateUserMediaParameters {
   socket: Socket;

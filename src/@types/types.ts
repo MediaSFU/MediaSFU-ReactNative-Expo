@@ -10,7 +10,7 @@ import { Consumer, DtlsParameters, IceCandidate, IceParameters, RtpCapabilities 
 import {
   mediaDevices,
   MediaStream as NativeMediaStream,
-  MediaStreamTrack as MediaStreamTrackType,
+  MediaStreamTrack as NativeMediaStreamTrack,
 } from '../methods/utils/webrtc/webrtc';
 import type MainContainerComponent from '../components/displayComponents/MainContainerComponent';
 import type MainAspectComponent from '../components/displayComponents/MainAspectComponent';
@@ -437,8 +437,8 @@ export * from '../components/menuComponents/CustomButtons';
 export type Shape = any;
 export type SelfieSegmentation = any;
 export type MediaDevices = typeof mediaDevices;
-export type MediaStream = NativeMediaStream;
-export type MediaStreamTrack = MediaStreamTrackType;
+export type MediaStream = InstanceType<typeof NativeMediaStream>;
+export type MediaStreamTrack = InstanceType<typeof NativeMediaStreamTrack>;
 
 
 export interface Participant {

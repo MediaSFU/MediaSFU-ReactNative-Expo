@@ -4,10 +4,9 @@ import {
 } from 'mediasoup-client/lib/types';
 import { Socket } from 'socket.io-client';
 import {
-  ConnectSendTransportVideoParameters, Participant, ShowAlert, CreateSendTransportParameters, ReorderStreamsParameters, SleepType,
+  ConnectSendTransportVideoParameters, Participant, ShowAlert, CreateSendTransportParameters, ReorderStreamsParameters, SleepType, MediaStream,
   CreateSendTransportType, ConnectSendTransportVideoType, ReorderStreamsType, HParamsType, VParamsType,
 } from '../@types/types';
-import { MediaStream } from '../methods/utils/webrtc/webrtc';
 
 export interface StreamSuccessVideoParameters extends CreateSendTransportParameters, ConnectSendTransportVideoParameters, ReorderStreamsParameters {
   socket: Socket;

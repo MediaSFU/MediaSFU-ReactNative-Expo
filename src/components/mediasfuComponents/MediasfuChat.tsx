@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState, useRef } from "react";
 import { Text, View, Platform, Dimensions } from "react-native";
-import Orientation from "react-native-orientation-locker";
+import Orientation from '../../methods/utils/orientation/orientation';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { Camera } from "expo-camera";
@@ -490,7 +490,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
   const canRecord = useRef<boolean>(false); // True if the user can record
   const startReport = useRef<boolean>(false); // True if the user has started recording
   const endReport = useRef<boolean>(false); // True if the user has stopped recording
-  const recordTimerInterval = useRef<NodeJS.Timeout | null>(null); // Interval for the recording timer
+  const recordTimerInterval = useRef<ReturnType<typeof setInterval> | null>(null); // Interval for the recording timer
   const recordStartTime = useRef<number>(0); // Start time for the recording timer as timestamp or null
   const recordElapsedTime = useRef<number>(0); // Elapsed time for the recording timer
   const isTimerRunning = useRef<boolean>(false); // True if the recording timer is running
@@ -858,7 +858,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
     endReport.current = value;
   };
 
-  const updateRecordTimerInterval = (value: NodeJS.Timeout | null) => {
+  const updateRecordTimerInterval = (value: ReturnType<typeof setInterval> | null) => {
     recordTimerInterval.current = value;
   };
 
@@ -2263,7 +2263,7 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
   };
 
   function checkOrientation() {
-    // Check the device orientation using react-native-orientation-locker
+    // Check the device orientation through the Expo adapter.
     const isPortrait = Orientation?.getInitialOrientation() === "PORTRAIT";
 
     return isPortrait ? "portrait" : "landscape";
@@ -4087,9 +4087,6 @@ const MediasfuChat: React.FC<MediasfuChatOptions> = ({
       <StatusBar
         animated
         hidden={false}
-        networkActivityIndicatorVisible={true}
-        translucent={true} // Keep this if you want the content to show behind the status bar
-        backgroundColor="rgba(0, 0, 0, 0.2)"
         style="light"
       />
 

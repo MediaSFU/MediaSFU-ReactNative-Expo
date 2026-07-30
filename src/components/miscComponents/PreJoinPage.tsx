@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import Orientation from "react-native-orientation-locker";
+import Orientation from '../../methods/utils/orientation/orientation';
 import { Socket } from "socket.io-client";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {

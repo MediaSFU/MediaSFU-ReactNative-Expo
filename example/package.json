@@ -1,0 +1,10 @@
+{
+  "name": "mediasfu-reactnative-expo-example",
+  "private": true,
+  "main": "./index.tsx",
+  "dependencies": {
+    "expo": "~57.0.9",
+    "react": "19.2.3",
+    "react-native": "0.86.2"
+  }
+}

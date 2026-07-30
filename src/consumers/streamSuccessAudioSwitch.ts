@@ -3,9 +3,8 @@ import { Producer, ProducerCodecOptions, ProducerOptions } from 'mediasoup-clien
 import { Socket } from 'socket.io-client';
 import {
   PrepopulateUserMediaParameters, PrepopulateUserMediaType, CreateSendTransportParameters, CreateSendTransportType, ConnectSendTransportAudioParameters, ConnectSendTransportAudioType,
-  SleepType, MediaStream as MediaStreamType,
+  SleepType, MediaStream as MediaStreamType, MediaStream,
 } from '../@types/types';
-import { MediaStream } from '../methods/utils/webrtc/webrtc';
 
 export interface StreamSuccessAudioSwitchParameters extends PrepopulateUserMediaParameters, CreateSendTransportParameters, ConnectSendTransportAudioParameters {
   audioProducer: Producer | null;

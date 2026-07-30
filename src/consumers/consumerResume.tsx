@@ -18,9 +18,7 @@ import {
   MediaStream as MediaStreamType,
 } from '../@types/types';
 import {
-  MediaStream as NativeMediaStream,
-  MediaStreamTrack,
-  RTCView,
+  RTCView, createMediaStream,
 } from '../methods/utils/webrtc/webrtc';
 import { Consumer } from 'mediasoup-client/lib/types';
 
@@ -436,7 +434,7 @@ export const consumerResume = async ({
       }
 
       // Media display and UI update to prioritize audio/video
-      nStream = new NativeMediaStream([track]);
+      nStream = createMediaStream([track]);
       updateNStream(nStream);
 
       if (isTranslationAudio) {
@@ -570,7 +568,7 @@ export const consumerResume = async ({
       }
     } else {
       // Video resumed
-      nStream = new NativeMediaStream([track]);
+      nStream = createMediaStream([track]);
       updateNStream(nStream);
 
       // find any participants with ScreenID not null and ScreenOn == true

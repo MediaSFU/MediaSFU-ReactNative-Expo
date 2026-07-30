@@ -174,7 +174,7 @@ const AlertComponent: React.FC<AlertComponentOptions> = ({
   }, [type]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
 
     if (visible) {
       timer = setTimeout(() => {

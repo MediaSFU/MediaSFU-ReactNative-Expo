@@ -48,7 +48,6 @@ config.resolver.blockList = [
 	...sharedDistBlockList,
 	...transientNativeBuildBlockList,
 ];
-config.resolver.unstable_enableSymlinks = false;
 config.resolver.extraNodeModules = {
 	'mediasfu-shared': sharedPackageSrcRoot,
 };

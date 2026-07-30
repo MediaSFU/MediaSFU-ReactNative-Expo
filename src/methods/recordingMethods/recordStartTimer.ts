@@ -2,7 +2,7 @@ import { recordStartTimer as sharedRecordStartTimer } from 'mediasfu-shared';
 
 export interface RecordStartTimerParameters {
   recordStartTime: number;
-  recordTimerInterval?: NodeJS.Timeout | null;
+  recordTimerInterval?: ReturnType<typeof setInterval> | null;
   isTimerRunning: boolean;
   canPauseResume: boolean;
   recordChangeSeconds: number;
@@ -10,7 +10,7 @@ export interface RecordStartTimerParameters {
   recordStopped: boolean;
   roomName: string | null;
   updateRecordStartTime: (time: number) => void;
-  updateRecordTimerInterval: (interval: NodeJS.Timeout | null) => void;
+  updateRecordTimerInterval: (interval: ReturnType<typeof setInterval> | null) => void;
   updateIsTimerRunning: (isRunning: boolean) => void;
   updateCanPauseResume: (canPause: boolean) => void;
 

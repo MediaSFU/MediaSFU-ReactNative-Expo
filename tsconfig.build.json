@@ -1,7 +1,7 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-      "ignoreDeprecations": "5.0",
+      "ignoreDeprecations": "6.0",
       "noEmit": false,
       "outDir": "./dist",
       "declaration": true,
@@ -15,4 +15,3 @@
     "include": ["src", "./main.tsx", "./docs.tsx"],
     "exclude": ["node_modules", "build", "dist"]
   }
-  

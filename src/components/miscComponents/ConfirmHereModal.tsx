@@ -161,7 +161,7 @@ export type ConfirmHereModalType = (
  * ```
  */
 
-let countdownInterval: NodeJS.Timeout;
+let countdownInterval: ReturnType<typeof setInterval>;
 
 function startCountdown({
   duration,
