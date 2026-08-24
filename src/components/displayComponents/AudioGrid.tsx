@@ -119,7 +119,7 @@ export type AudioGridType = (options: AudioGridOptions) => React.ReactNode;
  * import { MyCustomAudioGrid } from './MyCustomAudioGrid';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     audioGridComponent: {
  *       component: MyCustomAudioGrid,

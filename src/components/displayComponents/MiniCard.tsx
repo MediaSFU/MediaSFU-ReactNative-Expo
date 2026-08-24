@@ -242,7 +242,7 @@ export type MiniCardType = (options: MiniCardOptions) => JSX.Element;
  * import { MyCustomMiniCard } from './MyCustomMiniCard';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     miniCardComponent: {
  *       component: MyCustomMiniCard,
@@ -424,7 +424,7 @@ const MiniCard: React.FC<MiniCardOptions> = ({
   );
 
   const content = renderContent 
-    ? renderContent({ defaultContent, dimensions: renderDimensions }) 
+    ? renderContent({ defaultContent, dimensions: renderDimensions })
     : defaultContent;
 
   const defaultContainer = (

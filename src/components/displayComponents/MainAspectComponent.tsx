@@ -7,6 +7,7 @@ import {
   Dimensions,
   ScaledSize,
 } from 'react-native';
+import { calculateEmbeddedLayout } from '../../utils/embeddedLayout';
 
 /**
  * Configuration options for the MainAspectComponent.
@@ -43,6 +44,8 @@ export interface MainAspectComponentOptions {
   showControls?: boolean;
   containerWidthFraction?: number;
   containerHeightFraction?: number;
+  /** Measured host boundary. When supplied, viewport Dimensions are ignored. */
+  containerDimensions?: { width: number; height: number };
   defaultFraction?: number;
   updateIsWideScreen: (isWide: boolean) => void;
   updateIsMediumScreen: (isMedium: boolean) => void;
@@ -157,7 +160,7 @@ export type MainAspectComponentType = (
  * import { MyCustomAspectContainer } from './MyCustomAspectContainer';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     mainAspectComponent: {
  *       component: MyCustomAspectContainer,
@@ -199,6 +202,7 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
   showControls = true,
   containerWidthFraction = 1,
   containerHeightFraction = 1,
+  containerDimensions,
   defaultFraction = 0.94,
   updateIsWideScreen,
   updateIsMediumScreen,
@@ -214,14 +218,19 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
   updateIsMediumScreenRef.current = updateIsMediumScreen;
   updateIsSmallScreenRef.current = updateIsSmallScreen;
 
+  const initialBoundary = containerDimensions ?? Dimensions.get('window');
+  const initialDimensions = calculateEmbeddedLayout({
+    boundary: initialBoundary,
+    widthFraction: containerWidthFraction,
+    heightFraction: containerHeightFraction,
+    contentHeightFraction: showControls ? defaultFraction : 1,
+  });
   const [aspectStyles, setAspectStyles] = useState<{
     height: number;
     width: number;
   }>({
-    height: showControls
-      ? Math.floor(containerHeightFraction * Dimensions.get('window').height * defaultFraction)
-      : Math.floor(containerHeightFraction * Dimensions.get('window').height),
-    width: Math.floor(containerWidthFraction * Dimensions.get('window').width),
+    height: initialDimensions.height,
+    width: initialDimensions.width,
   });
 
   useEffect(() => {
@@ -246,12 +255,12 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
       updateIsMediumScreenRef.current(isMediumScreen);
       updateIsSmallScreenRef.current(isSmallScreen);
 
-      const nextAspectStyles = {
-        height: showControls
-          ? Math.floor(containerHeightFraction * windowHeight * defaultFraction)
-          : Math.floor(containerHeightFraction * windowHeight),
-        width: Math.floor(containerWidthFraction * windowWidth),
-      };
+      const nextAspectStyles = calculateEmbeddedLayout({
+        boundary: { width: windowWidth, height: windowHeight },
+        widthFraction: containerWidthFraction,
+        heightFraction: containerHeightFraction,
+        contentHeightFraction: showControls ? defaultFraction : 1,
+      });
 
       setAspectStyles((current) =>
         current.height === nextAspectStyles.height && current.width === nextAspectStyles.width
@@ -261,7 +270,7 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
     };
 
     // Initial setup
-    const { width, height } = Dimensions.get('window');
+    const { width, height } = containerDimensions ?? Dimensions.get('window');
     updateAspectStyles({
       window: {
         width, height, scale: 1, fontScale: 1,
@@ -272,14 +281,13 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
     });
 
     // Subscribe to dimension changes
-    const subscription = Dimensions.addEventListener('change', updateAspectStyles);
+    const subscription = containerDimensions
+      ? undefined
+      : Dimensions.addEventListener('change', updateAspectStyles);
 
     return () => {
       // Cleanup listener on component unmount
       if (subscription?.remove) {
-        subscription.remove();
-      } else {
-        // For older React Native versions
         subscription.remove();
       }
     };
@@ -288,6 +296,7 @@ const MainAspectComponent: React.FC<MainAspectComponentOptions> = ({
     containerHeightFraction,
     containerWidthFraction,
     defaultFraction,
+    containerDimensions,
   ]);
 
   const dimensions = {

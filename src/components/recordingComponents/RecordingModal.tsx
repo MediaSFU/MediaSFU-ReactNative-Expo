@@ -332,7 +332,7 @@ const getRecordingDisplayAdvice = (parameters?: RecordingDisplayAdviceParameters
  * import { MyCustomRecordingModal } from './MyCustomRecordingModal';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     recordingModalComponent: {
  *       component: MyCustomRecordingModal,

@@ -222,7 +222,7 @@ export type MenuModalType = (options: MenuModalOptions) => JSX.Element;
  * import { MyCustomMenuModal } from './MyCustomMenuModal';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     menuModalComponent: {
  *       component: MyCustomMenuModal,

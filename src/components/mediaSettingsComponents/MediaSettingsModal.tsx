@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons'; 
+import { FontAwesome5 } from '@expo/vector-icons';
 import RNPickerSelect from 'react-native-picker-select'; // Install using: npm install react-native-picker-select
 import { switchAudio, SwitchAudioOptions, SwitchAudioParameters } from '../../methods/streamMethods/switchAudio';
 import { switchVideo, SwitchVideoOptions, SwitchVideoParameters } from '../../methods/streamMethods/switchVideo';
@@ -320,7 +320,7 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
 
   const renderFieldLabel = (icon: string, label: string) => (
     <View style={styles.labelRow}>
-      <View style={[styles.labelIcon, { backgroundColor: theme.badgeBackgroundColor }]}> 
+      <View style={[styles.labelIcon, { backgroundColor: theme.badgeBackgroundColor }]}>
         <FontAwesome5 name={icon as any} size={13} color={theme.accentColor} />
       </View>
       <Text style={[styles.label, { color: theme.textColor }]}>{label}</Text>
@@ -333,7 +333,7 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
         <>
           <View style={styles.modalHeader}>
             <View style={styles.modalTitleGroup}>
-              <View style={[styles.titleIcon, { backgroundColor: theme.badgeBackgroundColor }]}> 
+              <View style={[styles.titleIcon, { backgroundColor: theme.badgeBackgroundColor }]}>
                 <FontAwesome5 name="sliders-h" size={14} color={theme.accentColor} />
               </View>
               <Text style={[styles.modalTitle, { color: theme.textColor }]}>Media Settings</Text>
@@ -353,7 +353,7 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
       )}
 
       <View style={styles.modalBody}>
-        <View style={[styles.formGroup, styles.deviceCard, { backgroundColor: theme.rowBackgroundColor, borderColor: theme.borderColor }]}> 
+        <View style={[styles.formGroup, styles.deviceCard, { backgroundColor: theme.rowBackgroundColor, borderColor: theme.borderColor }]}>
           {renderFieldLabel('camera', 'Camera')}
           <RNPickerSelect
             onValueChange={(value: string) => handleVideoSwitch(value)}
@@ -370,7 +370,7 @@ const MediaSettingsModal: React.FC<MediaSettingsModalOptions> = ({
 
         <View style={[styles.sep, { backgroundColor: theme.dividerColor }]} />
 
-        <View style={[styles.formGroup, styles.deviceCard, { backgroundColor: theme.rowBackgroundColor, borderColor: theme.borderColor }]}> 
+        <View style={[styles.formGroup, styles.deviceCard, { backgroundColor: theme.rowBackgroundColor, borderColor: theme.borderColor }]}>
           {renderFieldLabel('microphone', 'Microphone')}
           <RNPickerSelect
             onValueChange={(value: string) => handleAudioSwitch(value)}

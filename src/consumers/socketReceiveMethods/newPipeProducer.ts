@@ -1,7 +1,7 @@
-import { Socket } from 'socket.io-client';
-import { signalNewConsumerTransport } from '../../consumers/signalNewConsumerTransport';
+import type { Socket } from 'socket.io-client';
+import type { signalNewConsumerTransport } from '../../consumers/signalNewConsumerTransport';
 import { ReorderStreamsParameters, ReorderStreamsType, SignalNewConsumerTransportParameters, ConnectRecvTransportParameters, ConnectRecvTransportType, ShowAlert } from '../../@types/types';
-import { Device } from 'mediasoup-client/lib/types';
+import type { Device } from 'mediasoup-client/types';
 import { newPipeProducer as sharedNewPipeProducer } from 'mediasfu-shared';
 
 /**
@@ -34,23 +34,23 @@ export interface NewPipeProducerParameters extends ReorderStreamsParameters, Sig
   connectRecvTransport: ConnectRecvTransportType;
   reorderStreams: ReorderStreamsType;
   getUpdatedAllParams: () => NewPipeProducerParameters;
-  
+
   // Translation handling - nsock is the consuming socket for signalNewConsumerTransport
   startConsumingTranslation?: (producerId: string, speakerId: string, language: string, originalProducerId?: string, nsock?: Socket) => Promise<void>;
   translationSubscriptions?: Map<string, { speakerId: string; language: string }>;
-  
+
   // Speaker-controlled translation tracking
   speakerTranslationStates?: Map<string, { speakerId: string; speakerName: string; inputLanguage: string; outputLanguage: string; originalProducerId: string; enabled: boolean }>;
-  
+
   // Listener translation overrides - allows listeners to override speaker-controlled output
   listenerTranslationOverrides?: Map<string, { speakerId: string; wantOriginal: boolean; preferredLanguage?: string }>;
-  
+
   // Listener translation preferences - full preferences including global language preference
   listenerTranslationPreferences?: {
     perSpeaker: Map<string, { speakerId: string; language: string | null; wantOriginal: boolean }>;
     globalLanguage: string | null;
   };
-  
+
   [key: string]: any;
 
 }

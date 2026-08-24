@@ -197,7 +197,7 @@ export type ControlButtonsAltComponentType = (
  * import { MyCustomOverlayButtons } from './MyCustomOverlayButtons';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     controlButtonsAltComponent: {
  *       component: MyCustomOverlayButtons,

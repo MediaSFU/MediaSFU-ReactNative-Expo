@@ -1,7 +1,7 @@
 import { connectRecvTransport as sharedConnectRecvTransport } from 'mediasfu-shared';
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { ConsumerResumeType, ConsumerResumeParameters, Transport as TransportType } from '../@types/types';
-import { Consumer, Device, Transport } from 'mediasoup-client/lib/types';
+import type { Consumer, Device, Transport } from 'mediasoup-client/types';
 interface Params {
   id: string;
   producerId: string;

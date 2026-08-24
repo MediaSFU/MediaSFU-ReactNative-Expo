@@ -1,4 +1,4 @@
-import { Producer } from 'mediasoup-client/lib/types';
+import type { Producer } from 'mediasoup-client/types';
 import {
   ConnectSendTransportScreenType, CreateSendTransportType, DisconnectSendTransportScreenType, SleepType,
   CreateSendTransportParameters, DisconnectSendTransportScreenParameters, ConnectSendTransportScreenParameters,

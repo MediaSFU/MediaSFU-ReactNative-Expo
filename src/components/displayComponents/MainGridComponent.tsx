@@ -145,7 +145,7 @@ export type MainGridComponentType = (options: MainGridComponentOptions) => JSX.E
  * import { MyCustomMainGrid } from './MyCustomMainGrid';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     mainGridComponent: {
  *       component: MyCustomMainGrid,

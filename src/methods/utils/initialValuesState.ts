@@ -1,7 +1,7 @@
-import {
+import type {
   Producer, ProducerOptions, RtpCapabilities, Transport,
   Device,
-} from 'mediasoup-client/lib/types';
+} from 'mediasoup-client/types';
 import { Socket } from 'socket.io-client';
 
 // import { SelfieSegmentation } from '@mediapipe/selfie_segmentation';

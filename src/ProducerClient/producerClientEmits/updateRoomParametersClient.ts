@@ -1,6 +1,6 @@
 /* eslint-disable eqeqeq */
 import { updateRoomParametersClient as sharedUpdateRoomParametersClient } from 'mediasfu-shared';
-import { RtpCapabilities } from 'mediasoup-client/lib/types';
+import type { RtpCapabilities } from 'mediasoup-client/types';
 import {
   QnHDCons,
   sdCons,

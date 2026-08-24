@@ -57,6 +57,7 @@ export interface VideoCardParameters {
 
   // Function to get updated parameters
   getUpdatedAllParams: () => VideoCardParameters;
+  getCurrentParams?: () => any;
   [key: string]: any;
 }
 
@@ -299,7 +300,7 @@ export type VideoCardType = (options: VideoCardOptions) => JSX.Element;
  * import { MyCustomVideoCard } from './MyCustomVideoCard';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     videoCardComponent: {
  *       component: MyCustomVideoCard,
@@ -409,7 +410,7 @@ const VideoCard: React.FC<VideoCardOptions> = ({
    */
   useEffect(() => {
     const interval = setInterval(() => {
-      const updatedParams = parameters.getUpdatedAllParams();
+      const updatedParams = (parameters.getCurrentParams?.() ?? parameters);
       const { audioDecibels, participants } = updatedParams;
 
       const existingEntry = audioDecibels.find(
@@ -452,7 +453,7 @@ const VideoCard: React.FC<VideoCardOptions> = ({
    */
   const toggleAudio = async () => {
     if (!participant?.muted) {
-      const updatedParams = parameters.getUpdatedAllParams();
+      const updatedParams = (parameters.getCurrentParams?.() ?? parameters);
       await controlMedia({
         participantId: participant.id || "",
         participantName: participant.name,
@@ -474,7 +475,7 @@ const VideoCard: React.FC<VideoCardOptions> = ({
    */
   const toggleVideo = async () => {
     if (participant?.videoOn) {
-      const updatedParams = parameters.getUpdatedAllParams();
+      const updatedParams = (parameters.getCurrentParams?.() ?? parameters);
       await controlMedia({
         participantId: participant.id || "",
         participantName: participant.name,

@@ -225,7 +225,7 @@ export type ControlButtonsComponentTouchType = (
  * import { MyCustomTouchButtons } from './MyCustomTouchButtons';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     controlButtonsComponentTouch: {
  *       component: MyCustomTouchButtons,

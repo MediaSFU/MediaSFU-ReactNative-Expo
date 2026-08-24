@@ -1,7 +1,7 @@
 import { streamSuccessVideo as sharedStreamSuccessVideo } from 'mediasfu-shared';
-import {
+import type {
   Device, Producer, ProducerOptions
-} from 'mediasoup-client/lib/types';
+} from 'mediasoup-client/types';
 import { Socket } from 'socket.io-client';
 import {
   ConnectSendTransportVideoParameters, Participant, ShowAlert, CreateSendTransportParameters, ReorderStreamsParameters, SleepType, MediaStream,
@@ -76,12 +76,16 @@ export const streamSuccessVideo: StreamSuccessVideoType = async ({
 }): Promise<void> => {
   await (sharedStreamSuccessVideo as unknown as (options: {
     stream: MediaStream;
-    parameters: StreamSuccessVideoParameters & { removeSingleVideoEncoding?: boolean };
+    parameters: StreamSuccessVideoParameters & {
+      removeSingleVideoEncoding?: boolean;
+      useNativeCodecSelection?: boolean;
+    };
   }) => Promise<void>)({
     stream,
     parameters: {
       ...parameters,
       removeSingleVideoEncoding: true,
+      useNativeCodecSelection: true,
     },
   });
 };

@@ -20,7 +20,7 @@
  * @throws {Error} Throws an error if there is an issue joining the room or setting up the necessary components.
  */
 
-import { Device, RtpCapabilities } from 'mediasoup-client/lib/types';
+import type { Device, RtpCapabilities } from 'mediasoup-client/types';
 import { Socket } from 'socket.io-client';
 import { joinConRoom } from '../../producers/producerEmits/joinConRoom';
 import { ReceiveAllPipedTransportsParameters, ReceiveAllPipedTransportsType, CreateDeviceClientType } from '../../@types/types';

@@ -54,6 +54,7 @@ export interface PaginationParameters extends GeneratePageContentParameters {
 
   // Function to get updated parameters
   getUpdatedAllParams: () => PaginationParameters;
+  getCurrentParams?: () => any;
   [key: string]: any;
 }
 
@@ -230,7 +231,7 @@ export type PaginationType = (options: PaginationOptions) => JSX.Element;
  * import { MyCustomPagination } from './MyCustomPagination';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     paginationComponent: {
  *       component: MyCustomPagination,
@@ -321,7 +322,7 @@ const Pagination: React.FC<PaginationOptions> = ({
    * @param {number} page - The page number that was clicked.
    */
   const onPagePress = async (page: number) => {
-    const updatedParameters = parameters.getUpdatedAllParams?.() ?? parameters;
+    const updatedParameters = (parameters.getCurrentParams?.() ?? parameters) as PaginationParameters;
     const {
       mainRoomsLength,
       memberRoom,

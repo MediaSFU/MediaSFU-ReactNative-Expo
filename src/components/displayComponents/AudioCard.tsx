@@ -62,6 +62,7 @@ export interface AudioCardParameters {
 
   // mediasfu functions
   getUpdatedAllParams(): AudioCardParameters;
+  getCurrentParams?: () => any;
 }
 
 /**
@@ -291,7 +292,7 @@ export type AudioCardType = (options: AudioCardOptions) => JSX.Element;
  * import { MyCustomAudioCard } from './MyCustomAudioCard';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     audioCardComponent: {
  *       component: MyCustomAudioCard,
@@ -390,7 +391,7 @@ const AudioCard: React.FC<AudioCardOptions> = ({
 
   const [showWaveform, setShowWaveform] = useState<boolean>(true);
   const latestParameters = useCallback(
-    () => parameters.getUpdatedAllParams?.() ?? parameters,
+    (): AudioCardParameters => (parameters.getCurrentParams?.() ?? parameters) as AudioCardParameters,
     [parameters],
   );
 

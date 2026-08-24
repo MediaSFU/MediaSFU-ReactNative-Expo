@@ -1,6 +1,6 @@
 import { streamSuccessAudio as sharedStreamSuccessAudio } from 'mediasfu-shared';
-import { Socket } from 'socket.io-client';
-import { ProducerOptions } from 'mediasoup-client/lib/types';
+import type { Socket } from 'socket.io-client';
+import type { ProducerOptions } from 'mediasoup-client/types';
 import {
   Participant, PrepopulateUserMediaParameters, ShowAlert, CreateSendTransportParameters, ConnectSendTransportAudioParameters,
   ResumeSendTransportAudioParameters, PrepopulateUserMediaType, CreateSendTransportType, ConnectSendTransportAudioType,

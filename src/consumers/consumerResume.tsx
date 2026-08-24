@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import MiniAudioPlayer from '../methods/utils/MiniAudioPlayer/MiniAudioPlayer';
 import MiniAudio from '../components/displayComponents/MiniAudio';
 import VideoCard from '../components/displayComponents/VideoCard';
@@ -20,7 +20,7 @@ import {
 import {
   RTCView, createMediaStream,
 } from '../methods/utils/webrtc/webrtc';
-import { Consumer } from 'mediasoup-client/lib/types';
+import type { Consumer } from 'mediasoup-client/types';
 
 
 export interface ConsumerResumeParameters

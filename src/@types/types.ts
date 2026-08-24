@@ -5,8 +5,8 @@ import type {
   ComponentType,
   ReactNode,
 } from 'react';
-import { Socket } from 'socket.io-client';
-import { Consumer, DtlsParameters, IceCandidate, IceParameters, RtpCapabilities } from 'mediasoup-client/lib/types';
+import type { Socket } from 'socket.io-client';
+import type { Consumer, DtlsParameters, IceCandidate, IceParameters, RtpCapabilities } from 'mediasoup-client/types';
 import {
   mediaDevices,
   MediaStream as NativeMediaStream,
@@ -515,9 +515,9 @@ export interface ComponentSizes {
   otherHeight: number;
 }
 
-export interface AudioDecibels { 
-  name: string; 
-  averageLoudness: number 
+export interface AudioDecibels {
+  name: string;
+  averageLoudness: number
 }
 
 /** Position of the alert on screen */
@@ -654,7 +654,7 @@ export interface WhiteboardUser {
 
 export interface ShapePayload {
   type: string;
-  x1: number; 
+  x1: number;
   y1: number;
   x2: number;
   y2: number;

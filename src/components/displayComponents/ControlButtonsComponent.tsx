@@ -224,7 +224,7 @@ export type ControlButtonsComponentType = (
  * import { MyCustomControlButtons } from './MyCustomControlButtons';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     controlButtonsComponent: {
  *       component: MyCustomControlButtons,

@@ -1,6 +1,6 @@
 import { signalNewConsumerTransport as sharedSignalNewConsumerTransport } from 'mediasfu-shared';
-import { Socket } from 'socket.io-client';
-import { Device, DtlsParameters } from 'mediasoup-client/lib/types';
+import type { Socket } from 'socket.io-client';
+import type { Device, DtlsParameters } from 'mediasoup-client/types';
 import {
   ReorderStreamsParameters, ReorderStreamsType, ConnectRecvTransportType,
   ConnectRecvTransportParameters, CreateWebRTCTransportResponse,

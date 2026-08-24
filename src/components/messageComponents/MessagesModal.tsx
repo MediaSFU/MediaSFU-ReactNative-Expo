@@ -301,7 +301,7 @@ export type MessagesModalType = (options: MessagesModalOptions) => JSX.Element;
  * import { MyCustomMessagesModal } from './MyCustomMessagesModal';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     messagesModalComponent: {
  *       component: MyCustomMessagesModal,

@@ -1,5 +1,5 @@
-import { Socket } from 'socket.io-client';
-import { RtpCapabilities } from 'mediasoup-client/lib/RtpParameters';
+import type { Socket } from 'socket.io-client';
+import type { RtpCapabilities } from 'mediasoup-client/types';
 import { joinConRoom as sharedJoinConRoom } from 'mediasfu-shared';
 
 export interface JoinConRoomOptions {

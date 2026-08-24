@@ -191,7 +191,7 @@ export type FlexibleVideoType = (options: FlexibleVideoOptions) => JSX.Element
  * import { MyCustomVideoGrid } from './MyCustomVideoGrid';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     flexibleVideoComponent: {
  *       component: MyCustomVideoGrid,

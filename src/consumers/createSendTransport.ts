@@ -1,5 +1,5 @@
 import { createSendTransport as sharedCreateSendTransport } from 'mediasfu-shared';
-import { Device, Transport, DtlsParameters } from 'mediasoup-client/lib/types';
+import type { Device, Transport, DtlsParameters } from 'mediasoup-client/types';
 import { Socket } from 'socket.io-client';
 import {
   ConnectSendTransportParameters,
@@ -24,6 +24,7 @@ export interface CreateSendTransportParameters extends ConnectSendTransportParam
   // mediasfu functions
   connectSendTransport: ConnectSendTransportType;
   getUpdatedAllParams: () => CreateSendTransportParameters;
+  getCurrentParams?: () => any;
   [key: string]: any;
 }
 

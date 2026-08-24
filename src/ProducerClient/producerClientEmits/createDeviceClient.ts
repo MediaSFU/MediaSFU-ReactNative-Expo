@@ -1,4 +1,4 @@
-import { RtpCapabilities, Device } from 'mediasoup-client/lib/types';
+import type { RtpCapabilities, Device } from 'mediasoup-client/types';
 
 export interface CreateDeviceClientOptions {
   rtpCapabilities: RtpCapabilities | null;

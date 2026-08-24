@@ -128,7 +128,7 @@ export type AlertComponentType = (options: AlertComponentOptions) => JSX.Element
  * import { MyCustomAlert } from './MyCustomAlert';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     alertComponent: {
  *       component: MyCustomAlert,

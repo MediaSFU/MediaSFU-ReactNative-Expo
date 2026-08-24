@@ -17,6 +17,8 @@ import MediasfuChat from './src/components/mediasfuComponents/MediasfuChat';
 
 // Pre-Join Page component (if you choose to use it)
 import PreJoinPage from './src/components/miscComponents/PreJoinPage';
+import type { PreJoinPageOptions } from './src/components/miscComponents/PreJoinPage';
+import type { WelcomePageOptions } from './src/components/miscComponents/WelcomePage';
 
 // Utilities for seed data (deprecated - do not use in new code)
 import { generateRandomParticipants } from './src/methods/utils/generateRandomParticipants';
@@ -29,6 +31,10 @@ import { getDemoCloudConfig } from './demoCloudConfig';
 import { createRoomOnMediaSFU } from './src/methods/utils/createRoomOnMediaSFU';
 import { joinRoomOnMediaSFU } from './src/methods/utils/joinRoomOnMediaSFU';
 import { CreateMediaSFURoomOptions, JoinMediaSFURoomOptions } from './src/@types/types';
+
+const renderPreJoinPage = (
+  options: PreJoinPageOptions | WelcomePageOptions,
+) => <PreJoinPage {...options} />;
 
 /**
  * App Component
@@ -222,7 +228,7 @@ const App = () => {
     <MediasfuChat
       // This pre-join page can be displayed if `returnUI` is true.
       // If `returnUI` is false, `noUIPreJoinOptions` is used as a substitute.
-      PrejoinPage={PreJoinPage}
+      PrejoinPage={renderPreJoinPage}
       credentials={credentials}
       localLink={localLink}
       connectMediaSFU={connectMediaSFU}

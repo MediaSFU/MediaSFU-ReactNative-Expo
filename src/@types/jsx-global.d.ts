@@ -2,7 +2,6 @@ import type React from 'react';
 
 declare global {
   namespace JSX {
-    type Element = React.JSX.Element;
     interface ElementClass extends React.Component<any> {}
     interface ElementAttributesProperty {
       props: {};

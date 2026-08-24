@@ -133,7 +133,7 @@ export type SubAspectComponentType = (options: SubAspectComponentOptions) => JSX
  * import { MyCustomSubAspect } from './MyCustomSubAspect';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     subAspectComponent: {
  *       component: MyCustomSubAspect,

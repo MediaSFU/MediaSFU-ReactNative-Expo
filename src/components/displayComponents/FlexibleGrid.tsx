@@ -166,7 +166,7 @@ export type FlexibleGridType = (options: FlexibleGridOptions) => JSX.Element;
  * import { MyCustomGrid } from './MyCustomGrid';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     flexibleGridComponent: {
  *       component: MyCustomGrid,

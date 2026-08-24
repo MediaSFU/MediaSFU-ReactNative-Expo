@@ -7,8 +7,8 @@ import {
   StyleProp,
   ViewStyle,
   Dimensions,
-  ScaledSize,
 } from 'react-native';
+import { calculateEmbeddedLayout } from '../../utils/embeddedLayout';
 
 /**
  * Calculated dimensions for main and secondary components in a split layout.
@@ -64,6 +64,8 @@ export interface MainScreenComponentOptions {
   doStack: boolean;
   containerWidthFraction?: number;
   containerHeightFraction?: number;
+  /** Measured host boundary. When supplied, viewport Dimensions are ignored. */
+  containerDimensions?: { width: number; height: number };
   updateComponentSizes: (sizes: ComponentSizes) => void;
   defaultFraction?: number;
   showControls: boolean;
@@ -210,7 +212,7 @@ export type MainScreenComponentType = (
  * import { MyCustomSplitScreen } from './MyCustomSplitScreen';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     mainScreenComponent: {
  *       component: MyCustomSplitScreen,
@@ -262,6 +264,7 @@ const MainScreenComponent: React.FC<MainScreenComponentOptions> = ({
   doStack,
   containerWidthFraction = 1,
   containerHeightFraction = 1,
+  containerDimensions,
   updateComponentSizes,
   defaultFraction = 0.94,
   showControls,
@@ -270,13 +273,16 @@ const MainScreenComponent: React.FC<MainScreenComponentOptions> = ({
   renderContent,
   renderContainer,
 }) => {
-  const { width: windowWidth, height: windowHeight }: ScaledSize = Dimensions.get('window');
+  const { width: windowWidth, height: windowHeight } =
+    containerDimensions ?? Dimensions.get('window');
 
   // Calculate parent dimensions based on fractions and control visibility
-  const parentWidth = containerWidthFraction * windowWidth;
-  const parentHeight = showControls
-    ? containerHeightFraction * windowHeight * defaultFraction
-    : containerHeightFraction * windowHeight;
+  const { width: parentWidth, height: parentHeight } = calculateEmbeddedLayout({
+    boundary: { width: windowWidth, height: windowHeight },
+    widthFraction: containerWidthFraction,
+    heightFraction: containerHeightFraction,
+    contentHeightFraction: showControls ? defaultFraction : 1,
+  });
 
   // Determine if the screen is wide
   let isWideScreen = parentWidth >= 768;

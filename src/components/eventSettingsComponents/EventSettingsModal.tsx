@@ -204,7 +204,7 @@ export type EventSettingsModalType = (options: EventSettingsModalOptions) => JSX
  * import { MyCustomEventSettings } from './MyCustomEventSettings';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     eventSettingsModal: {
  *       component: MyCustomEventSettings,

@@ -1,5 +1,5 @@
 import { connectSendTransportScreen as sharedConnectSendTransportScreen } from 'mediasfu-shared';
-import { Transport, Producer, Device, ProducerOptions } from 'mediasoup-client/lib/types';
+import type { Transport, Producer, Device, ProducerOptions } from 'mediasoup-client/types';
 import { MediaStream } from '../@types/types';
 export interface ConnectSendTransportScreenParameters {
   screenProducer: Producer | null;

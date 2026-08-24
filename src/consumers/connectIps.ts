@@ -1,4 +1,4 @@
-import { Device } from 'mediasoup-client/lib/types';
+import type { Device } from 'mediasoup-client/types';
 import { connectIps as sharedConnectIps } from 'mediasfu-shared';
 import {
   ReorderStreamsParameters, ReorderStreamsType, NewPipeProducerParameters, NewPipeProducerType, ProducerClosedType,

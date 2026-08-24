@@ -1,9 +1,9 @@
 import { streamSuccessAudioSwitch as sharedStreamSuccessAudioSwitch } from 'mediasfu-shared';
-import { Producer, ProducerCodecOptions, ProducerOptions } from 'mediasoup-client/lib/types';
+import type { Producer, ProducerCodecOptions, ProducerOptions } from 'mediasoup-client/types';
 import { Socket } from 'socket.io-client';
 import {
   PrepopulateUserMediaParameters, PrepopulateUserMediaType, CreateSendTransportParameters, CreateSendTransportType, ConnectSendTransportAudioParameters, ConnectSendTransportAudioType,
-  SleepType, MediaStream as MediaStreamType, MediaStream,
+  SleepType, MediaStream,
 } from '../@types/types';
 
 export interface StreamSuccessAudioSwitchParameters extends PrepopulateUserMediaParameters, CreateSendTransportParameters, ConnectSendTransportAudioParameters {
@@ -47,7 +47,7 @@ export interface StreamSuccessAudioSwitchParameters extends PrepopulateUserMedia
 }
 
 export interface StreamSuccessAudioSwitchOptions {
-  stream: MediaStreamType;
+  stream: MediaStream;
   parameters: StreamSuccessAudioSwitchParameters;
 }
 

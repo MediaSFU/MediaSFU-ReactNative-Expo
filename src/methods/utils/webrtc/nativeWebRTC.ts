@@ -7,8 +7,9 @@ import {
 type NativeWebRTCExports = typeof import('react-native-webrtc');
 
 /**
- * Check native registration before evaluating WebRTC, which creates a
- * NativeEventEmitter as soon as its module is loaded.
+ * Check the host application's native registration before loading WebRTC.
+ * react-native-webrtc creates its NativeEventEmitter during module evaluation,
+ * so a missing native module must be reported before calling require().
  */
 export function loadNativeWebRTC(): NativeWebRTCExports {
   const nativeModules = NativeModules as typeof NativeModules & {

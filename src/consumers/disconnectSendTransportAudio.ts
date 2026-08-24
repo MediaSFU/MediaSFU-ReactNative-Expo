@@ -1,7 +1,7 @@
 import { disconnectSendTransportAudio as sharedDisconnectSendTransportAudio } from 'mediasfu-shared';
-import { Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { PrepopulateUserMediaType, PrepopulateUserMediaParameters } from '../@types/types';
-import { Producer } from 'mediasoup-client/lib/types';
+import type { Producer } from 'mediasoup-client/types';
 
 export interface DisconnectSendTransportAudioParameters extends PrepopulateUserMediaParameters {
   audioProducer: Producer | null;

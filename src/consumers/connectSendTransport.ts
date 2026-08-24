@@ -1,5 +1,5 @@
 import { connectSendTransport as sharedConnectSendTransport } from 'mediasfu-shared';
-import { ProducerOptions } from 'mediasoup-client/lib/types';
+import type { ProducerOptions } from 'mediasoup-client/types';
 import {
   ConnectSendTransportAudioType, ConnectSendTransportVideoType, ConnectSendTransportScreenType, ConnectSendTransportAudioParameters, ConnectSendTransportVideoParameters, 
   ConnectSendTransportScreenParameters, MediaStream

@@ -10,7 +10,7 @@ import {
   Participant,
   MediaStream,
 } from '../../../@types/types';
-import { Consumer } from 'mediasoup-client/lib/types';
+import type { Consumer } from 'mediasoup-client/types';
 
 interface SpeakerTranslationState {
   enabled?: boolean;

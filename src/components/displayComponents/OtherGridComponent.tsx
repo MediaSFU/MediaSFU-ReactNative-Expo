@@ -151,7 +151,7 @@ export type OtherGridComponentType = React.FC<OtherGridComponentOptions>;
  * import { MyCustomOtherGrid } from './MyCustomOtherGrid';
  * 
  * const sessionConfig = {
- *   credentials: { apiKey: 'your-api-key' },
+ *   // The active room supplies its live session parameters.
  *   uiOverrides: {
  *     otherGridComponent: {
  *       component: MyCustomOtherGrid,

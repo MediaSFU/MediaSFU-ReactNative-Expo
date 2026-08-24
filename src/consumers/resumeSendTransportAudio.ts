@@ -1,5 +1,5 @@
 import { resumeSendTransportAudio as sharedResumeSendTransportAudio } from 'mediasfu-shared';
-import { Producer } from 'mediasoup-client/lib/types';
+import type { Producer } from 'mediasoup-client/types';
 import { PrepopulateUserMediaParameters, PrepopulateUserMediaType } from '../@types/types';
 
 export interface ResumeSendTransportAudioParameters extends PrepopulateUserMediaParameters {

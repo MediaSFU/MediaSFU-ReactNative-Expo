@@ -1,4 +1,4 @@
-import { RtpCapabilities } from 'mediasoup-client/lib/types';
+import type { RtpCapabilities } from 'mediasoup-client/types';
 import {
   ConnectIpsType, ConnectIpsParameters, AltDomains, ConsumeSocket,
 } from '../../@types/types';

@@ -371,7 +371,7 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
   }, [directMessageDetails, focusedInput, startDirectMessage]);
 
   return (
-    <View style={[styles.container, { backgroundColor }]}> 
+    <View style={[styles.container, { backgroundColor }]}>
       <ScrollView style={styles.messagesContainer}>
       {messages.map((message, index) => (
         <View key={index} style={styles.messageWrapper}>
@@ -385,11 +385,11 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
           >
             <View style={styles.messageHeader}>
               {message.sender === username && !message.group && getDirectReceiverLabel(message.receivers) && (
-                <Text style={[styles.receiverText, { color: theme.textColor }]}> 
+                <Text style={[styles.receiverText, { color: theme.textColor }]}>
                   To: {getDirectReceiverLabel(message.receivers)}
                 </Text>
               )}
-              <Text style={[styles.senderText, { color: theme.textColor }]}> 
+              <Text style={[styles.senderText, { color: theme.textColor }]}>
                 {message.sender === username ? '' : message.sender}
               </Text>
               <Text style={[styles.timestampText, { color: theme.mutedTextColor }]}>{message.timestamp}</Text>
@@ -418,7 +418,7 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
 
       {/* Reply Info */}
       {replyInfo && (
-        <View style={[styles.replyInfoContainer, { backgroundColor: theme.rowBackgroundColor }]}> 
+        <View style={[styles.replyInfoContainer, { backgroundColor: theme.rowBackgroundColor }]}>
           <Text style={[styles.replyText, { color: theme.textColor }]}>{replyInfo.text}</Text>
           <Text style={[styles.replyUsername, { color: theme.dangerColor }]}>{replyInfo.username}</Text>
         </View>
@@ -426,7 +426,7 @@ const MessagePanel: React.FC<MessagePanelOptions> = ({
       </ScrollView>
 
       {/* Input Area */}
-      <View style={[styles.inputContainer, { borderColor: theme.dividerColor }]}> 
+      <View style={[styles.inputContainer, { borderColor: theme.dividerColor }]}>
         <TextInput
           ref={
             focusedInput && startDirectMessage && directMessageDetails

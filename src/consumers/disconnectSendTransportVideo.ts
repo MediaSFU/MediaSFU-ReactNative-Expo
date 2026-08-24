@@ -1,5 +1,5 @@
 import { disconnectSendTransportVideo as sharedDisconnectSendTransportVideo } from 'mediasfu-shared';
-import { Producer } from 'mediasoup-client/lib/types';
+import type { Producer } from 'mediasoup-client/types';
 import { Socket } from 'socket.io-client';
 import { ReorderStreamsType, ReorderStreamsParameters } from '../@types/types';
 
