@@ -1,6 +1,6 @@
 {
   "name": "mediasfu-reactnative-expo",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "private": false,
   "main": "dist/main.js",
   "module": "dist/main.js",
@@ -149,7 +149,7 @@
     "expo-font": "~57.0.1",
     "expo-linking": "~57.0.4",
     "expo-splash-screen": ">=57.0.0 <58.0.0",
-    "mediasfu-shared": "^1.1.0",
+    "mediasfu-shared": "^1.2.0",
     "react-native-screens": "~4.26.0"
   },
   "devDependencies": {

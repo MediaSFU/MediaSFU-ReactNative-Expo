@@ -44,3 +44,4 @@ __MACOSX/
 docs/
 refReact/
 DOCSTRING_UPDATES.md
+.local-validation/

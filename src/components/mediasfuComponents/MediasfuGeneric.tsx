@@ -357,6 +357,11 @@ export type MediasfuGenericOptions = {
    */
   onMediaChanged?: (info: { reasons: string[]; parameters: any }) => void;
   returnUI?: boolean;
+  /**
+   * Keep the standard native UI routing active while an engine-owned renderer
+   * is mounted through ModernMediasfuGenericHead.
+   */
+  renderUIExternally?: boolean;
   noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
   autoProceedPreJoin?: boolean;
   joinMediaSFURoom?: JoinRoomOnMediaSFUType;
@@ -448,6 +453,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   updateSourceParameters,
   onMediaChanged,
   returnUI = true,
+  renderUIExternally = false,
   noUIPreJoinOptions,
   autoProceedPreJoin,
   joinMediaSFURoom,
@@ -517,7 +523,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   const shouldAttachSidebar =
     (Platform.OS === "web" && windowWidth >= 768)
     || (Platform.OS !== "web" && windowWidth >= 1200 && windowWidth > windowHeight);
-  const shouldUseSidebar = true;
+  // Headless consumers own their surface; do not route into a hidden sidebar.
+  const shouldUseSidebar = returnUI !== false || renderUIExternally;
   const sidebarPanelWidth = React.useMemo(
     () =>
       shouldAttachSidebar
@@ -3379,6 +3386,28 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     }
     pendingSourceParameters.current = null;
   }, []);
+
+  // The externally rendered standard tree is a sibling of this engine. After
+  // an engine-owned modal/sidebar transition commits, publish a fresh render
+  // closure so that sibling can paint the same lifecycle state.
+  useEffect(() => {
+    if (returnUI || sourceParameters === null || !updateSourceParameters) return;
+    publishSourceParameters({ ...getAllParams(), ...mediaSFUFunctions() });
+    // Only UI-lifecycle transitions publish here. Depending on generated bag
+    // identities would create a render/publication feedback loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnUI, renderUIExternally, activeSidebarContent,
+    isMenuModalVisible, isRecordingModalVisible, isSettingsModalVisible,
+    isRequestsModalVisible, isWaitingModalVisible, isCoHostModalVisible,
+    isMediaSettingsModalVisible, isDisplaySettingsModalVisible,
+    isParticipantsModalVisible, isMessagesModalVisible,
+    isPanelistsModalVisible, isPermissionsModalVisible,
+    isConfirmExitModalVisible, isConfirmHereModalVisible,
+    isLoadingModalVisible, isShareEventModalVisible, isPollModalVisible,
+    isBackgroundModalVisible, isTranslationSettingsModalVisible,
+    isBreakoutRoomsModalVisible, isWhiteboardModalVisible,
+    isConfigureWhiteboardModalVisible, isScreenboardModalVisible]);
+
   const getUpdatedAllParams = () => {
     // Get all the params for the room as well as the update functions for them and Media SFU functions and return them
     try {
@@ -3401,10 +3430,26 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     };
   };
 
+  // A retained pure reader must cross publication boundaries without freezing
+  // React state from the render that created the published parameter bag.
+  const currentParamsReaderRef = useRef<() => any>(() => ({}));
+  currentParamsReaderRef.current = () => ({
+    ...getAllParams(),
+    ...mediaSFUFunctions(),
+  });
+  const getCurrentParams = React.useCallback(
+    () => currentParamsReaderRef.current(),
+    [],
+  );
+
   const mediaSFUFunctions = () => {
     // Media SFU functions
 
     return {
+      // Renderer-only entry point consumed by ModernMediasfuGenericHead. It
+      // closes over this engine and therefore cannot create another socket,
+      // transport, media producer, or state store.
+      renderModernMediasfuUI: () => renderModernMediasfuUI(true),
       updateMiniCardsGrid,
       mixStreams,
       dispStreams,
@@ -3484,14 +3529,6 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     };
   };
 
-  const getCurrentParams = () => {
-    // Same value as getUpdatedAllParams(), without the republish side effect.
-    // Safe to call from a render, an event handler, or a polling loop.
-    return {
-      ...getAllParams(),
-      ...mediaSFUFunctions(),
-    };
-  };
   const getAllParams = () => {
     //get all the params for the room as well as the update functions for them and return them
 
@@ -7702,7 +7739,10 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
     (whiteboardStarted.current && !whiteboardEnded.current);
   const effectiveMainHeightWidth = screenFlowActive ? 84 : mainHeightWidth;
 
-  return (
+  function renderModernMediasfuUI(forceVisible = false): React.ReactElement {
+    const renderSurface = returnUI || forceVisible;
+
+    return (
     <SafeAreaProvider
       onLayout={handleContainerLayout}
       style={{
@@ -7738,7 +7778,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
           credentials={credentials}
           localLink={localLink}
           connectMediaSFU={connectMediaSFU}
-          returnUI={returnUI}
+          returnUI={renderSurface}
           noUIPreJoinOptions={noUIPreJoinOptions}
           autoProceedPreJoin={autoProceedPreJoin}
           joinMediaSFURoom={joinMediaSFURoom}
@@ -7746,7 +7786,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         />
       ) : customComponent ? (
         React.createElement(customComponent, { parameters: { ...getAllParams(), ...mediaSFUFunctions() } })
-      ) : returnUI ? (
+      ) : renderSurface ? (
         <MainContainer
           style={containerStyle}
           containerDimensions={{ width: windowWidth, height: windowHeight }}
@@ -8006,7 +8046,7 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         <></>
       )}
 
-      {returnUI && !customComponent && (
+      {renderSurface && !customComponent && (
         <>
           <MenuModalComponent
             backgroundColor={themedMenuColor}
@@ -8336,7 +8376,10 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         </>
       )}
     </SafeAreaProvider>
-  );
+    );
+  }
+
+  return renderModernMediasfuUI(false);
 };
 
 const nativeSidebarStyles = StyleSheet.create({
