@@ -45,3 +45,4 @@ docs/
 refReact/
 DOCSTRING_UPDATES.md
 .local-validation/
+.local-build/

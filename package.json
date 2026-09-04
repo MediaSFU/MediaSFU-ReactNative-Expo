@@ -1,6 +1,6 @@
 {
   "name": "mediasfu-reactnative-expo",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "private": false,
   "main": "dist/main.js",
   "module": "dist/main.js",
@@ -23,19 +23,33 @@
     "plugins/"
   ],
   "types": "dist/types/main.d.ts",
+  "exports": {
+    ".": {
+      "react-native": {
+        "types": "./dist/types/main.d.ts",
+        "default": "./dist/main.js"
+      },
+      "types": "./dist/types/main.d.ts",
+      "import": "./dist/main.js",
+      "default": "./dist/main.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "start": "expo start ./example --dev-client",
     "android": "expo run:android ./example",
     "ios": "expo run:ios ./example",
     "web": "expo start ./example --web",
     "app:prebuild": "expo prebuild ./example",
-    "build": "npm run build:clean && npm run build:ts",
+    "build": "npm run build:clean && npm run build:ts && npm run build:metadata",
     "build:clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build:ts": "tsc --project tsconfig.build.json",
+    "build:metadata": "node ./scripts/write-dist-package-metadata.mjs",
     "check:package-declarations": "node ./scripts/check-package-declarations.mjs",
+    "check:package-entry": "node ./scripts/check-package-entry.mjs",
     "build:bundle": "rollup -c",
     "build:copy": "cp -r src/assets dist/assets",
-    "buildnpm": "npm run build:clean && npm run build:ts",
+    "buildnpm": "npm run build:clean && npm run build:ts && npm run build:metadata",
     "lint": "eslint src/**/*.ts src/**/*.tsx",
     "lint:fix": "eslint src/**/*.ts src/**/*.tsx --fix",
     "build-docs": "typedoc",
