@@ -399,6 +399,19 @@ backend workflow, not a requirement for the in-room Expo SDK. Connect that
 workflow to the MediaSFU recording service your product uses when you want a
 recording library in your app.
 
+## Virtual backgrounds and breakout rooms in a custom Expo UI
+
+Keep `ModernBackgroundModal` mounted with the room and drive it from the newest
+parameter publication. Render self-view from
+`useMediasfuHeadless().localVideo`, which prefers the active virtual stream over
+the raw camera. This keeps the device preview consistent with the media sent to
+other participants.
+
+For breakout rooms, reuse `ModernBreakoutRoomsModal` with the current room bag,
+save assignments before Start, and render validation failures in your screen.
+Do not model a breakout by hiding cards: the SDK room transition updates
+membership and pauses/resumes consumers for the participant's active room.
+
 ## Release checklist
 
 1. Confirm that create and join authority remains in your backend.
@@ -416,6 +429,18 @@ recording library in your app.
 - Native mediasoup/WebRTC transport packages are implementation dependencies,
   not separate MediaSFU SDK choices.
 
+## Troubleshooting
+
+| What you see | Likely cause | What to do |
+|---|---|---|
+| "Unable to connect. Check your credentials and try again." | The room service rejected the credentials, or your create/join backend returned an error. | Check the API username and key on your server, and make sure your create/join adapters pass the room service's response through. For MediaSFU Open, use an address the device can reach — on a physical phone, `localhost` is the phone itself. |
+| The camera or microphone never starts | The config plugin is missing, or access was denied. | Add the plugin as shown in [Configure camera and microphone access](#configure-camera-and-microphone-access), rebuild the app, then grant access in the device settings. |
+| "You must turn on your video before you can start recording" | The recording is set to capture video while your camera is off. | Turn the camera on first, or switch the recording to audio only. The same applies to audio recordings and the microphone. |
+| "You can only re-configure recording after pausing it" | Recording settings are locked while a recording is running. | Pause the recording, change the settings, then resume. |
+| "You cannot turn off your camera while recording video…" | Turning the camera off would interrupt the recording. | Pause or stop the recording first. |
+| A message ending in "Access denied by host." | The host has restricted that action for participants. | Ask the host to change the participant's permissions. |
+| "Screen share is not allowed when whiteboard is active" | Screen sharing and the whiteboard cannot run at the same time. | Close the whiteboard, then start screen sharing. |
+
 ## Support
 
 - SDK guides and generated API references: <https://mediasfu.com/docs/>
@@ -426,23 +451,14 @@ recording library in your app.
 - Developer Console and room API guide: <https://mediasfu.com/documentation>
 - MediaSFU Open — deploy your own media server: <https://github.com/MediaSFU/MediaSFUOpen>
 - Issues: <https://github.com/MediaSFU/MediaSFU-ReactNative-Expo/issues>
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 - License: MIT
 
 ## Working examples
 
-## Virtual backgrounds and breakout rooms in a custom Expo UI
-
-Keep `ModernBackgroundModal` mounted with the room and drive it from the newest
-parameter publication. Render self-view from
-`useMediasfuHeadless().localVideo`, which prefers the active virtual stream over
-the raw camera. This keeps the device preview consistent with the media sent to
-other participants.
-
-For breakout rooms, reuse `ModernBreakoutRoomsModal` with the current room bag,
-save assignments before Start, and render validation failures in your screen.
-Do not model a breakout by hiding cards: the SDK room transition updates
-membership and pauses/resumes consumers for the participant's active room.
-
+- [Familiar Calls](https://github.com/MediaSFU/mediasfu-familiar-calls) — chat-style audio and video calling with incoming-call accept/decline; includes an Expo app and one shared backend.
+- [Live Auction](https://github.com/MediaSFU/mediasfu-live-auction) — host and bidder views, timed lots, and live media; includes an Expo app.
+- [Watch Together](https://github.com/MediaSFU/mediasfu-watch-together) — a watch party with a realtime conversation floor and HLS audience; includes an Expo app.
 - [MediaSFU QuickStart Apps](https://github.com/MediaSFU/MediaSFU-QuickStart-Apps) — runnable Cloud, MediaSFU Open, custom-prejoin, backend-proxy, and custom-UI examples across SDKs.
 - [SpacesTek Initial](https://github.com/MediaSFU/SpacesTekInitial) → [Final](https://github.com/MediaSFU/SpacesTekFinal) → [Advanced](https://github.com/MediaSFU/SpacesTekAdvanced) — a staged path from a starter room to a product-owned Spaces-style experience.
 - [MediaSFU Agents](https://github.com/MediaSFU/Agents) — multimodal voice/vision agent starters across supported frameworks.
