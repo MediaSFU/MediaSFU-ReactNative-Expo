@@ -7,6 +7,7 @@ node_modules/
 .expo/
 dist/
 web-build/
+.local-build/
 
 # Native
 /android
@@ -45,4 +46,3 @@ docs/
 refReact/
 DOCSTRING_UPDATES.md
 .local-validation/
-.local-build/
