@@ -362,6 +362,10 @@ export type MediasfuGenericOptions = {
    * is mounted through ModernMediasfuGenericHead.
    */
   renderUIExternally?: boolean;
+  /** Disable camera simulcast even in larger rooms. */
+  simulcastOff?: boolean;
+  /** Capacity hint for servers that omit capacity in their join response. */
+  roomCapacity?: number;
   noUIPreJoinOptions?: CreateMediaSFURoomOptions | JoinMediaSFURoomOptions;
   autoProceedPreJoin?: boolean;
   joinMediaSFURoom?: JoinRoomOnMediaSFUType;
@@ -454,7 +458,10 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
   onMediaChanged,
   returnUI = true,
   renderUIExternally = false,
+  simulcastOff = false,
+  roomCapacity,
   noUIPreJoinOptions,
+
   autoProceedPreJoin,
   joinMediaSFURoom,
   createMediaSFURoom,
@@ -6619,6 +6626,8 @@ const MediasfuGeneric: React.FC<MediasfuGenericOptions> = ({
         }
         try {
           updateRoomParametersClient({
+            simulcastOff,
+            roomCapacity: roomCapacity ?? (noUIPreJoinOptions && 'capacity' in noUIPreJoinOptions ? noUIPreJoinOptions.capacity : undefined),
             parameters: {
               ...getAllParams(),
               ...mediaSFUFunctions(),

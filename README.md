@@ -460,3 +460,15 @@ membership and pauses/resumes consumers for the participant's active room.
 - [SpacesTek Initial](https://github.com/MediaSFU/SpacesTekInitial) → [Final](https://github.com/MediaSFU/SpacesTekFinal) → [Advanced](https://github.com/MediaSFU/SpacesTekAdvanced) — a staged path from a starter room to a product-owned Spaces-style experience.
 - [MediaSFU Agents](https://github.com/MediaSFU/Agents) — multimodal voice/vision agent starters across supported frameworks.
 - [MediaSFU VOIP](https://github.com/MediaSFU/VOIP) — telephony, dialer, room-lifecycle, and agent/human handoff reference clients.
+
+## Camera simulcast and recording bitrate
+
+Camera simulcast is disabled automatically for `chat` rooms and rooms with a configured capacity of exactly two. This uses the room's configured capacity, not the number of participants currently connected. Larger rooms retain simulcast unless `simulcastOff: true` is supplied.
+
+Single-encoding mode uses the full-resolution camera layer and preserves its bitrate and frame-rate limits. Screen-sharing and audio encodings are unchanged. Enabling recording no longer adds a 20% camera bitrate or initial-bitrate uplift.
+
+The server's join-response `capacity` takes precedence. For servers that omit it, supply `roomCapacity: 2` as a client-side hint. Programmatic room creation also uses `noUIPreJoinOptions.capacity` as the hint. This option does not change server-side capacity or authorization.
+
+```tsx
+<MediasfuGeneric simulcastOff={true} roomCapacity={2} />
+```
