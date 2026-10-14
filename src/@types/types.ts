@@ -169,6 +169,13 @@ export interface MediasfuUICustomOverrides {
   customMenuButtonsRenderer?: CustomComponentOverride<ControlButtonsAltComponentProps>;
   consumerResume?: CustomFunctionOverride<ConsumerResumeType>;
   addVideosGrid?: CustomFunctionOverride<AddVideosGridType>;
+  /** Replace or wrap the whole screen-share start (`implementation` or `wrap`). */
+  startShareScreen?: CustomFunctionOverride<import('../consumers/startShareScreen').StartShareScreenType>;
+  /**
+   * Your own screen capture (e.g. a native MediaProjection or ReplayKit module) returning a MediaStream. The SDK ships
+   * none for Android and iOS; with this set, the share button works there and the stream is published as a screen share.
+   */
+  screenCapture?: import('../consumers/screenCapture').ScreenCaptureOverride;
 }
 
 // //consumers/socketReceiveMethods
@@ -446,6 +453,8 @@ export interface Participant {
     audioID: string;
     videoID: string;
     ScreenID?: string;
+    /** Producer id of the audio shared with this participant's screen share ("" or absent when none). */
+    ScreenAudioID?: string;
     ScreenOn?: boolean;
     islevel?: string;
     isAdmin?: boolean;
@@ -828,6 +837,7 @@ export interface ResponseJoinRoom {
   noAdmin?: boolean; // Indicates whether the room has no host in it.
   supportFlexRoom?: boolean; // Indicates whether the room supports flex mode (2x capacity, 25% can produce).
   supportMaxRoom?: boolean; // Indicates whether the room supports max mode (4x capacity, 5% can produce).
+  supportsScreenAudio?: boolean; // The media server accepts audio shared with a screen share ("screen-audio" producers).
 }
 
 export interface AllMembersData {

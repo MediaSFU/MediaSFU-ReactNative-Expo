@@ -16,6 +16,11 @@ import { CameraView, Camera } from 'expo-camera';
 import { FontAwesome5 } from '@expo/vector-icons';
 import Orientation from '../../methods/utils/orientation/orientation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  describeMediaSocketError,
+  isMediaSocketConnectError,
+  isNetworkOnlyMediaSocketError,
+} from '../../sockets/mediaSocketErrors';
 import { Socket } from 'socket.io-client';
 import { ConnectSocketType } from '../../sockets/SocketManager';
 import { ShowAlert } from '../../@types/types'; 
@@ -360,19 +365,26 @@ const WelcomePage: React.FC<WelcomePageOptions> = ({ parameters }) => {
         }
       }
     } catch (error) {
-      // Handle errors during connection
-      console.error('Error connecting to socket:', error);
+      // Say why (rejected credentials, no minutes, offline, unreachable) instead of a generic failure.
+      if (isMediaSocketConnectError(error)) {
+        console.warn('MediaSFU media socket:', error.message);
+      } else {
+        console.error('Error connecting to socket:', error);
+      }
       showAlert?.({
-        message: 'Unable to connect. Check your credentials and try again.',
+        message: describeMediaSocketError(error),
         type: 'danger',
-        duration: 3000,
+        duration: isMediaSocketConnectError(error) ? 6000 : 3000,
       });
 
-      // Increment unsuccessful attempts
+      // Increment unsuccessful attempts (a device/network problem is not a credential guess)
+      const countsTowardLimit = !isNetworkOnlyMediaSocketError(error);
       let unsuccessfulAttempts = parseInt(
         (await AsyncStorage.getItem('unsuccessfulAttempts')) || '0',
       );
-      unsuccessfulAttempts += 1;
+      if (countsTowardLimit) {
+        unsuccessfulAttempts += 1;
+      }
       await AsyncStorage.setItem(
         'unsuccessfulAttempts',
         unsuccessfulAttempts.toString(),
